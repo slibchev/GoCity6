@@ -1,6 +1,7 @@
 import 'app_language.dart';
 
 class AppTranslations {
+ 
   static AppLanguage currentLanguage = AppLanguage.bulgarian;
 
   static String get chooseLanguage {
@@ -218,5 +219,11 @@ static String get backButton {
     return 'Back';
   }
   return 'Назад';
+}
+static String get slogan {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Be 6 – Be Together';
+  }
+  return 'Be 6 - Пътувайте заедно';
 }
 }

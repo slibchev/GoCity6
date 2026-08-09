@@ -49,7 +49,7 @@ class LanguageScreen extends StatelessWidget {
               const SizedBox(height: 15),
 
               Text(
-                AppConfig.slogan,
+                AppTranslations.slogan,
                 style: const TextStyle(
                   fontSize: 20,
                   color: AppColors.secondary,
