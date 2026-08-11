@@ -4,6 +4,7 @@ import '../config/colors.dart';
 import '../localization/app_language.dart';
 import '../localization/translations.dart';
 import 'home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
@@ -70,17 +71,23 @@ class LanguageScreen extends StatelessWidget {
               const SizedBox(height: 30),
 
               ElevatedButton(
-                onPressed: () {
-                  AppTranslations.currentLanguage =
-                      AppLanguage.english;
+                onPressed: () async {
+  AppTranslations.currentLanguage =
+      AppLanguage.english;
 
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HomeScreen(),
-                    ),
-                  );
-                },
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('language', 'english');
+ 
+
+  if (!context.mounted) return;
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const HomeScreen(),
+    ),
+  );
+},
                 child: Text(
                   AppTranslations.english,
                   style: const TextStyle(
@@ -92,17 +99,23 @@ class LanguageScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               ElevatedButton(
-                onPressed: () {
-                  AppTranslations.currentLanguage =
-                      AppLanguage.bulgarian;
+                onPressed: () async {
+  AppTranslations.currentLanguage =
+      AppLanguage.bulgarian;
 
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HomeScreen(),
-                    ),
-                  );
-                },
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('language', 'bulgarian');
+
+
+  if (!context.mounted) return;
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const HomeScreen(),
+    ),
+  );
+},
                 child: Text(
                   AppTranslations.bulgarian,
                   style: const TextStyle(

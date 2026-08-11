@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
@@ -94,16 +95,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 top: 15,
                 right: 15,
                 child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      if (AppTranslations.currentLanguage ==
-                          AppLanguage.bulgarian) {
-                        AppTranslations.currentLanguage = AppLanguage.english;
-                      } else {
-                        AppTranslations.currentLanguage = AppLanguage.bulgarian;
-                      }
-                    });
-                  },
+                  onPressed: () async {
+  final newLanguage =
+      AppTranslations.currentLanguage == AppLanguage.bulgarian
+          ? AppLanguage.english
+          : AppLanguage.bulgarian;
+
+  AppTranslations.currentLanguage = newLanguage;
+
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.setString(
+    'language',
+    newLanguage == AppLanguage.english
+        ? 'english'
+        : 'bulgarian',
+  );
+
+  if (!mounted) return;
+
+  setState(() {});
+},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.primary,
