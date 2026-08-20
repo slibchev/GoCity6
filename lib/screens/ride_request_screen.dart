@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
+import '../models/ride.dart';
 import 'ride_summary_screen.dart';
 
 class RideRequestScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class RideRequestScreen extends StatefulWidget {
 class _RideRequestScreenState extends State<RideRequestScreen> {
   int passengers = 1;
   String paymentMethod = 'cash';
+  RideType rideType = RideType.city;
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
   double estimatedPrice = 0;
@@ -50,6 +52,7 @@ void submitRide() {
       passengers: passengers,
       paymentMethod: paymentMethod,
       price: estimatedPrice,
+      rideType: rideType,
     ),
   ),
 );
@@ -133,6 +136,39 @@ void submitRide() {
                 ),
               ],
             ),
+            Text(
+  AppTranslations.rideType,
+  style: const TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+  ),
+),
+
+RadioListTile<RideType>(
+  title: Text(AppTranslations.cityRide),
+  value: RideType.city,
+  groupValue: rideType,
+  onChanged: (RideType? value) {
+    if (value == null) return;
+
+    setState(() {
+      rideType = value;
+    });
+  },
+),
+
+RadioListTile<RideType>(
+  title: Text(AppTranslations.intercityRide),
+  value: RideType.intercity,
+  groupValue: rideType,
+  onChanged: (RideType? value) {
+    if (value == null) return;
+
+    setState(() {
+      rideType = value;
+    });
+  },
+),
 
             const SizedBox(height: 20),
 
