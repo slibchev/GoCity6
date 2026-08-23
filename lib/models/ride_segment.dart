@@ -1,5 +1,5 @@
-import '../config/pricing_config.dart';
-import '../services/pricing_calculator.dart';
+import 'package:taxi_app/models/tariff_type.dart';
+import 'tariff_type.dart';
 
 class RideSegment {
   final DateTime startTime;

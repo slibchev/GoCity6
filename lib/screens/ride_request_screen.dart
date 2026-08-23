@@ -17,13 +17,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   RideType rideType = RideType.city;
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
-  double estimatedPrice = 0;
-  void calculatePrice() {
-  setState(() {
-    estimatedPrice = 5 + (passengers * 2);
-  });
   
-}
 void submitRide() {
   if (pickupController.text.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -47,13 +41,12 @@ void submitRide() {
   context,
   MaterialPageRoute(
     builder: (context) => RideSummaryScreen(
-      pickup: pickupController.text,
-      destination: destinationController.text,
-      passengers: passengers,
-      paymentMethod: paymentMethod,
-      price: estimatedPrice,
-      rideType: rideType,
-    ),
+  pickup: pickupController.text,
+  destination: destinationController.text,
+  passengers: passengers,
+  paymentMethod: paymentMethod,
+  rideType: rideType,
+),
   ),
 );
 }
@@ -215,10 +208,10 @@ RadioListTile<RideType>(
             const SizedBox(height: 20),
 
             Text(
-    '${AppTranslations.estimatedPrice}: ${estimatedPrice.toStringAsFixed(2)} лв.',
-         style: const TextStyle(
-         fontSize: 18,
-         fontWeight: FontWeight.bold,
+  AppTranslations.estimatedPrice,
+  style: const TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
   ),
 ),
 

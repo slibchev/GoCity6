@@ -1,0 +1,4 @@
+enum TariffType {
+  day,
+  night,
+}

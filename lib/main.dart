@@ -14,7 +14,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
 
   final savedLanguage = prefs.getString('language');
-  debugPrint('LOADED LANGUAGE: $savedLanguage');
+  
   if (savedLanguage == 'english') {
   AppTranslations.currentLanguage = AppLanguage.english;
 } else if (savedLanguage == 'bulgarian') {

@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import 'ride_confirmation_screen.dart';
+import '../models/ride.dart';
 
 class RideSummaryScreen extends StatelessWidget {
   final String pickup;
   final String destination;
   final int passengers;
   final String paymentMethod;
-  final double price;
+  final RideType rideType;
+  
 
   const RideSummaryScreen({
     super.key,
@@ -16,7 +18,8 @@ class RideSummaryScreen extends StatelessWidget {
     required this.destination,
     required this.passengers,
     required this.paymentMethod,
-    required this.price,
+    required this.rideType,
+    
   });
 
   @override
@@ -90,6 +93,13 @@ class RideSummaryScreen extends StatelessWidget {
   '👥 ${AppTranslations.passengersLabel}: $passengers',
   style: const TextStyle(fontSize: 18),
 ),
+const SizedBox(height: 15),
+
+Text(
+  '🚕 ${AppTranslations.rideType}: '
+  '${rideType == RideType.city ? AppTranslations.cityRide : AppTranslations.intercityRide}',
+  style: const TextStyle(fontSize: 18),
+),
 
             const SizedBox(height: 15),
 
@@ -112,7 +122,7 @@ Text(
 ),
 
             Text(
-  '💰 ${AppTranslations.priceLabel}: ${price.toStringAsFixed(2)}',
+  '💰 ${AppTranslations.priceLabel}: ${AppTranslations.calculating}',
   style: const TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
@@ -128,9 +138,7 @@ Text(
                 onPressed: () { Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => RideConfirmationScreen(
-        price: price,
-      ),
+      builder: (context) => const RideConfirmationScreen(),
     ),
   );},
                 style: ElevatedButton.styleFrom(

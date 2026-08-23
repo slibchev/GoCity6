@@ -4,12 +4,11 @@ import '../localization/translations.dart';
 
 
 class RideConfirmationScreen extends StatelessWidget {
-  final double price;
+
 
   const RideConfirmationScreen({
-    super.key,
-    required this.price,
-  });
+  super.key,
+});
 
 
   @override
@@ -48,11 +47,11 @@ class RideConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               Text(
-                '💰 ${AppTranslations.priceLabel}: ${price.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 20,
-                ),
-              ),
+  '💰 ${AppTranslations.priceLabel}: ${AppTranslations.calculating}',
+  style: const TextStyle(
+    fontSize: 20,
+  ),
+),
 
               const SizedBox(height: 20),
 

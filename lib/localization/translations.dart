@@ -58,6 +58,26 @@ static String get passengers {
   }
   return 'Брой пътници';
 }
+static String get rideType {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Ride type';
+  }
+  return 'Тип курс';
+}
+
+static String get cityRide {
+  if (currentLanguage == AppLanguage.english) {
+    return 'City';
+  }
+  return 'Градско';
+}
+
+static String get intercityRide {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Intercity';
+  }
+  return 'Извънградско';
+}
 
 static String get payment {
   if (currentLanguage == AppLanguage.english) {

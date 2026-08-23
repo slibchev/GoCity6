@@ -1,9 +1,5 @@
-import '../config/pricing_config.dart';
-
-enum TariffType {
-  day,
-  night,
-}
+import 'package:taxi_app/config/pricing_config.dart';
+import 'package:taxi_app/models/tariff_type.dart';
 
 class PricingCalculator {
   static Tariff getTariff(TariffType type) {
@@ -25,19 +21,32 @@ class PricingCalculator {
     return TariffType.day;
   }
 
+  static double calculateUsagePrice({
+    required Tariff tariff,
+    required double kilometers,
+    required double waitingMinutes,
+    bool intercity = false,
+  }) {
+    final pricePerKm =
+        intercity ? tariff.intercityPerKm : tariff.cityPerKm;
+
+    return (kilometers * pricePerKm) +
+        (waitingMinutes * tariff.waitingPerMinute);
+  }
+
   static double calculateSegmentPrice({
     required Tariff tariff,
     required double kilometers,
     required double waitingMinutes,
     bool intercity = false,
   }) {
-    final pricePerKm = intercity
-        ? tariff.intercityPerKm
-        : tariff.cityPerKm;
-
     return tariff.initialFare +
         tariff.callOutFee +
-        (kilometers * pricePerKm) +
-        (waitingMinutes * tariff.waitingPerMinute);
+        calculateUsagePrice(
+          tariff: tariff,
+          kilometers: kilometers,
+          waitingMinutes: waitingMinutes,
+          intercity: intercity,
+        );
   }
 }

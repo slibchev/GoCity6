@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taxi_app/models/ride_segment.dart';
+import 'package:taxi_app/models/tariff_type.dart';
 import 'package:taxi_app/services/ride_segment_service.dart';
 import 'package:taxi_app/services/pricing_calculator.dart';
 
@@ -101,7 +102,7 @@ test('Night segment price is calculated with night tariff', () {
 
   expect(price, 12.05);
 });
-test('Ride price is the sum of all segment prices', () {
+test('Ride price charges initial fare and call-out fee only once', () {
   final segments = [
     RideSegment(
       startTime: DateTime(2026, 1, 1, 10, 0),
@@ -123,7 +124,7 @@ test('Ride price is the sum of all segment prices', () {
 
   final price = RideSegmentService.calculateRidePrice(segments);
 
-  expect(price, 22.90);
+  expect(price, 20.60);
 });
   });
 }

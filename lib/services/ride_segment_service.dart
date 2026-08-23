@@ -55,10 +55,26 @@ class RideSegmentService {
   );
 }
 static double calculateRidePrice(List<RideSegment> segments) {
-  double totalPrice = 0;
+  if (segments.isEmpty) {
+    return 0;
+  }
+
+  final startTariff =
+      PricingCalculator.getTariff(segments.first.tariffType);
+
+  double totalPrice =
+      startTariff.initialFare + startTariff.callOutFee;
 
   for (final segment in segments) {
-    totalPrice += calculateSegmentPrice(segment);
+    final tariff =
+        PricingCalculator.getTariff(segment.tariffType);
+
+    totalPrice += PricingCalculator.calculateUsagePrice(
+      tariff: tariff,
+      kilometers: segment.kilometers,
+      waitingMinutes: segment.waitingMinutes,
+      intercity: segment.intercity,
+    );
   }
 
   return totalPrice;
