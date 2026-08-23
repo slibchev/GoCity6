@@ -3,6 +3,7 @@ import '../config/colors.dart';
 import '../localization/translations.dart';
 import 'ride_confirmation_screen.dart';
 import '../models/ride.dart';
+import '../models/route_result.dart';
 
 class RideSummaryScreen extends StatelessWidget {
   final String pickup;
@@ -10,6 +11,7 @@ class RideSummaryScreen extends StatelessWidget {
   final int passengers;
   final String paymentMethod;
   final RideType rideType;
+  final RouteResult? routeResult;
   
 
   const RideSummaryScreen({
@@ -19,10 +21,11 @@ class RideSummaryScreen extends StatelessWidget {
     required this.passengers,
     required this.paymentMethod,
     required this.rideType,
+    this.routeResult,
     
   });
 
-  @override
+  
   String getPaymentText() {
   switch (paymentMethod) {
     case 'cash':
@@ -38,6 +41,7 @@ class RideSummaryScreen extends StatelessWidget {
       return paymentMethod;
   }
 }
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -145,13 +149,13 @@ Text(
                   backgroundColor: AppColors.secondary,
                   foregroundColor: AppColors.primary,
                 ),
-                child: const Text(
-                  'Confirm ride',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text(
+  AppTranslations.confirmRide,
+  style: const TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+  ),
+),
               ),
             ),
           ],

@@ -3,10 +3,15 @@ import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride.dart';
 import 'ride_summary_screen.dart';
+import '../services/route_service.dart';
 
 class RideRequestScreen extends StatefulWidget {
-  const RideRequestScreen({super.key});
+  final RouteService? routeService;
 
+  const RideRequestScreen({
+    super.key,
+    this.routeService,
+  });
   @override
   State<RideRequestScreen> createState() => _RideRequestScreenState();
 }
@@ -15,42 +20,99 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   int passengers = 1;
   String paymentMethod = 'cash';
   RideType rideType = RideType.city;
+  bool isCalculatingRoute = false;
+
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
-  
-void submitRide() {
-  if (pickupController.text.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(
-        content: Text(AppTranslations.pickupRequired),
-      ),
-    );
-    return;
+
+  Future<void> submitRide() async {
+    if (pickupController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppTranslations.pickupRequired),
+        ),
+      );
+      return;
+    }
+
+    if (destinationController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppTranslations.destinationRequired),
+        ),
+      );
+      return;
+    }
+
+    if (widget.routeService == null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RideSummaryScreen(
+            pickup: pickupController.text.trim(),
+            destination: destinationController.text.trim(),
+            passengers: passengers,
+            paymentMethod: paymentMethod,
+            rideType: rideType,
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    setState(() {
+      isCalculatingRoute = true;
+    });
+
+    try {
+      final routeResult = await widget.routeService!.calculateRoute(
+        pickup: pickupController.text.trim(),
+        destination: destinationController.text.trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RideSummaryScreen(
+            pickup: pickupController.text.trim(),
+            destination: destinationController.text.trim(),
+            passengers: passengers,
+            paymentMethod: paymentMethod,
+            rideType: rideType,
+            routeResult: routeResult,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppTranslations.routeCalculationFailed),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isCalculatingRoute = false;
+        });
+      }
+    }
   }
 
-  if (destinationController.text.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(
-        content: Text(AppTranslations.destinationRequired),
-      ),
-    );
-    return;
+  @override
+  void dispose() {
+    pickupController.dispose();
+    destinationController.dispose();
+    super.dispose();
   }
-
-  Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => RideSummaryScreen(
-  pickup: pickupController.text,
-  destination: destinationController.text,
-  passengers: passengers,
-  paymentMethod: paymentMethod,
-  rideType: rideType,
-),
-  ),
-);
-}
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,11 +283,11 @@ RadioListTile<RideType>(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () { submitRide();},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: AppColors.primary,
-                ),
+  onPressed: isCalculatingRoute ? null : submitRide,
+  style: ElevatedButton.styleFrom(
+    backgroundColor: AppColors.secondary,
+    foregroundColor: AppColors.primary,
+  ),
                 child: Text(
                   AppTranslations.confirmRide,
                   style: TextStyle(

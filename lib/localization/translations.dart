@@ -246,4 +246,10 @@ static String get slogan {
   }
   return 'Be 6 - Пътувайте заедно';
 }
+static String get routeCalculationFailed {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Could not calculate the route. Please try again.';
+  }
+  return 'Маршрутът не можа да бъде изчислен. Моля, опитайте отново.';
+}
 }
