@@ -83,4 +83,13 @@ void main() {
       expect(price, 14.45);
     });
   });
+  test('Estimated city price uses route distance and no waiting time', () {
+  final price = PricingCalculator.calculateEstimatedPrice(
+    startTime: DateTime(2026, 1, 1, 10, 0),
+    kilometers: 10,
+    intercity: false,
+  );
+
+  expect(price, 9.60);
+});
 }

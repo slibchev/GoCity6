@@ -25,7 +25,9 @@ class SuccessfulRouteService implements RouteService {
     return const RouteResult(
       distanceKm: 12.5,
       durationMinutes: 25,
+      
     );
+    
   }
 }
 
@@ -81,8 +83,9 @@ expect(buttonAfterError.onPressed, isNotNull);
     await tester.pumpWidget(
       MaterialApp(
         home: RideRequestScreen(
-          routeService: SuccessfulRouteService(),
-        ),
+  routeService: SuccessfulRouteService(),
+  now: () => DateTime(2026, 1, 1, 10, 0),
+),
       ),
     );
 
@@ -120,6 +123,23 @@ expect(buttonAfterError.onPressed, isNotNull);
     expect(summaryScreen.routeResult, isNotNull);
     expect(summaryScreen.routeResult!.distanceKm, 12.5);
     expect(summaryScreen.routeResult!.durationMinutes, 25);
+    expect(
+  summaryScreen.estimatedPrice,
+  closeTo(11.475, 0.001),
+);
+    expect(
+  find.textContaining('12.5 km'),
+  findsOneWidget,
+);
+
+expect(
+  find.textContaining('25'),
+  findsOneWidget,
+);
+expect(
+  find.textContaining('11.48'),
+  findsOneWidget,
+);
   },
 );
 }

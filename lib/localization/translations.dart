@@ -252,4 +252,24 @@ static String get routeCalculationFailed {
   }
   return 'Маршрутът не можа да бъде изчислен. Моля, опитайте отново.';
 }
+static String get distance {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Distance';
+  }
+  return 'Разстояние';
+}
+
+static String get estimatedDuration {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Estimated duration';
+  }
+  return 'Ориентировъчно време';
+}
+
+static String get minutes {
+  if (currentLanguage == AppLanguage.english) {
+    return 'min';
+  }
+  return 'мин';
+}
 }

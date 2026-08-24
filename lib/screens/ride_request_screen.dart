@@ -5,14 +5,17 @@ import '../localization/translations.dart';
 import '../models/ride.dart';
 import '../services/route_service.dart';
 import 'ride_summary_screen.dart';
+import '../services/pricing_calculator.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
+  final DateTime Function() now;
 
-  const RideRequestScreen({
-    super.key,
-    this.routeService,
-  });
+  RideRequestScreen({
+  super.key,
+  this.routeService,
+  DateTime Function()? now,
+}) : now = now ?? DateTime.now;
 
   @override
   State<RideRequestScreen> createState() => _RideRequestScreenState();
@@ -76,6 +79,11 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       if (!mounted) {
         return;
       }
+      final estimatedPrice = PricingCalculator.calculateEstimatedPrice(
+  startTime: widget.now(),
+  kilometers: routeResult.distanceKm,
+  intercity: rideType == RideType.intercity,
+);
 
       Navigator.push(
         context,
@@ -87,6 +95,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
             paymentMethod: paymentMethod,
             rideType: rideType,
             routeResult: routeResult,
+            estimatedPrice: estimatedPrice,
           ),
         ),
       );

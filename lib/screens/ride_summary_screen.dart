@@ -13,6 +13,7 @@ class RideSummaryScreen extends StatelessWidget {
   final String paymentMethod;
   final RideType rideType;
   final RouteResult? routeResult;
+  final double? estimatedPrice;
 
   const RideSummaryScreen({
     super.key,
@@ -22,6 +23,7 @@ class RideSummaryScreen extends StatelessWidget {
     required this.paymentMethod,
     required this.rideType,
     this.routeResult,
+    this.estimatedPrice,
   });
 
   String getPaymentText() {
@@ -132,7 +134,28 @@ class RideSummaryScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 15),
+if (routeResult != null) ...[
+  Text(
+    '🛣️ ${AppTranslations.distance}: '
+    '${routeResult!.distanceKm.toStringAsFixed(1)} km',
+    style: const TextStyle(
+      fontSize: 18,
+    ),
+  ),
 
+  const SizedBox(height: 15),
+
+  Text(
+    '⏱️ ${AppTranslations.estimatedDuration}: '
+    '${routeResult!.durationMinutes.toStringAsFixed(0)} '
+    '${AppTranslations.minutes}',
+    style: const TextStyle(
+      fontSize: 18,
+    ),
+  ),
+
+  const SizedBox(height: 15),
+],
               Text(
                 '🕒 ${AppTranslations.arrivalTime}: '
                 '${AppTranslations.calculating}',
@@ -144,14 +167,13 @@ class RideSummaryScreen extends StatelessWidget {
               const SizedBox(height: 15),
 
               Text(
-                '💰 ${AppTranslations.priceLabel}: '
-                '${AppTranslations.calculating}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
+  '💰 ${AppTranslations.priceLabel}: '
+  '${estimatedPrice == null ? AppTranslations.calculating : '${estimatedPrice!.toStringAsFixed(2)} лв.'}',
+  style: const TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+  ),
+),
               const SizedBox(height: 30),
 
               SizedBox(

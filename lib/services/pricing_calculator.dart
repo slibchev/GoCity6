@@ -49,4 +49,19 @@ class PricingCalculator {
           intercity: intercity,
         );
   }
+  static double calculateEstimatedPrice({
+  required DateTime startTime,
+  required double kilometers,
+  required bool intercity,
+}) {
+  final tariffType = getTariffType(startTime);
+  final tariff = getTariff(tariffType);
+
+  return calculateSegmentPrice(
+    tariff: tariff,
+    kilometers: kilometers,
+    waitingMinutes: 0,
+    intercity: intercity,
+  );
+}
 }
