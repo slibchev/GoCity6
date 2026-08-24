@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../config/colors.dart';
 import '../localization/translations.dart';
-import 'ride_confirmation_screen.dart';
 import '../models/ride.dart';
 import '../models/route_result.dart';
+import 'ride_confirmation_screen.dart';
 
 class RideSummaryScreen extends StatelessWidget {
   final String pickup;
@@ -12,7 +13,6 @@ class RideSummaryScreen extends StatelessWidget {
   final String paymentMethod;
   final RideType rideType;
   final RouteResult? routeResult;
-  
 
   const RideSummaryScreen({
     super.key,
@@ -22,26 +22,25 @@ class RideSummaryScreen extends StatelessWidget {
     required this.paymentMethod,
     required this.rideType,
     this.routeResult,
-    
   });
 
-  
   String getPaymentText() {
-  switch (paymentMethod) {
-    case 'cash':
-      return AppTranslations.cash;
+    switch (paymentMethod) {
+      case 'cash':
+        return AppTranslations.cash;
 
-    case 'card':
-      return AppTranslations.card;
+      case 'card':
+        return AppTranslations.card;
 
-    case 'voucher':
-      return AppTranslations.voucher;
+      case 'voucher':
+        return AppTranslations.voucher;
 
-    default:
-      return paymentMethod;
+      default:
+        return paymentMethod;
+    }
   }
-}
-@override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -49,116 +48,140 @@ class RideSummaryScreen extends StatelessWidget {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            const SizedBox(height: 20),
-
-            Text(
-  AppTranslations.rideSummary,
-  style: const TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-            const SizedBox(height: 30),
-
-            Text(
-  '🚐 ${AppTranslations.vehicleInfo}',
-  style: TextStyle(
-    fontSize: 20,
-    color: AppColors.primary,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-            const SizedBox(height: 25),
-
-            Text(
-  '📍 ${AppTranslations.from}: $pickup',
-  style: const TextStyle(fontSize: 18),
-),
-
-            const SizedBox(height: 15),
-
-            Text(
-  '📍 ${AppTranslations.to}: $destination',
-  style: const TextStyle(fontSize: 18),
-),
-
-            const SizedBox(height: 15),
-
-            Text(
-  '👥 ${AppTranslations.passengersLabel}: $passengers',
-  style: const TextStyle(fontSize: 18),
-),
-const SizedBox(height: 15),
-
-Text(
-  '🚕 ${AppTranslations.rideType}: '
-  '${rideType == RideType.city ? AppTranslations.cityRide : AppTranslations.intercityRide}',
-  style: const TextStyle(fontSize: 18),
-),
-
-            const SizedBox(height: 15),
-
-            Text(
-  '💳 ${AppTranslations.paymentMethod}: ${getPaymentText()}',
-  style: const TextStyle(fontSize: 18),
-),
-
-            const SizedBox(height: 15),
-            Text(
-  '🧳 ${AppTranslations.luggage}: ${AppTranslations.luggageInfo}',
-  style: const TextStyle(fontSize: 18),
-),
-
-const SizedBox(height: 15),
-
-Text(
-  '🕒 ${AppTranslations.arrivalTime}: ${AppTranslations.calculating}',
-  style: const TextStyle(fontSize: 18),
-),
-
-            Text(
-  '💰 ${AppTranslations.priceLabel}: ${AppTranslations.calculating}',
-  style: const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-            const Spacer(),
-
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () { Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const RideConfirmationScreen(),
-    ),
-  );},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: AppColors.primary,
+              Text(
+                AppTranslations.rideSummary,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Text(
-  AppTranslations.confirmRide,
-  style: const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-  ),
-),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 30),
+
+              Text(
+                '🚐 ${AppTranslations.vehicleInfo}',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              Text(
+                '📍 ${AppTranslations.from}: $pickup',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '📍 ${AppTranslations.to}: $destination',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '👥 ${AppTranslations.passengersLabel}: $passengers',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '🚕 ${AppTranslations.rideType}: '
+                '${rideType == RideType.city ? AppTranslations.cityRide : AppTranslations.intercityRide}',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '💳 ${AppTranslations.paymentMethod}: ${getPaymentText()}',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '🧳 ${AppTranslations.luggage}: '
+                '${AppTranslations.luggageInfo}',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '🕒 ${AppTranslations.arrivalTime}: '
+                '${AppTranslations.calculating}',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              Text(
+                '💰 ${AppTranslations.priceLabel}: '
+                '${AppTranslations.calculating}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const RideConfirmationScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: AppColors.primary,
+                  ),
+                  child: Text(
+                    AppTranslations.confirmRide,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
