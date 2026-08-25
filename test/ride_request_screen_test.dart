@@ -30,6 +30,18 @@ class SuccessfulRouteService implements RouteService {
     
   }
 }
+class NightIntercityRouteService implements RouteService {
+  @override
+  Future<RouteResult> calculateRoute({
+    required String pickup,
+    required String destination,
+  }) async {
+    return const RouteResult(
+      distanceKm: 10,
+      durationMinutes: 20,
+    );
+  }
+}
 
 void main() {
   testWidgets(
@@ -143,6 +155,69 @@ expect(
   find.textContaining(formattedPrice),
   findsOneWidget,
 );
+  },
+);
+testWidgets(
+  'RideRequestScreen calculates night intercity estimated price',
+  (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: NightIntercityRouteService(),
+          now: () => DateTime(2026, 1, 1, 23, 0),
+        ),
+      ),
+    );
+
+    final textFields = find.byType(TextField);
+
+    await tester.enterText(
+      textFields.at(0),
+      'Pickup location',
+    );
+
+    await tester.enterText(
+      textFields.at(1),
+      'Destination location',
+    );
+
+    await tester.tap(
+      find.text(AppTranslations.intercityRide),
+    );
+
+    await tester.pump();
+
+    final confirmButton = find.byType(ElevatedButton);
+
+    final button = tester.widget<ElevatedButton>(
+      confirmButton,
+    );
+
+    button.onPressed!();
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(RideSummaryScreen),
+      findsOneWidget,
+    );
+
+    final summaryScreen = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+
+    expect(
+      summaryScreen.estimatedPrice,
+      closeTo(13.20, 0.001),
+    );
+
+    final formattedPrice =
+        summaryScreen.estimatedPrice!.toStringAsFixed(2);
+
+    expect(
+      find.textContaining(formattedPrice),
+      findsOneWidget,
+    );
   },
 );
 }
