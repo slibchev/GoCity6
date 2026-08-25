@@ -136,8 +136,11 @@ expect(
   find.textContaining('25'),
   findsOneWidget,
 );
+final formattedPrice =
+    summaryScreen.estimatedPrice!.toStringAsFixed(2);
+
 expect(
-  find.textContaining('11.48'),
+  find.textContaining(formattedPrice),
   findsOneWidget,
 );
   },

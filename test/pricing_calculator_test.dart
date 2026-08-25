@@ -92,4 +92,13 @@ void main() {
 
   expect(price, 9.60);
 });
+test('Estimated intercity price uses night tariff', () {
+  final price = PricingCalculator.calculateEstimatedPrice(
+    startTime: DateTime(2026, 1, 1, 23, 0),
+    kilometers: 10,
+    intercity: true,
+  );
+
+  expect(price, 13.20);
+});
 }
