@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../config/colors.dart';
 import '../localization/translations.dart';
-
+import '../models/ride_request_data.dart';
 
 class RideConfirmationScreen extends StatelessWidget {
-
+  final RideRequestData request;
 
   const RideConfirmationScreen({
   super.key,
+  required this.request,
 });
-
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +20,12 @@ class RideConfirmationScreen extends StatelessWidget {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(25),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-
               const Icon(
                 Icons.check_circle,
                 size: 100,
@@ -47,11 +46,12 @@ class RideConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               Text(
-  '💰 ${AppTranslations.priceLabel}: ${AppTranslations.calculating}',
-  style: const TextStyle(
-    fontSize: 20,
-  ),
-),
+                '💰 ${AppTranslations.priceLabel}: '
+                '${request.estimatedPrice == null ? AppTranslations.calculating : '${request.estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                style: const TextStyle(
+                  fontSize: 20,
+                ),
+              ),
 
               const SizedBox(height: 20),
 
@@ -77,12 +77,12 @@ class RideConfirmationScreen extends StatelessWidget {
                     foregroundColor: AppColors.primary,
                   ),
                   child: Text(
-  AppTranslations.backButton,
-  style: const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-  ),
-),
+                    AppTranslations.backButton,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],

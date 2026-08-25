@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride.dart';
+import '../models/ride_request_data.dart';
 import '../models/route_result.dart';
 import 'ride_confirmation_screen.dart';
 
@@ -13,18 +14,20 @@ class RideSummaryScreen extends StatelessWidget {
   final RidePaymentMethod paymentMethod;
   final RideType rideType;
   final RouteResult? routeResult;
+  final RideRequestData request;
   final double? estimatedPrice;
 
-  const RideSummaryScreen({
-    super.key,
-    required this.pickup,
-    required this.destination,
-    required this.passengers,
-    required this.paymentMethod,
-    required this.rideType,
-    this.routeResult,
-    this.estimatedPrice,
-  });
+  
+  RideSummaryScreen.fromRequest({
+  super.key,
+  required this.request,
+})  : pickup = request.pickup,
+      destination = request.destination,
+      passengers = request.passengers,
+      paymentMethod = request.paymentMethod,
+      rideType = request.rideType,
+      routeResult = request.routeResult,
+      estimatedPrice = request.estimatedPrice;
 
   String getPaymentText() {
   switch (paymentMethod) {
@@ -181,8 +184,9 @@ if (routeResult != null) ...[
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            const RideConfirmationScreen(),
+                        builder: (context) => RideConfirmationScreen(
+  request: request,
+),
                       ),
                     );
                   },

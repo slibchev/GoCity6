@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride.dart';
+import '../models/ride_request_data.dart';
 import '../services/route_service.dart';
 import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
@@ -50,21 +51,26 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
     }
 
     if (widget.routeService == null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RideSummaryScreen(
-            pickup: pickupController.text.trim(),
-            destination: destinationController.text.trim(),
-            passengers: passengers,
-           paymentMethod: paymentMethod,
-            rideType: rideType,
-          ),
-        ),
-      );
+  final request = RideRequestData(
+    pickup: pickupController.text.trim(),
+    destination: destinationController.text.trim(),
+    passengers: passengers,
+    paymentMethod: paymentMethod,
+    rideType: rideType,
+    requestedAt: widget.now(),
+  );
 
-      return;
-    }
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => RideSummaryScreen.fromRequest(
+        request: request,
+      ),
+    ),
+  );
+
+  return;
+}
 
     setState(() {
       isCalculatingRoute = true;
@@ -79,24 +85,31 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       if (!mounted) {
         return;
       }
-      final estimatedPrice = PricingCalculator.calculateEstimatedPrice(
-  startTime: widget.now(),
+      final requestedAt = widget.now();
+
+final estimatedPrice = PricingCalculator.calculateEstimatedPrice(
+  startTime: requestedAt,
   kilometers: routeResult.distanceKm,
   intercity: rideType == RideType.intercity,
+);
+
+final request = RideRequestData(
+  pickup: pickupController.text.trim(),
+  destination: destinationController.text.trim(),
+  passengers: passengers,
+  paymentMethod: paymentMethod,
+  rideType: rideType,
+  requestedAt: requestedAt,
+  routeResult: routeResult,
+  estimatedPrice: estimatedPrice,
 );
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RideSummaryScreen(
-            pickup: pickupController.text.trim(),
-            destination: destinationController.text.trim(),
-            passengers: passengers,
-           paymentMethod: paymentMethod,
-            rideType: rideType,
-            routeResult: routeResult,
-            estimatedPrice: estimatedPrice,
-          ),
+          builder: (context) => RideSummaryScreen.fromRequest(
+  request: request,
+),
         ),
       );
     } catch (error) {
