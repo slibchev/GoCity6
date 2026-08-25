@@ -23,7 +23,7 @@ class RideRequestScreen extends StatefulWidget {
 
 class _RideRequestScreenState extends State<RideRequestScreen> {
   int passengers = 1;
-  String paymentMethod = 'cash';
+  RidePaymentMethod paymentMethod = RidePaymentMethod.cash;
   RideType rideType = RideType.city;
   bool isCalculatingRoute = false;
 
@@ -57,7 +57,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
             pickup: pickupController.text.trim(),
             destination: destinationController.text.trim(),
             passengers: passengers,
-            paymentMethod: paymentMethod,
+           paymentMethod: paymentMethod,
             rideType: rideType,
           ),
         ),
@@ -92,7 +92,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
             pickup: pickupController.text.trim(),
             destination: destinationController.text.trim(),
             passengers: passengers,
-            paymentMethod: paymentMethod,
+           paymentMethod: paymentMethod,
             rideType: rideType,
             routeResult: routeResult,
             estimatedPrice: estimatedPrice,
@@ -250,50 +250,50 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                 ),
               ),
 
-              RadioListTile<String>(
-                title: Text(AppTranslations.cash),
-                value: 'cash',
-                groupValue: paymentMethod,
-                onChanged: (String? value) {
-                  if (value == null) {
-                    return;
-                  }
+              RadioListTile<RidePaymentMethod>(
+  title: Text(AppTranslations.cash),
+  value: RidePaymentMethod.cash,
+  groupValue: paymentMethod,
+  onChanged: (RidePaymentMethod? value) {
+    if (value == null) {
+      return;
+    }
 
-                  setState(() {
-                    paymentMethod = value;
-                  });
-                },
-              ),
+    setState(() {
+      paymentMethod = value;
+    });
+  },
+),
 
-              RadioListTile<String>(
-                title: Text(AppTranslations.card),
-                value: 'card',
-                groupValue: paymentMethod,
-                onChanged: (String? value) {
-                  if (value == null) {
-                    return;
-                  }
+              RadioListTile<RidePaymentMethod>(
+  title: Text(AppTranslations.card),
+  value: RidePaymentMethod.card,
+  groupValue: paymentMethod,
+  onChanged: (RidePaymentMethod? value) {
+    if (value == null) {
+      return;
+    }
 
-                  setState(() {
-                    paymentMethod = value;
-                  });
-                },
-              ),
+    setState(() {
+      paymentMethod = value;
+    });
+  },
+),
 
-              RadioListTile<String>(
-                title: Text(AppTranslations.voucher),
-                value: 'voucher',
-                groupValue: paymentMethod,
-                onChanged: (String? value) {
-                  if (value == null) {
-                    return;
-                  }
+              RadioListTile<RidePaymentMethod>(
+  title: Text(AppTranslations.voucher),
+  value: RidePaymentMethod.voucher,
+  groupValue: paymentMethod,
+  onChanged: (RidePaymentMethod? value) {
+    if (value == null) {
+      return;
+    }
 
-                  setState(() {
-                    paymentMethod = value;
-                  });
-                },
-              ),
+    setState(() {
+      paymentMethod = value;
+    });
+  },
+),
 
               const SizedBox(height: 20),
 

@@ -10,7 +10,7 @@ class RideSummaryScreen extends StatelessWidget {
   final String pickup;
   final String destination;
   final int passengers;
-  final String paymentMethod;
+  final RidePaymentMethod paymentMethod;
   final RideType rideType;
   final RouteResult? routeResult;
   final double? estimatedPrice;
@@ -27,20 +27,17 @@ class RideSummaryScreen extends StatelessWidget {
   });
 
   String getPaymentText() {
-    switch (paymentMethod) {
-      case 'cash':
-        return AppTranslations.cash;
+  switch (paymentMethod) {
+    case RidePaymentMethod.cash:
+      return AppTranslations.cash;
 
-      case 'card':
-        return AppTranslations.card;
+    case RidePaymentMethod.card:
+      return AppTranslations.card;
 
-      case 'voucher':
-        return AppTranslations.voucher;
-
-      default:
-        return paymentMethod;
-    }
+    case RidePaymentMethod.voucher:
+      return AppTranslations.voucher;
   }
+}
 
   @override
   Widget build(BuildContext context) {
