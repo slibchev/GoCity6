@@ -8,9 +8,9 @@ class RideConfirmationScreen extends StatelessWidget {
   final RideRequestData request;
 
   const RideConfirmationScreen({
-  super.key,
-  required this.request,
-});
+    super.key,
+    required this.request,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,7 @@ class RideConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 30),
 
               Text(
-                AppTranslations.rideAccepted,
+                AppTranslations.rideRequestSent,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 28,
@@ -56,7 +56,7 @@ class RideConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               Text(
-                AppTranslations.calculating,
+                AppTranslations.waitingForDriverConfirmation,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,

@@ -142,6 +142,21 @@ static String get rideAccepted {
   }
   return 'Заявката е приета успешно!';
 }
+static String get rideRequestSent {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Ride request sent';
+  }
+
+  return 'Заявката за курс е изпратена';
+}
+
+static String get waitingForDriverConfirmation {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Waiting for driver confirmation';
+  }
+
+  return 'Очаква се потвърждение от шофьора';
+}
 static String get rideSummary {
   if (currentLanguage == AppLanguage.english) {
     return 'Ride summary';
@@ -272,4 +287,5 @@ static String get minutes {
   }
   return 'мин';
 }
+
 }
