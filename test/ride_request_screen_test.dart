@@ -6,6 +6,7 @@ import 'package:taxi_app/models/route_result.dart';
 import 'package:taxi_app/screens/ride_request_screen.dart';
 import 'package:taxi_app/services/route_service.dart';
 import 'package:taxi_app/screens/ride_summary_screen.dart';
+import 'package:taxi_app/models/ride.dart';
 
 class FailingRouteService implements RouteService {
   @override
@@ -217,6 +218,61 @@ testWidgets(
     expect(
       find.textContaining(formattedPrice),
       findsOneWidget,
+    );
+  },
+);
+testWidgets(
+  'RideRequestScreen passes card payment method to RideSummaryScreen',
+  (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: SuccessfulRouteService(),
+          now: () => DateTime(2026, 1, 1, 10, 0),
+        ),
+      ),
+    );
+
+    final textFields = find.byType(TextField);
+
+    await tester.enterText(
+      textFields.at(0),
+      'Pickup location',
+    );
+
+    await tester.enterText(
+      textFields.at(1),
+      'Destination location',
+    );
+
+    await tester.tap(
+      find.text(AppTranslations.card),
+    );
+
+    await tester.pump();
+
+    final confirmButton = find.byType(ElevatedButton);
+
+    final button = tester.widget<ElevatedButton>(
+      confirmButton,
+    );
+
+    button.onPressed!();
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(RideSummaryScreen),
+      findsOneWidget,
+    );
+
+    final summaryScreen = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+
+    expect(
+      summaryScreen.paymentMethod,
+      RidePaymentMethod.card,
     );
   },
 );
