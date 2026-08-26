@@ -6,7 +6,7 @@ import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
-import 'package:taxi_app/services/mock_ride_request_service.dart';
+import 'support/mock_ride_request_service.dart';
 
 void main() {
   testWidgets(

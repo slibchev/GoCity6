@@ -1,6 +1,6 @@
-import '../models/ride_request_data.dart';
-import '../models/ride_request_status.dart';
-import 'ride_request_service.dart';
+import 'package:taxi_app/models/ride_request_data.dart';
+import 'package:taxi_app/models/ride_request_status.dart';
+import 'package:taxi_app/services/ride_request_service.dart';
 
 class MockRideRequestService implements RideRequestService {
   @override
