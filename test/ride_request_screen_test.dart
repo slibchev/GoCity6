@@ -7,6 +7,7 @@ import 'package:taxi_app/screens/ride_request_screen.dart';
 import 'package:taxi_app/services/route_service.dart';
 import 'package:taxi_app/screens/ride_summary_screen.dart';
 import 'package:taxi_app/models/ride.dart';
+import 'package:taxi_app/models/ride_request_status.dart';
 
 class FailingRouteService implements RouteService {
   @override
@@ -139,6 +140,10 @@ expect(buttonAfterError.onPressed, isNotNull);
     expect(
   summaryScreen.estimatedPrice,
   closeTo(11.475, 0.001),
+);
+expect(
+  summaryScreen.request.status,
+  RideRequestStatus.pending,
 );
     expect(
   find.textContaining('12.5 km'),

@@ -1,5 +1,6 @@
 import 'ride.dart';
 import 'route_result.dart';
+import 'ride_request_status.dart';
 
 class RideRequestData {
   final String pickup;
@@ -10,6 +11,7 @@ class RideRequestData {
   final RideType rideType;
 
   final DateTime requestedAt;
+  final RideRequestStatus status;
 
   final RouteResult? routeResult;
   final double? estimatedPrice;
@@ -21,6 +23,7 @@ class RideRequestData {
     required this.paymentMethod,
     required this.rideType,
     required this.requestedAt,
+    this.status = RideRequestStatus.pending,
     this.routeResult,
     this.estimatedPrice,
   });
