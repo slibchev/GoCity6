@@ -157,6 +157,37 @@ static String get waitingForDriverConfirmation {
 
   return 'Очаква се потвърждение от шофьора';
 }
+static String get driverArriving {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Driver is on the way';
+  }
+
+  return 'Шофьорът пътува към вас';
+}
+
+static String get rideInProgress {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Ride in progress';
+  }
+
+  return 'Курсът е започнал';
+}
+
+static String get rideCompleted {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Ride completed';
+  }
+
+  return 'Курсът е завършен';
+}
+
+static String get rideCancelled {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Ride cancelled';
+  }
+
+  return 'Заявката е анулирана';
+}
 static String get rideSummary {
   if (currentLanguage == AppLanguage.english) {
     return 'Ride summary';

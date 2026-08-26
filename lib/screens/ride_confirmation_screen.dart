@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
+import '../models/ride_request_status.dart';
 
 class RideConfirmationScreen extends StatelessWidget {
   final RideRequestData request;
@@ -11,7 +12,49 @@ class RideConfirmationScreen extends StatelessWidget {
     super.key,
     required this.request,
   });
+String getStatusTitle() {
+  switch (request.status) {
+    case RideRequestStatus.pending:
+      return AppTranslations.rideRequestSent;
 
+    case RideRequestStatus.accepted:
+      return AppTranslations.rideAccepted;
+
+    case RideRequestStatus.driverArriving:
+      return AppTranslations.driverArriving;
+
+    case RideRequestStatus.inProgress:
+      return AppTranslations.rideInProgress;
+
+    case RideRequestStatus.completed:
+      return AppTranslations.rideCompleted;
+
+    case RideRequestStatus.cancelled:
+      return AppTranslations.rideCancelled;
+  }
+}
+
+String getStatusMessage() {
+  switch (request.status) {
+    case RideRequestStatus.pending:
+      return AppTranslations.waitingForDriverConfirmation;
+
+    case RideRequestStatus.accepted:
+      return AppTranslations.rideAccepted;
+
+    case RideRequestStatus.driverArriving:
+      return AppTranslations.driverArriving;
+
+    case RideRequestStatus.inProgress:
+      return AppTranslations.rideInProgress;
+
+    case RideRequestStatus.completed:
+      return AppTranslations.rideCompleted;
+
+    case RideRequestStatus.cancelled:
+      return AppTranslations.rideCancelled;
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +78,7 @@ class RideConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 30),
 
               Text(
-                AppTranslations.rideRequestSent,
+                getStatusTitle(),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 28,
@@ -56,7 +99,7 @@ class RideConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               Text(
-                AppTranslations.waitingForDriverConfirmation,
+                getStatusMessage(),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
