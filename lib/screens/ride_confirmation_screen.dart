@@ -4,57 +4,104 @@ import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
+import '../services/ride_request_service.dart';
 
-class RideConfirmationScreen extends StatelessWidget {
+class RideConfirmationScreen extends StatefulWidget {
   final RideRequestData request;
+  final RideRequestService? rideRequestService;
 
   const RideConfirmationScreen({
     super.key,
     required this.request,
+    this.rideRequestService,
   });
-String getStatusTitle() {
-  switch (request.status) {
-    case RideRequestStatus.pending:
-      return AppTranslations.rideRequestSent;
 
-    case RideRequestStatus.accepted:
-      return AppTranslations.rideAccepted;
+  @override
+  State<RideConfirmationScreen> createState() =>
+      _RideConfirmationScreenState();
+}
 
-    case RideRequestStatus.driverArriving:
-      return AppTranslations.driverArriving;
+class _RideConfirmationScreenState
+    extends State<RideConfirmationScreen> {
+  late RideRequestData currentRequest;
 
-    case RideRequestStatus.inProgress:
-      return AppTranslations.rideInProgress;
+  @override
+void initState() {
+  super.initState();
 
-    case RideRequestStatus.completed:
-      return AppTranslations.rideCompleted;
+  currentRequest = widget.request;
+  _refreshStatus();
+}
 
-    case RideRequestStatus.cancelled:
-      return AppTranslations.rideCancelled;
+Future<void> _refreshStatus() async {
+  final service = widget.rideRequestService;
+
+  if (service == null) {
+    return;
+  }
+
+  try {
+    final updatedRequest = await service.getRequestStatus(
+      currentRequest,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      currentRequest = updatedRequest;
+    });
+  } catch (error) {
+    // Засега запазваме текущия статус при грешка.
+    // По-късно ще добавим отделно UI съобщение за проблем с връзката.
   }
 }
 
-String getStatusMessage() {
-  switch (request.status) {
-    case RideRequestStatus.pending:
-      return AppTranslations.waitingForDriverConfirmation;
+  String getStatusTitle() {
+    switch (currentRequest.status) {
+      case RideRequestStatus.pending:
+        return AppTranslations.rideRequestSent;
 
-    case RideRequestStatus.accepted:
-      return AppTranslations.rideAccepted;
+      case RideRequestStatus.accepted:
+        return AppTranslations.rideAccepted;
 
-    case RideRequestStatus.driverArriving:
-      return AppTranslations.driverArriving;
+      case RideRequestStatus.driverArriving:
+        return AppTranslations.driverArriving;
 
-    case RideRequestStatus.inProgress:
-      return AppTranslations.rideInProgress;
+      case RideRequestStatus.inProgress:
+        return AppTranslations.rideInProgress;
 
-    case RideRequestStatus.completed:
-      return AppTranslations.rideCompleted;
+      case RideRequestStatus.completed:
+        return AppTranslations.rideCompleted;
 
-    case RideRequestStatus.cancelled:
-      return AppTranslations.rideCancelled;
+      case RideRequestStatus.cancelled:
+        return AppTranslations.rideCancelled;
+    }
   }
-}
+
+  String getStatusMessage() {
+    switch (currentRequest.status) {
+      case RideRequestStatus.pending:
+        return AppTranslations.waitingForDriverConfirmation;
+
+      case RideRequestStatus.accepted:
+        return AppTranslations.rideAccepted;
+
+      case RideRequestStatus.driverArriving:
+        return AppTranslations.driverArriving;
+
+      case RideRequestStatus.inProgress:
+        return AppTranslations.rideInProgress;
+
+      case RideRequestStatus.completed:
+        return AppTranslations.rideCompleted;
+
+      case RideRequestStatus.cancelled:
+        return AppTranslations.rideCancelled;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,7 +137,7 @@ String getStatusMessage() {
 
               Text(
                 '💰 ${AppTranslations.priceLabel}: '
-                '${request.estimatedPrice == null ? AppTranslations.calculating : '${request.estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
                 style: const TextStyle(
                   fontSize: 20,
                 ),

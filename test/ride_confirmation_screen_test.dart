@@ -6,6 +6,7 @@ import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
+import 'package:taxi_app/services/mock_ride_request_service.dart';
 
 void main() {
   testWidgets(
@@ -70,4 +71,35 @@ void main() {
       );
     },
   );
+  testWidgets(
+  'RideConfirmationScreen refreshes pending status to accepted',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: MockRideRequestService(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppTranslations.rideAccepted),
+      findsWidgets,
+    );
+  },
+);
 }
