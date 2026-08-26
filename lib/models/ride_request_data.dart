@@ -27,4 +27,27 @@ class RideRequestData {
     this.routeResult,
     this.estimatedPrice,
   });
+  RideRequestData copyWith({
+  String? pickup,
+  String? destination,
+  int? passengers,
+  RidePaymentMethod? paymentMethod,
+  RideType? rideType,
+  DateTime? requestedAt,
+  RideRequestStatus? status,
+  RouteResult? routeResult,
+  double? estimatedPrice,
+}) {
+  return RideRequestData(
+    pickup: pickup ?? this.pickup,
+    destination: destination ?? this.destination,
+    passengers: passengers ?? this.passengers,
+    paymentMethod: paymentMethod ?? this.paymentMethod,
+    rideType: rideType ?? this.rideType,
+    requestedAt: requestedAt ?? this.requestedAt,
+    status: status ?? this.status,
+    routeResult: routeResult ?? this.routeResult,
+    estimatedPrice: estimatedPrice ?? this.estimatedPrice,
+  );
+}
 }
