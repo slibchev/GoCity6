@@ -9,8 +9,54 @@ import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'support/mock_ride_request_service.dart';
 
 void main() {
+  testWidgets('RideConfirmationScreen shows pending status', (
+    WidgetTester tester,
+  ) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+
+    expect(find.text(AppTranslations.rideRequestSent), findsOneWidget);
+
+    expect(
+      find.text(AppTranslations.waitingForDriverConfirmation),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('RideConfirmationScreen shows accepted status', (
+    WidgetTester tester,
+  ) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.accepted,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+
+    expect(find.text(AppTranslations.rideAccepted), findsWidgets);
+  });
   testWidgets(
-    'RideConfirmationScreen shows pending status',
+    'RideConfirmationScreen updates pending status to accepted from stream',
     (WidgetTester tester) async {
       final request = RideRequestData(
         pickup: 'Pickup',
@@ -27,79 +73,14 @@ void main() {
         MaterialApp(
           home: RideConfirmationScreen(
             request: request,
+            rideRequestService: MockRideRequestService(),
           ),
         ),
       );
 
-      expect(
-        find.text(AppTranslations.rideRequestSent),
-        findsOneWidget,
-      );
+      await tester.pumpAndSettle();
 
-      expect(
-        find.text(AppTranslations.waitingForDriverConfirmation),
-        findsOneWidget,
-      );
+      expect(find.text(AppTranslations.rideAccepted), findsWidgets);
     },
   );
-
-  testWidgets(
-    'RideConfirmationScreen shows accepted status',
-    (WidgetTester tester) async {
-      final request = RideRequestData(
-        pickup: 'Pickup',
-        destination: 'Destination',
-        passengers: 1,
-        paymentMethod: RidePaymentMethod.cash,
-        rideType: RideType.city,
-        requestedAt: DateTime(2026, 1, 1, 10, 0),
-        status: RideRequestStatus.accepted,
-        estimatedPrice: 10.50,
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: RideConfirmationScreen(
-            request: request,
-          ),
-        ),
-      );
-
-      expect(
-        find.text(AppTranslations.rideAccepted),
-        findsWidgets,
-      );
-    },
-  );
-  testWidgets(
-  'RideConfirmationScreen refreshes pending status to accepted',
-  (WidgetTester tester) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.pending,
-      estimatedPrice: 10.50,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(
-          request: request,
-          rideRequestService: MockRideRequestService(),
-        ),
-      ),
-    );
-
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text(AppTranslations.rideAccepted),
-      findsWidgets,
-    );
-  },
-);
 }
