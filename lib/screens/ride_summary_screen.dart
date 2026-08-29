@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride.dart';
 import '../models/ride_request_data.dart';
 import '../models/route_result.dart';
 import 'ride_confirmation_screen.dart';
+import '../services/ride_request_service.dart';
 
 class RideSummaryScreen extends StatelessWidget {
   final String pickup;
@@ -16,11 +16,13 @@ class RideSummaryScreen extends StatelessWidget {
   final RouteResult? routeResult;
   final RideRequestData request;
   final double? estimatedPrice;
+  final RideRequestService? rideRequestService;
 
   
   RideSummaryScreen.fromRequest({
   super.key,
   required this.request,
+  this.rideRequestService,
 })  : pickup = request.pickup,
       destination = request.destination,
       passengers = request.passengers,
@@ -40,6 +42,27 @@ class RideSummaryScreen extends StatelessWidget {
     case RidePaymentMethod.voucher:
       return AppTranslations.voucher;
   }
+}
+Future<void> _confirmRide(BuildContext context) async {
+  final service = rideRequestService;
+
+  final submittedRequest = service == null
+      ? request
+      : await service.submitRequest(request);
+
+  if (!context.mounted) {
+    return;
+  }
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => RideConfirmationScreen(
+        request: submittedRequest,
+        rideRequestService: service,
+      ),
+    ),
+  );
 }
 
   @override
@@ -180,16 +203,9 @@ if (routeResult != null) ...[
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RideConfirmationScreen(
-  request: request,
-),
-                      ),
-                    );
-                  },
+                  onPressed: () async {
+  await _confirmRide(context);
+},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: AppColors.primary,
