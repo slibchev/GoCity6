@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../config/colors.dart';
@@ -17,46 +18,53 @@ class RideConfirmationScreen extends StatefulWidget {
   });
 
   @override
-  State<RideConfirmationScreen> createState() =>
-      _RideConfirmationScreenState();
+  State<RideConfirmationScreen> createState() => _RideConfirmationScreenState();
 }
 
-class _RideConfirmationScreenState
-    extends State<RideConfirmationScreen> {
+class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   late RideRequestData currentRequest;
 
+  StreamSubscription<RideRequestData>? _statusSubscription;
+
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  currentRequest = widget.request;
-  _refreshStatus();
-}
-
-Future<void> _refreshStatus() async {
-  final service = widget.rideRequestService;
-
-  if (service == null) {
-    return;
+    currentRequest = widget.request;
+    _watchStatus();
   }
 
-  try {
-    final updatedRequest = await service.getRequestStatus(
-      currentRequest,
-    );
+  void _watchStatus() {
+    final service = widget.rideRequestService;
 
-    if (!mounted) {
+    if (service == null) {
       return;
     }
 
-    setState(() {
-      currentRequest = updatedRequest;
-    });
-  } catch (error) {
-    // Засега запазваме текущия статус при грешка.
-    // По-късно ще добавим отделно UI съобщение за проблем с връзката.
+    _statusSubscription = service
+        .watchRequestStatus(currentRequest)
+        .listen(
+          (updatedRequest) {
+            if (!mounted) {
+              return;
+            }
+
+            setState(() {
+              currentRequest = updatedRequest;
+            });
+          },
+          onError: (error) {
+            // Засега запазваме последния известен статус.
+            // По-късно ще покажем проблем с връзката в UI.
+          },
+        );
   }
-}
+
+  @override
+  void dispose() {
+    _statusSubscription?.cancel();
+    super.dispose();
+  }
 
   String getStatusTitle() {
     switch (currentRequest.status) {
@@ -116,11 +124,7 @@ Future<void> _refreshStatus() async {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.check_circle,
-                size: 100,
-                color: Colors.green,
-              ),
+              const Icon(Icons.check_circle, size: 100, color: Colors.green),
 
               const SizedBox(height: 30),
 
@@ -138,9 +142,7 @@ Future<void> _refreshStatus() async {
               Text(
                 '💰 ${AppTranslations.priceLabel}: '
                 '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
-                style: const TextStyle(
-                  fontSize: 20,
-                ),
+                style: const TextStyle(fontSize: 20),
               ),
 
               const SizedBox(height: 20),
@@ -148,9 +150,7 @@ Future<void> _refreshStatus() async {
               Text(
                 getStatusMessage(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 40),

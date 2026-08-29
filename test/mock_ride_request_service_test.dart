@@ -37,4 +37,30 @@ void main() {
       RideRequestStatus.accepted,
     );
   });
+  test('MockRideRequestService streams pending then accepted', () async {
+  final service = MockRideRequestService();
+
+  final request = RideRequestData(
+    pickup: 'Pickup',
+    destination: 'Destination',
+    passengers: 1,
+    paymentMethod: RidePaymentMethod.cash,
+    rideType: RideType.city,
+    requestedAt: DateTime(2026, 1, 1, 10, 0),
+    status: RideRequestStatus.pending,
+  );
+
+  final statuses = await service
+      .watchRequestStatus(request)
+      .map((request) => request.status)
+      .toList();
+
+  expect(
+    statuses,
+    [
+      RideRequestStatus.pending,
+      RideRequestStatus.accepted,
+    ],
+  );
+});
 }

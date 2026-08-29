@@ -24,4 +24,17 @@ class MockRideRequestService implements RideRequestService {
 
     return request;
   }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(
+    RideRequestData request,
+  ) async* {
+    yield request;
+
+    if (request.status == RideRequestStatus.pending) {
+      yield request.copyWith(
+        status: RideRequestStatus.accepted,
+      );
+    }
+  }
 }

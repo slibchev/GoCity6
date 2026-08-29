@@ -8,4 +8,8 @@ abstract class RideRequestService {
   Future<RideRequestData> getRequestStatus(
     RideRequestData request,
   );
+
+  Stream<RideRequestData> watchRequestStatus(
+    RideRequestData request,
+  );
 }
