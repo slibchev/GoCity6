@@ -344,4 +344,48 @@ void main() {
     );
   },
 );
+testWidgets(
+  'RideConfirmationScreen hides driver information outside driver arriving status',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.completed,
+      estimatedPrice: 10.50,
+      driverInfo: const DriverInfo(
+        name: 'Test Driver',
+        vehicle: 'Dacia Jogger',
+        licensePlate: 'CB 1234 AB',
+        etaMinutes: 4,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining('Test Driver'),
+      findsNothing,
+    );
+
+    expect(
+      find.textContaining('Dacia Jogger'),
+      findsNothing,
+    );
+
+    expect(
+      find.textContaining('CB 1234 AB'),
+      findsNothing,
+    );
+  },
+);
 }
