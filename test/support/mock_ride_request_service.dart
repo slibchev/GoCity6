@@ -45,15 +45,20 @@ Future<RideRequestData> getRequestStatus(
 }
 
   @override
-  Stream<RideRequestData> watchRequestStatus(
-    RideRequestData request,
-  ) async* {
-    yield request;
+Stream<RideRequestData> watchRequestStatus(
+  RideRequestData request,
+) async* {
+  RideRequestData currentRequest = request;
 
-    if (request.status == RideRequestStatus.pending) {
-      yield request.copyWith(
-        status: RideRequestStatus.accepted,
-      );
-    }
+  yield currentRequest;
+
+  while (currentRequest.status != RideRequestStatus.completed &&
+      currentRequest.status != RideRequestStatus.cancelled) {
+    currentRequest = await getRequestStatus(
+      currentRequest,
+    );
+
+    yield currentRequest;
   }
+}
 }

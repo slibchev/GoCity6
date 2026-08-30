@@ -41,7 +41,7 @@ void main() {
       RideRequestStatus.accepted,
     );
   });
-  test('MockRideRequestService streams pending then accepted', () async {
+  test('MockRideRequestService streams full ride lifecycle', () async {
   final service = MockRideRequestService();
 
   final request = RideRequestData(
@@ -60,12 +60,15 @@ void main() {
       .toList();
 
   expect(
-    statuses,
-    [
-      RideRequestStatus.pending,
-      RideRequestStatus.accepted,
-    ],
-  );
+  statuses,
+  [
+    RideRequestStatus.pending,
+    RideRequestStatus.accepted,
+    RideRequestStatus.driverArriving,
+    RideRequestStatus.inProgress,
+    RideRequestStatus.completed,
+  ],
+);
 });
 test(
   'MockRideRequestService advances through full ride lifecycle',

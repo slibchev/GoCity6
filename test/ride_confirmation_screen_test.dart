@@ -9,54 +9,71 @@ import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'support/mock_ride_request_service.dart';
 
 void main() {
-  testWidgets('RideConfirmationScreen shows pending status', (
-    WidgetTester tester,
-  ) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.pending,
-      estimatedPrice: 10.50,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: RideConfirmationScreen(request: request)),
-    );
-
-    expect(find.text(AppTranslations.rideRequestSent), findsOneWidget);
-
-    expect(
-      find.text(AppTranslations.waitingForDriverConfirmation),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('RideConfirmationScreen shows accepted status', (
-    WidgetTester tester,
-  ) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.accepted,
-      estimatedPrice: 10.50,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: RideConfirmationScreen(request: request)),
-    );
-
-    expect(find.text(AppTranslations.rideAccepted), findsWidgets);
-  });
   testWidgets(
-    'RideConfirmationScreen updates pending status to accepted from stream',
+    'RideConfirmationScreen shows pending status',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.pending,
+        estimatedPrice: 10.50,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
+      );
+
+      expect(
+        find.text(AppTranslations.rideRequestSent),
+        findsOneWidget,
+      );
+
+      expect(
+        find.text(AppTranslations.waitingForDriverConfirmation),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'RideConfirmationScreen shows accepted status',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.accepted,
+        estimatedPrice: 10.50,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
+      );
+
+      expect(
+        find.text(AppTranslations.rideAccepted),
+        findsWidgets,
+      );
+    },
+  );
+
+  testWidgets(
+    'RideConfirmationScreen updates through stream to completed',
     (WidgetTester tester) async {
       final request = RideRequestData(
         pickup: 'Pickup',
@@ -80,89 +97,129 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text(AppTranslations.rideAccepted), findsWidgets);
+      expect(
+        find.text(AppTranslations.rideCompleted),
+        findsWidgets,
+      );
     },
   );
-  testWidgets('RideConfirmationScreen shows driver arriving status', (
-    WidgetTester tester,
-  ) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.driverArriving,
-      estimatedPrice: 10.50,
-    );
 
-    await tester.pumpWidget(
-      MaterialApp(home: RideConfirmationScreen(request: request)),
-    );
+  testWidgets(
+    'RideConfirmationScreen shows driver arriving status',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.driverArriving,
+        estimatedPrice: 10.50,
+      );
 
-    expect(find.text(AppTranslations.driverArriving), findsWidgets);
-  });
-  testWidgets('RideConfirmationScreen shows ride in progress status', (
-    WidgetTester tester,
-  ) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.inProgress,
-      estimatedPrice: 10.50,
-    );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(home: RideConfirmationScreen(request: request)),
-    );
+      expect(
+        find.text(AppTranslations.driverArriving),
+        findsWidgets,
+      );
+    },
+  );
 
-    expect(find.text(AppTranslations.rideInProgress), findsWidgets);
-  });
-  testWidgets('RideConfirmationScreen shows completed status', (
-    WidgetTester tester,
-  ) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.completed,
-      estimatedPrice: 10.50,
-    );
+  testWidgets(
+    'RideConfirmationScreen shows ride in progress status',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.inProgress,
+        estimatedPrice: 10.50,
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(home: RideConfirmationScreen(request: request)),
-    );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
+      );
 
-    expect(find.text(AppTranslations.rideCompleted), findsWidgets);
-  });
-  testWidgets('RideConfirmationScreen shows cancelled status', (
-    WidgetTester tester,
-  ) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.cancelled,
-      estimatedPrice: 10.50,
-    );
+      expect(
+        find.text(AppTranslations.rideInProgress),
+        findsWidgets,
+      );
+    },
+  );
 
-    await tester.pumpWidget(
-      MaterialApp(home: RideConfirmationScreen(request: request)),
-    );
+  testWidgets(
+    'RideConfirmationScreen shows completed status',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.completed,
+        estimatedPrice: 10.50,
+      );
 
-    expect(find.text(AppTranslations.rideCancelled), findsWidgets);
-  });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
+      );
+
+      expect(
+        find.text(AppTranslations.rideCompleted),
+        findsWidgets,
+      );
+    },
+  );
+
+  testWidgets(
+    'RideConfirmationScreen shows cancelled status',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.cancelled,
+        estimatedPrice: 10.50,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
+      );
+
+      expect(
+        find.text(AppTranslations.rideCancelled),
+        findsWidgets,
+      );
+    },
+  );
+
   testWidgets(
     'RideConfirmationScreen shows red cancel icon for cancelled ride',
     (WidgetTester tester) async {
@@ -178,51 +235,64 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: RideConfirmationScreen(request: request)),
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
+        ),
       );
 
-      expect(find.byIcon(Icons.cancel), findsOneWidget);
+      expect(
+        find.byIcon(Icons.cancel),
+        findsOneWidget,
+      );
 
-      final icon = tester.widget<Icon>(find.byIcon(Icons.cancel));
+      final icon = tester.widget<Icon>(
+        find.byIcon(Icons.cancel),
+      );
 
-      expect(icon.color, Colors.red);
+      expect(
+        icon.color,
+        Colors.red,
+      );
     },
   );
+
   testWidgets(
-  'RideConfirmationScreen shows taxi icon for driver arriving',
-  (WidgetTester tester) async {
-    final request = RideRequestData(
-      pickup: 'Pickup',
-      destination: 'Destination',
-      passengers: 1,
-      paymentMethod: RidePaymentMethod.cash,
-      rideType: RideType.city,
-      requestedAt: DateTime(2026, 1, 1, 10, 0),
-      status: RideRequestStatus.driverArriving,
-      estimatedPrice: 10.50,
-    );
+    'RideConfirmationScreen shows taxi icon for driver arriving',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.driverArriving,
+        estimatedPrice: 10.50,
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(
-          request: request,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(
-      find.byIcon(Icons.local_taxi),
-      findsOneWidget,
-    );
+      expect(
+        find.byIcon(Icons.local_taxi),
+        findsOneWidget,
+      );
 
-    final icon = tester.widget<Icon>(
-      find.byIcon(Icons.local_taxi),
-    );
+      final icon = tester.widget<Icon>(
+        find.byIcon(Icons.local_taxi),
+      );
 
-    expect(
-      icon.color,
-      Colors.blue,
-    );
-  },
-);
+      expect(
+        icon.color,
+        Colors.blue,
+      );
+    },
+  );
 }
