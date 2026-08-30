@@ -103,9 +103,9 @@ void main() {
 
     expect(find.text(AppTranslations.driverArriving), findsWidgets);
   });
-  testWidgets(
-  'RideConfirmationScreen shows ride in progress status',
-  (WidgetTester tester) async {
+  testWidgets('RideConfirmationScreen shows ride in progress status', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -118,22 +118,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(
-          request: request,
-        ),
-      ),
+      MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
-    expect(
-      find.text(AppTranslations.rideInProgress),
-      findsWidgets,
-    );
-  },
-);
-testWidgets(
-  'RideConfirmationScreen shows completed status',
-  (WidgetTester tester) async {
+    expect(find.text(AppTranslations.rideInProgress), findsWidgets);
+  });
+  testWidgets('RideConfirmationScreen shows completed status', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -146,22 +138,14 @@ testWidgets(
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(
-          request: request,
-        ),
-      ),
+      MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
-    expect(
-      find.text(AppTranslations.rideCompleted),
-      findsWidgets,
-    );
-  },
-);
-testWidgets(
-  'RideConfirmationScreen shows cancelled status',
-  (WidgetTester tester) async {
+    expect(find.text(AppTranslations.rideCompleted), findsWidgets);
+  });
+  testWidgets('RideConfirmationScreen shows cancelled status', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -174,6 +158,51 @@ testWidgets(
     );
 
     await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+
+    expect(find.text(AppTranslations.rideCancelled), findsWidgets);
+  });
+  testWidgets(
+    'RideConfirmationScreen shows red cancel icon for cancelled ride',
+    (WidgetTester tester) async {
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.cancelled,
+        estimatedPrice: 10.50,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: RideConfirmationScreen(request: request)),
+      );
+
+      expect(find.byIcon(Icons.cancel), findsOneWidget);
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.cancel));
+
+      expect(icon.color, Colors.red);
+    },
+  );
+  testWidgets(
+  'RideConfirmationScreen shows taxi icon for driver arriving',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.driverArriving,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
       MaterialApp(
         home: RideConfirmationScreen(
           request: request,
@@ -182,8 +211,17 @@ testWidgets(
     );
 
     expect(
-      find.text(AppTranslations.rideCancelled),
-      findsWidgets,
+      find.byIcon(Icons.local_taxi),
+      findsOneWidget,
+    );
+
+    final icon = tester.widget<Icon>(
+      find.byIcon(Icons.local_taxi),
+    );
+
+    expect(
+      icon.color,
+      Colors.blue,
     );
   },
 );
