@@ -66,6 +66,50 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     super.dispose();
   }
 
+  IconData getStatusIcon() {
+    switch (currentRequest.status) {
+      case RideRequestStatus.pending:
+        return Icons.hourglass_top;
+
+      case RideRequestStatus.accepted:
+        return Icons.check_circle;
+
+      case RideRequestStatus.driverArriving:
+        return Icons.local_taxi;
+
+      case RideRequestStatus.inProgress:
+        return Icons.route;
+
+      case RideRequestStatus.completed:
+        return Icons.check_circle;
+
+      case RideRequestStatus.cancelled:
+        return Icons.cancel;
+    }
+  }
+
+  Color getStatusColor() {
+    switch (currentRequest.status) {
+      case RideRequestStatus.pending:
+        return Colors.orange;
+
+      case RideRequestStatus.accepted:
+        return Colors.green;
+
+      case RideRequestStatus.driverArriving:
+        return Colors.blue;
+
+      case RideRequestStatus.inProgress:
+        return Colors.blue;
+
+      case RideRequestStatus.completed:
+        return Colors.green;
+
+      case RideRequestStatus.cancelled:
+        return Colors.red;
+    }
+  }
+
   String getStatusTitle() {
     switch (currentRequest.status) {
       case RideRequestStatus.pending:
@@ -124,7 +168,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle, size: 100, color: Colors.green),
+              Icon(getStatusIcon(), size: 100, color: getStatusColor()),
 
               const SizedBox(height: 30),
 
