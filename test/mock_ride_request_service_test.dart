@@ -67,4 +67,80 @@ void main() {
     ],
   );
 });
+test(
+  'MockRideRequestService advances through full ride lifecycle',
+  () async {
+    final service = MockRideRequestService();
+
+    RideRequestData request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+    );
+
+    request = await service.getRequestStatus(request);
+
+    expect(
+      request.status,
+      RideRequestStatus.accepted,
+    );
+
+    request = await service.getRequestStatus(request);
+
+    expect(
+      request.status,
+      RideRequestStatus.driverArriving,
+    );
+
+    request = await service.getRequestStatus(request);
+
+    expect(
+      request.status,
+      RideRequestStatus.inProgress,
+    );
+
+    request = await service.getRequestStatus(request);
+
+    expect(
+      request.status,
+      RideRequestStatus.completed,
+    );
+
+    request = await service.getRequestStatus(request);
+
+    expect(
+      request.status,
+      RideRequestStatus.completed,
+    );
+  },
+);
+test(
+  'MockRideRequestService keeps cancelled ride cancelled',
+  () async {
+    final service = MockRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.cancelled,
+    );
+
+    final updatedRequest = await service.getRequestStatus(
+      request,
+    );
+
+    expect(
+      updatedRequest.status,
+      RideRequestStatus.cancelled,
+    );
+  },
+);
 }

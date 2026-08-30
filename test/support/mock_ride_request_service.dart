@@ -14,17 +14,35 @@ Future<RideRequestData> submitRequest(
 }
 
   @override
-  Future<RideRequestData> getRequestStatus(
-    RideRequestData request,
-  ) async {
-    if (request.status == RideRequestStatus.pending) {
+Future<RideRequestData> getRequestStatus(
+  RideRequestData request,
+) async {
+  switch (request.status) {
+    case RideRequestStatus.pending:
       return request.copyWith(
         status: RideRequestStatus.accepted,
       );
-    }
 
-    return request;
+    case RideRequestStatus.accepted:
+      return request.copyWith(
+        status: RideRequestStatus.driverArriving,
+      );
+
+    case RideRequestStatus.driverArriving:
+      return request.copyWith(
+        status: RideRequestStatus.inProgress,
+      );
+
+    case RideRequestStatus.inProgress:
+      return request.copyWith(
+        status: RideRequestStatus.completed,
+      );
+
+    case RideRequestStatus.completed:
+    case RideRequestStatus.cancelled:
+      return request;
   }
+}
 
   @override
   Stream<RideRequestData> watchRequestStatus(
