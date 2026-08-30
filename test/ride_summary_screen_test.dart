@@ -14,83 +14,68 @@ class RecordingRideRequestService implements RideRequestService {
   RideRequestData? submittedRequest;
 
   @override
-  Future<RideRequestData> submitRequest(
-    RideRequestData request,
-  ) async {
+  Future<RideRequestData> submitRequest(RideRequestData request) async {
     submitCalled = true;
     submittedRequest = request;
 
     return request.copyWith(
+      requestId: 'recording-request-001',
       status: RideRequestStatus.pending,
     );
   }
 
   @override
-  Future<RideRequestData> getRequestStatus(
-    RideRequestData request,
-  ) async {
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async {
     return request;
   }
 
   @override
-  Stream<RideRequestData> watchRequestStatus(
-    RideRequestData request,
-  ) async* {
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {
     yield request;
   }
 }
 
 void main() {
-  testWidgets(
-    'RideSummaryScreen submits request before opening confirmation',
-    (WidgetTester tester) async {
-      final service = RecordingRideRequestService();
+  testWidgets('RideSummaryScreen submits request before opening confirmation', (
+    WidgetTester tester,
+  ) async {
+    final service = RecordingRideRequestService();
 
-      final request = RideRequestData(
-        pickup: 'Pickup',
-        destination: 'Destination',
-        passengers: 1,
-        paymentMethod: RidePaymentMethod.cash,
-        rideType: RideType.city,
-        requestedAt: DateTime(2026, 1, 1, 10, 0),
-        status: RideRequestStatus.pending,
-        estimatedPrice: 10.50,
-      );
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: RideSummaryScreen.fromRequest(
-            request: request,
-            rideRequestService: service,
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideSummaryScreen.fromRequest(
+          request: request,
+          rideRequestService: service,
         ),
-      );
+      ),
+    );
 
-      expect(
-        service.submitCalled,
-        isFalse,
-      );
+    expect(service.submitCalled, isFalse);
 
-      await tester.tap(
-        find.text(AppTranslations.confirmRide),
-      );
+    await tester.tap(find.text(AppTranslations.confirmRide));
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(
-        service.submitCalled,
-        isTrue,
-      );
+    expect(service.submitCalled, isTrue);
 
-      expect(
-        service.submittedRequest,
-        same(request),
-      );
+    expect(service.submittedRequest, same(request));
 
-      expect(
-        find.byType(RideConfirmationScreen),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(find.byType(RideConfirmationScreen), findsOneWidget);
+    final confirmationScreen = tester.widget<RideConfirmationScreen>(
+      find.byType(RideConfirmationScreen),
+    );
+
+    expect(confirmationScreen.request.requestId, 'recording-request-001');
+  });
 }
