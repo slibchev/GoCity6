@@ -7,6 +7,7 @@ import 'package:taxi_app/models/ride_request_status.dart';
 void main() {
   test('RideRequestData copyWith changes status and keeps other data', () {
     final request = RideRequestData(
+      requestId: 'request-123',
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 2,
@@ -45,5 +46,9 @@ void main() {
       acceptedRequest.estimatedPrice,
       request.estimatedPrice,
     );
+    expect(
+  acceptedRequest.requestId,
+  request.requestId,
+);
   });
 }

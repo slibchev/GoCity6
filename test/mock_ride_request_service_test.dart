@@ -27,6 +27,10 @@ void main() {
       submittedRequest.status,
       RideRequestStatus.pending,
     );
+    expect(
+  submittedRequest.requestId,
+  'mock-request-001',
+);
 
     final updatedRequest = await service.getRequestStatus(
       submittedRequest,

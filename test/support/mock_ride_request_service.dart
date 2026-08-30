@@ -4,13 +4,14 @@ import 'package:taxi_app/services/ride_request_service.dart';
 
 class MockRideRequestService implements RideRequestService {
   @override
-  Future<RideRequestData> submitRequest(
-    RideRequestData request,
-  ) async {
-    return request.copyWith(
-      status: RideRequestStatus.pending,
-    );
-  }
+Future<RideRequestData> submitRequest(
+  RideRequestData request,
+) async {
+  return request.copyWith(
+    requestId: request.requestId ?? 'mock-request-001',
+    status: RideRequestStatus.pending,
+  );
+}
 
   @override
   Future<RideRequestData> getRequestStatus(

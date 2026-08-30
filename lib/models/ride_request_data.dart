@@ -3,6 +3,7 @@ import 'route_result.dart';
 import 'ride_request_status.dart';
 
 class RideRequestData {
+  final String? requestId;
   final String pickup;
   final String destination;
   final int passengers;
@@ -17,6 +18,7 @@ class RideRequestData {
   final double? estimatedPrice;
 
   const RideRequestData({
+    this.requestId,
     required this.pickup,
     required this.destination,
     required this.passengers,
@@ -28,6 +30,7 @@ class RideRequestData {
     this.estimatedPrice,
   });
   RideRequestData copyWith({
+    String? requestId,
   String? pickup,
   String? destination,
   int? passengers,
@@ -39,6 +42,7 @@ class RideRequestData {
   double? estimatedPrice,
 }) {
   return RideRequestData(
+    requestId: requestId ?? this.requestId,
     pickup: pickup ?? this.pickup,
     destination: destination ?? this.destination,
     passengers: passengers ?? this.passengers,
