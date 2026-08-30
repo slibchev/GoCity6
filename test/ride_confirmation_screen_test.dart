@@ -341,4 +341,96 @@ void main() {
       expect(find.byIcon(Icons.phone), findsNothing);
     },
   );
+  testWidgets(
+  'RideConfirmationScreen shows error when phone launcher fails',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.driverArriving,
+      estimatedPrice: 10.50,
+      driverInfo: const DriverInfo(
+        name: 'Test Driver',
+        vehicle: 'Dacia Jogger',
+        licensePlate: 'CB 1234 AB',
+        etaMinutes: 4,
+        phoneNumber: '+359888123456',
+      ),
+    );
+
+    Future<bool> failingLauncher(Uri uri) async {
+      return false;
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          phoneLauncher: failingLauncher,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.text(AppTranslations.callDriver),
+    );
+
+    await tester.pump();
+
+    expect(
+      find.text(AppTranslations.callDriverFailed),
+      findsOneWidget,
+    );
+  },
+);
+testWidgets(
+  'RideConfirmationScreen shows error when phone launcher throws',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.driverArriving,
+      estimatedPrice: 10.50,
+      driverInfo: const DriverInfo(
+        name: 'Test Driver',
+        vehicle: 'Dacia Jogger',
+        licensePlate: 'CB 1234 AB',
+        etaMinutes: 4,
+        phoneNumber: '+359888123456',
+      ),
+    );
+
+    Future<bool> throwingLauncher(Uri uri) async {
+      throw Exception('Launch failed');
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          phoneLauncher: throwingLauncher,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.text(AppTranslations.callDriver),
+    );
+
+    await tester.pump();
+
+    expect(
+      find.text(AppTranslations.callDriverFailed),
+      findsOneWidget,
+    );
+  },
+);
 }

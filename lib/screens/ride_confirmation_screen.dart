@@ -7,14 +7,18 @@ import '../models/ride_request_status.dart';
 import '../services/ride_request_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+typedef PhoneLauncher = Future<bool> Function(Uri uri);
+
 class RideConfirmationScreen extends StatefulWidget {
   final RideRequestData request;
   final RideRequestService? rideRequestService;
+  final PhoneLauncher? phoneLauncher;
 
   const RideConfirmationScreen({
     super.key,
     required this.request,
     this.rideRequestService,
+    this.phoneLauncher,
   });
 
   @override
@@ -158,7 +162,9 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     final uri = Uri(scheme: 'tel', path: phoneNumber);
 
     try {
-      final launched = await launchUrl(uri);
+      final launcher = widget.phoneLauncher ?? launchUrl;
+
+      final launched = await launcher(uri);
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
