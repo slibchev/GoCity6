@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import '../services/ride_request_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RideConfirmationScreen extends StatefulWidget {
   final RideRequestData request;
@@ -154,6 +154,12 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     }
   }
 
+  Future<void> _callDriver(String phoneNumber) async {
+    final uri = Uri(scheme: 'tel', path: phoneNumber);
+
+    await launchUrl(uri);
+  }
+
   Widget buildDriverInfo() {
     final driverInfo = currentRequest.driverInfo;
 
@@ -204,7 +210,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
             height: 50,
             child: OutlinedButton.icon(
               onPressed: () {
-                // Реалното обаждане ще добавим в следваща стъпка.
+                _callDriver(driverInfo.phoneNumber!);
               },
               icon: const Icon(Icons.phone),
               label: Text(AppTranslations.callDriver),
