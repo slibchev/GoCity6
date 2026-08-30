@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:taxi_app/localization/translations.dart';
 import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'support/mock_ride_request_service.dart';
+import 'package:taxi_app/models/driver_info.dart';
 
 void main() {
   testWidgets(
@@ -295,4 +295,53 @@ void main() {
       );
     },
   );
+  testWidgets(
+  'RideConfirmationScreen shows driver information when driver is arriving',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.driverArriving,
+      estimatedPrice: 10.50,
+      driverInfo: const DriverInfo(
+        name: 'Test Driver',
+        vehicle: 'Dacia Jogger',
+        licensePlate: 'CB 1234 AB',
+        etaMinutes: 4,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining('Test Driver'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.textContaining('Dacia Jogger'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.textContaining('CB 1234 AB'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.textContaining('4'),
+      findsWidgets,
+    );
+  },
+);
 }

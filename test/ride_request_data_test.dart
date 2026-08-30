@@ -1,13 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
+import 'package:taxi_app/models/driver_info.dart';
 
 void main() {
   test('RideRequestData copyWith changes status and keeps other data', () {
     final request = RideRequestData(
       requestId: 'request-123',
+      driverInfo: const DriverInfo(
+        name: 'Test Driver',
+        vehicle: 'Dacia Jogger',
+        licensePlate: 'CB 1234 AB',
+        etaMinutes: 4,
+      ),
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 2,
@@ -22,33 +28,16 @@ void main() {
       status: RideRequestStatus.accepted,
     );
 
-    expect(
-      acceptedRequest.status,
-      RideRequestStatus.accepted,
-    );
+    expect(acceptedRequest.status, RideRequestStatus.accepted);
 
-    expect(
-      acceptedRequest.pickup,
-      request.pickup,
-    );
+    expect(acceptedRequest.pickup, request.pickup);
 
-    expect(
-      acceptedRequest.destination,
-      request.destination,
-    );
+    expect(acceptedRequest.destination, request.destination);
 
-    expect(
-      acceptedRequest.paymentMethod,
-      request.paymentMethod,
-    );
+    expect(acceptedRequest.paymentMethod, request.paymentMethod);
 
-    expect(
-      acceptedRequest.estimatedPrice,
-      request.estimatedPrice,
-    );
-    expect(
-  acceptedRequest.requestId,
-  request.requestId,
-);
+    expect(acceptedRequest.estimatedPrice, request.estimatedPrice);
+    expect(acceptedRequest.requestId, request.requestId);
+    expect(acceptedRequest.driverInfo, request.driverInfo);
   });
 }

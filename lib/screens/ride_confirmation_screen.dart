@@ -154,6 +154,51 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     }
   }
 
+  Widget buildDriverInfo() {
+    final driverInfo = currentRequest.driverInfo;
+
+    if (currentRequest.status != RideRequestStatus.driverArriving ||
+        driverInfo == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: 25),
+
+        const Divider(),
+
+        const SizedBox(height: 15),
+
+        Text(
+          '👤 ${driverInfo.name}',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+
+        const SizedBox(height: 10),
+
+        Text('🚐 ${driverInfo.vehicle}', style: const TextStyle(fontSize: 18)),
+
+        const SizedBox(height: 10),
+
+        Text(
+          '🔢 ${driverInfo.licensePlate}',
+          style: const TextStyle(fontSize: 18),
+        ),
+
+        if (driverInfo.etaMinutes != null) ...[
+          const SizedBox(height: 10),
+
+          Text(
+            '⏱️ ${AppTranslations.arrivalTime}: '
+            '${driverInfo.etaMinutes} ${AppTranslations.minutes}',
+            style: const TextStyle(fontSize: 18),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -162,10 +207,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(25),
-          child: Column(
+      body: SafeArea(
+  child: SingleChildScrollView(
+    padding: const EdgeInsets.all(25),
+    child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(getStatusIcon(), size: 100, color: getStatusColor()),
@@ -196,6 +241,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 18),
               ),
+              buildDriverInfo(),
 
               const SizedBox(height: 40),
 
