@@ -333,4 +333,11 @@ class AppTranslations {
 
     return 'Телефонното приложение не можа да бъде отворено';
   }
+  static String get cancelRide {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Cancel ride';
+  }
+
+  return 'Откажи заявката';
+}
 }

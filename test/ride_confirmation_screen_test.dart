@@ -497,4 +497,61 @@ testWidgets(
     );
   },
 );
+testWidgets(
+  'RideConfirmationScreen shows cancel button before ride starts',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+        ),
+      ),
+    );
+
+    expect(
+      find.text(AppTranslations.cancelRide),
+      findsOneWidget,
+    );
+  },
+);
+
+testWidgets(
+  'RideConfirmationScreen hides cancel button after ride starts',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.inProgress,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+        ),
+      ),
+    );
+
+    expect(
+      find.text(AppTranslations.cancelRide),
+      findsNothing,
+    );
+  },
+);
 }

@@ -286,6 +286,20 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                 style: const TextStyle(fontSize: 18),
               ),
               buildDriverInfo(),
+              if (currentRequest.status.canBeCancelled) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      // Реалното отказване ще добавим в следваща стъпка.
+                    },
+                    child: Text(AppTranslations.cancelRide),
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+              ],
 
               const SizedBox(height: 40),
 
