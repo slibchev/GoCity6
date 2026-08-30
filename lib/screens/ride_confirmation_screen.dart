@@ -195,6 +195,22 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
             style: const TextStyle(fontSize: 18),
           ),
         ],
+
+        if (driverInfo.phoneNumber != null) ...[
+          const SizedBox(height: 20),
+
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                // Реалното обаждане ще добавим в следваща стъпка.
+              },
+              icon: const Icon(Icons.phone),
+              label: Text(AppTranslations.callDriver),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -208,9 +224,9 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
-  child: SingleChildScrollView(
-    padding: const EdgeInsets.all(25),
-    child: Column(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(25),
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(getStatusIcon(), size: 100, color: getStatusColor()),

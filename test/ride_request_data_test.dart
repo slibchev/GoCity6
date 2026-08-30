@@ -13,6 +13,7 @@ void main() {
         vehicle: 'Dacia Jogger',
         licensePlate: 'CB 1234 AB',
         etaMinutes: 4,
+        phoneNumber: '+359888123456',
       ),
       pickup: 'Pickup',
       destination: 'Destination',
@@ -39,5 +40,6 @@ void main() {
     expect(acceptedRequest.estimatedPrice, request.estimatedPrice);
     expect(acceptedRequest.requestId, request.requestId);
     expect(acceptedRequest.driverInfo, request.driverInfo);
+    expect(acceptedRequest.driverInfo?.phoneNumber, '+359888123456');
   });
 }

@@ -318,5 +318,12 @@ static String get minutes {
   }
   return 'мин';
 }
+static String get callDriver {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Call driver';
+  }
+
+  return 'Обади се на шофьора';
+}
 
 }
