@@ -157,7 +157,23 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   Future<void> _callDriver(String phoneNumber) async {
     final uri = Uri(scheme: 'tel', path: phoneNumber);
 
-    await launchUrl(uri);
+    try {
+      final launched = await launchUrl(uri);
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.callDriverFailed)),
+        );
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTranslations.callDriverFailed)));
+    }
   }
 
   Widget buildDriverInfo() {
