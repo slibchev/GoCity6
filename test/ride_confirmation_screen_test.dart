@@ -7,6 +7,35 @@ import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'support/mock_ride_request_service.dart';
 import 'package:taxi_app/models/driver_info.dart';
+import 'package:taxi_app/services/ride_request_service.dart';
+
+class CancelTestRideRequestService implements RideRequestService {
+  bool cancelCalled = false;
+
+  @override
+  Future<RideRequestData> submitRequest(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> cancelRequest(RideRequestData request) async {
+    cancelCalled = true;
+
+    return request.copyWith(
+      status: RideRequestStatus.cancelled,
+    );
+  }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) {
+    return const Stream<RideRequestData>.empty();
+  }
+}
 
 void main() {
   testWidgets('RideConfirmationScreen shows pending status', (
@@ -341,9 +370,9 @@ void main() {
       expect(find.byIcon(Icons.phone), findsNothing);
     },
   );
-  testWidgets(
-  'RideConfirmationScreen shows error when phone launcher fails',
-  (WidgetTester tester) async {
+  testWidgets('RideConfirmationScreen shows error when phone launcher fails', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -375,21 +404,15 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.text(AppTranslations.callDriver),
-    );
+    await tester.tap(find.text(AppTranslations.callDriver));
 
     await tester.pump();
 
-    expect(
-      find.text(AppTranslations.callDriverFailed),
-      findsOneWidget,
-    );
-  },
-);
-testWidgets(
-  'RideConfirmationScreen shows error when phone launcher throws',
-  (WidgetTester tester) async {
+    expect(find.text(AppTranslations.callDriverFailed), findsOneWidget);
+  });
+  testWidgets('RideConfirmationScreen shows error when phone launcher throws', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -421,21 +444,15 @@ testWidgets(
       ),
     );
 
-    await tester.tap(
-      find.text(AppTranslations.callDriver),
-    );
+    await tester.tap(find.text(AppTranslations.callDriver));
 
     await tester.pump();
 
-    expect(
-      find.text(AppTranslations.callDriverFailed),
-      findsOneWidget,
-    );
-  },
-);
-testWidgets(
-  'RideConfirmationScreen launches correct phone number',
-  (WidgetTester tester) async {
+    expect(find.text(AppTranslations.callDriverFailed), findsOneWidget);
+  });
+  testWidgets('RideConfirmationScreen launches correct phone number', (
+    WidgetTester tester,
+  ) async {
     Uri? launchedUri;
 
     final request = RideRequestData(
@@ -470,36 +487,21 @@ testWidgets(
       ),
     );
 
-    await tester.tap(
-      find.text(AppTranslations.callDriver),
-    );
+    await tester.tap(find.text(AppTranslations.callDriver));
 
     await tester.pump();
 
-    expect(
-      launchedUri,
-      isNotNull,
-    );
+    expect(launchedUri, isNotNull);
 
-    expect(
-      launchedUri!.scheme,
-      'tel',
-    );
+    expect(launchedUri!.scheme, 'tel');
 
-    expect(
-      launchedUri!.path,
-      '+359888123456',
-    );
+    expect(launchedUri!.path, '+359888123456');
 
-    expect(
-      find.text(AppTranslations.callDriverFailed),
-      findsNothing,
-    );
-  },
-);
-testWidgets(
-  'RideConfirmationScreen shows cancel button before ride starts',
-  (WidgetTester tester) async {
+    expect(find.text(AppTranslations.callDriverFailed), findsNothing);
+  });
+  testWidgets('RideConfirmationScreen shows cancel button before ride starts', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -512,23 +514,15 @@ testWidgets(
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(
-          request: request,
-        ),
-      ),
+      MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
-    expect(
-      find.text(AppTranslations.cancelRide),
-      findsOneWidget,
-    );
-  },
-);
+    expect(find.text(AppTranslations.cancelRide), findsOneWidget);
+  });
 
-testWidgets(
-  'RideConfirmationScreen hides cancel button after ride starts',
-  (WidgetTester tester) async {
+  testWidgets('RideConfirmationScreen hides cancel button after ride starts', (
+    WidgetTester tester,
+  ) async {
     final request = RideRequestData(
       pickup: 'Pickup',
       destination: 'Destination',
@@ -541,17 +535,60 @@ testWidgets(
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(
-          request: request,
-        ),
-      ),
+      MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
-    expect(
-      find.text(AppTranslations.cancelRide),
-      findsNothing,
-    );
-  },
-);
+    expect(find.text(AppTranslations.cancelRide), findsNothing);
+  });
+  testWidgets(
+    'RideConfirmationScreen cancels ride when cancel button is pressed',
+    (WidgetTester tester) async {
+      final service = CancelTestRideRequestService();
+
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.pending,
+        estimatedPrice: 10.50,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+            rideRequestService: service,
+          ),
+        ),
+      );
+
+      final cancelButton = find.widgetWithText(
+        OutlinedButton,
+        AppTranslations.cancelRide,
+      );
+
+      expect(cancelButton, findsOneWidget);
+
+      await tester.ensureVisible(cancelButton);
+      await tester.pumpAndSettle();
+
+      await tester.tap(cancelButton);
+      await tester.pumpAndSettle();
+
+      expect(service.cancelCalled, isTrue);
+
+      expect(
+        find.text(AppTranslations.rideCancelled),
+        findsWidgets,
+      );
+
+      expect(
+        find.text(AppTranslations.cancelRide),
+        findsNothing,
+      );
+    },
+  );
 }

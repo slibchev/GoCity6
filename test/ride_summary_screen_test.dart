@@ -28,6 +28,14 @@ class RecordingRideRequestService implements RideRequestService {
   Future<RideRequestData> getRequestStatus(RideRequestData request) async {
     return request;
   }
+  @override
+Future<RideRequestData> cancelRequest(
+  RideRequestData request,
+) async {
+  return request.copyWith(
+    status: RideRequestStatus.cancelled,
+  );
+}
 
   @override
   Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {

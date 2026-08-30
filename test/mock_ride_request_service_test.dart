@@ -146,4 +146,54 @@ test(
     );
   },
 );
+test(
+  'MockRideRequestService cancels pending ride request',
+  () async {
+    final service = MockRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+    );
+
+    final cancelledRequest = await service.cancelRequest(
+      request,
+    );
+
+    expect(
+      cancelledRequest.status,
+      RideRequestStatus.cancelled,
+    );
+  },
+);
+test(
+  'MockRideRequestService does not cancel ride in progress',
+  () async {
+    final service = MockRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.inProgress,
+    );
+
+    final updatedRequest = await service.cancelRequest(
+      request,
+    );
+
+    expect(
+      updatedRequest.status,
+      RideRequestStatus.inProgress,
+    );
+  },
+);
 }

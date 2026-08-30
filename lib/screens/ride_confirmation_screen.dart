@@ -1,11 +1,13 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import '../services/ride_request_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 typedef PhoneLauncher = Future<bool> Function(Uri uri);
 
@@ -29,6 +31,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   late RideRequestData currentRequest;
 
   StreamSubscription<RideRequestData>? _statusSubscription;
+  bool _ignoreStatusUpdates = false;
 
   @override
   void initState() {
@@ -45,23 +48,21 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
       return;
     }
 
-    _statusSubscription = service
-        .watchRequestStatus(currentRequest)
-        .listen(
-          (updatedRequest) {
-            if (!mounted) {
-              return;
-            }
+    _statusSubscription = service.watchRequestStatus(currentRequest).listen(
+      (updatedRequest) {
+        if (!mounted || _ignoreStatusUpdates) {
+          return;
+        }
 
-            setState(() {
-              currentRequest = updatedRequest;
-            });
-          },
-          onError: (error) {
-            // Засега запазваме последния известен статус.
-            // По-късно ще покажем проблем с връзката в UI.
-          },
-        );
+        setState(() {
+          currentRequest = updatedRequest;
+        });
+      },
+      onError: (error) {
+        // Ð—Ð°ÑÐµÐ³Ð° Ð·Ð°Ð¿Ð°Ð·Ð²Ð°Ð¼Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ Ð¸Ð·Ð²ÐµÑÑ‚ÐµÐ½ ÑÑ‚Ð°Ñ‚ÑƒÑ.
+        // ÐŸÐ¾-ÐºÑŠÑÐ½Ð¾ Ñ‰Ðµ Ð¿Ð¾ÐºÐ°Ð¶ÐµÐ¼ Ð¿Ñ€Ð¾Ð±Ð»ÐµÐ¼ Ñ Ð²Ñ€ÑŠÐ·ÐºÐ°Ñ‚Ð° Ð² UI.
+      },
+    );
   }
 
   @override
@@ -163,7 +164,6 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
     try {
       final launcher = widget.phoneLauncher ?? launchUrl;
-
       final launched = await launcher(uri);
 
       if (!launched && mounted) {
@@ -176,10 +176,43 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppTranslations.callDriverFailed)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppTranslations.callDriverFailed)),
+      );
     }
+  }
+
+  Future<void> _cancelRide() async {
+    final service = widget.rideRequestService;
+
+    if (service == null) {
+      return;
+    }
+
+    final requestToCancel = currentRequest;
+
+    final cancelledRequest = await service.cancelRequest(
+      requestToCancel,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (cancelledRequest.status == RideRequestStatus.cancelled) {
+      _ignoreStatusUpdates = true;
+
+      final subscription = _statusSubscription;
+      _statusSubscription = null;
+
+      if (subscription != null) {
+        unawaited(subscription.cancel());
+      }
+    }
+
+    setState(() {
+      currentRequest = cancelledRequest;
+    });
   }
 
   Widget buildDriverInfo() {
@@ -193,40 +226,35 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     return Column(
       children: [
         const SizedBox(height: 25),
-
         const Divider(),
-
         const SizedBox(height: 15),
-
         Text(
-          '👤 ${driverInfo.name}',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          'ðŸ‘¤ ${driverInfo.name}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-
         const SizedBox(height: 10),
-
-        Text('🚐 ${driverInfo.vehicle}', style: const TextStyle(fontSize: 18)),
-
-        const SizedBox(height: 10),
-
         Text(
-          '🔢 ${driverInfo.licensePlate}',
+          'ðŸš ${driverInfo.vehicle}',
           style: const TextStyle(fontSize: 18),
         ),
-
+        const SizedBox(height: 10),
+        Text(
+          'ðŸ”¢ ${driverInfo.licensePlate}',
+          style: const TextStyle(fontSize: 18),
+        ),
         if (driverInfo.etaMinutes != null) ...[
           const SizedBox(height: 10),
-
           Text(
-            '⏱️ ${AppTranslations.arrivalTime}: '
+            'â±ï¸ ${AppTranslations.arrivalTime}: '
             '${driverInfo.etaMinutes} ${AppTranslations.minutes}',
             style: const TextStyle(fontSize: 18),
           ),
         ],
-
         if (driverInfo.phoneNumber != null) ...[
           const SizedBox(height: 20),
-
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -257,10 +285,12 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(getStatusIcon(), size: 100, color: getStatusColor()),
-
+              Icon(
+                getStatusIcon(),
+                size: 100,
+                color: getStatusColor(),
+              ),
               const SizedBox(height: 30),
-
               Text(
                 getStatusTitle(),
                 textAlign: TextAlign.center,
@@ -269,17 +299,13 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Text(
-                '💰 ${AppTranslations.priceLabel}: '
-                '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                'ðŸ’° ${AppTranslations.priceLabel}: '
+                '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} Ð»Ð².'}',
                 style: const TextStyle(fontSize: 20),
               ),
-
               const SizedBox(height: 20),
-
               Text(
                 getStatusMessage(),
                 textAlign: TextAlign.center,
@@ -291,18 +317,13 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   width: double.infinity,
                   height: 50,
                   child: OutlinedButton(
-                    onPressed: () {
-                      // Реалното отказване ще добавим в следваща стъпка.
-                    },
+                    onPressed: _cancelRide,
                     child: Text(AppTranslations.cancelRide),
                   ),
                 ),
-
                 const SizedBox(height: 15),
               ],
-
               const SizedBox(height: 40),
-
               SizedBox(
                 width: double.infinity,
                 height: 55,
