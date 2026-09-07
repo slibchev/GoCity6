@@ -624,6 +624,48 @@ void main() {
   },
 );
 testWidgets(
+  'RideConfirmationScreen shows processing state when cancellation starts',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: CancelTestRideRequestService(),
+        ),
+      ),
+    );
+
+    final cancelButton = find.widgetWithText(
+      OutlinedButton,
+      AppTranslations.cancelRide,
+    );
+
+    expect(cancelButton, findsOneWidget);
+
+    final button = tester.widget<OutlinedButton>(cancelButton);
+
+    button.onPressed!.call();
+
+    await tester.pump();
+
+    expect(
+      find.text(AppTranslations.processing),
+      findsOneWidget,
+    );
+  },
+);
+testWidgets(
   'RideConfirmationScreen keeps ride when cancellation is dismissed',
   (WidgetTester tester) async {
     final service = CancelTestRideRequestService();
