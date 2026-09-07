@@ -390,16 +390,16 @@ setState(() {
               ),
               buildDriverInfo(),
               if (currentRequest.status.canBeCancelled) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: _isCancelling ? null : _cancelRide,
-                    child: Text(AppTranslations.cancelRide),
-                  ),
-                ),
-                const SizedBox(height: 15),
-              ],
+  SizedBox(
+    width: double.infinity,
+    height: 50,
+    child: OutlinedButton(
+      onPressed: _isCancelling ? null : _cancelRide,
+      child: Text(AppTranslations.cancelRide),
+    ),
+  ),
+  const SizedBox(height: 15),
+],
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
