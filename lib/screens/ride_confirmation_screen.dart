@@ -226,12 +226,13 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   final service = widget.rideRequestService;
 
-    if (service == null) {
-      return;
-    }
+  if (service == null) {
+    return;
+  }
 
-    final requestToCancel = currentRequest;
+  final requestToCancel = currentRequest;
 
+  try {
     final cancelledRequest = await service.cancelRequest(
       requestToCancel,
     );
@@ -254,7 +255,20 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     setState(() {
       currentRequest = cancelledRequest;
     });
+  } catch (error) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppTranslations.cancelRideFailed,
+        ),
+      ),
+    );
   }
+}
 
   Widget buildDriverInfo() {
     final driverInfo = currentRequest.driverInfo;

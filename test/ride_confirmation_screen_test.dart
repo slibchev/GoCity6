@@ -37,6 +37,36 @@ class CancelTestRideRequestService implements RideRequestService {
   }
 }
 
+class FailingCancelRideRequestService implements RideRequestService {
+  @override
+  Future<RideRequestData> submitRequest(
+    RideRequestData request,
+  ) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> getRequestStatus(
+    RideRequestData request,
+  ) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> cancelRequest(
+    RideRequestData request,
+  ) async {
+    throw Exception('Cancel failed');
+  }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(
+    RideRequestData request,
+  ) {
+    return const Stream<RideRequestData>.empty();
+  }
+}
+
 void main() {
   testWidgets('RideConfirmationScreen shows pending status', (
     WidgetTester tester,
@@ -706,6 +736,63 @@ testWidgets(
     expect(
       find.text(AppTranslations.cancelRide),
       findsNothing,
+    );
+  },
+);
+testWidgets(
+  'RideConfirmationScreen shows error when cancellation fails',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: FailingCancelRideRequestService(),
+        ),
+      ),
+    );
+
+    final cancelButton = find.widgetWithText(
+      OutlinedButton,
+      AppTranslations.cancelRide,
+    );
+
+    final button = tester.widget<OutlinedButton>(
+      cancelButton,
+    );
+
+    button.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.text(AppTranslations.cancelRide).last,
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppTranslations.cancelRideFailed),
+      findsOneWidget,
+    );
+
+    expect(
+      find.text(AppTranslations.rideCancelled),
+      findsNothing,
+    );
+
+    expect(
+      find.text(AppTranslations.cancelRide),
+      findsOneWidget,
     );
   },
 );

@@ -353,6 +353,12 @@ static String get cancelRideConfirmationMessage {
   }
   return 'Сигурни ли сте, че искате да отмените заявката?';
 }
+static String get cancelRideFailed {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Could not cancel the ride request. Please try again.';
+  }
+  return 'Заявката не можа да бъде отменена. Моля, опитайте отново.';
+}
 
 static String get keepRide {
   if (currentLanguage == AppLanguage.english) {
