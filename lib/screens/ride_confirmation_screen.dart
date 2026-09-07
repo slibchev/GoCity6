@@ -32,6 +32,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   StreamSubscription<RideRequestData>? _statusSubscription;
   bool _ignoreStatusUpdates = false;
+  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -218,17 +219,34 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 }
 
   Future<void> _cancelRide() async {
+    if (_isCancelling) {
+  return;
+}
+
+setState(() {
+  _isCancelling = true;
+});
   final confirmed = await _confirmRideCancellation();
 
   if (!confirmed) {
-    return;
+  if (mounted) {
+    setState(() {
+      _isCancelling = false;
+    });
   }
+  return;
+}
 
   final service = widget.rideRequestService;
 
   if (service == null) {
-    return;
+  if (mounted) {
+    setState(() {
+      _isCancelling = false;
+    });
   }
+  return;
+}
 
   final requestToCancel = currentRequest;
 
@@ -253,12 +271,16 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     }
 
     setState(() {
-      currentRequest = cancelledRequest;
-    });
+  currentRequest = cancelledRequest;
+  _isCancelling = false;
+});
   } catch (error) {
     if (!mounted) {
       return;
     }
+    setState(() {
+  _isCancelling = false;
+});
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -372,7 +394,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   width: double.infinity,
                   height: 50,
                   child: OutlinedButton(
-                    onPressed: _cancelRide,
+                    onPressed: _isCancelling ? null : _cancelRide,
                     child: Text(AppTranslations.cancelRide),
                   ),
                 ),
