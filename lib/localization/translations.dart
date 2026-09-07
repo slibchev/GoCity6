@@ -177,12 +177,15 @@ class AppTranslations {
   }
 
   static String get rideCompleted {
+    
     if (currentLanguage == AppLanguage.english) {
       return 'Ride completed';
     }
 
     return 'Курсът е завършен';
   }
+  static const String rideCompletedMessage =
+    'Благодарим, че използвахте GoCity6.';
 
   static String get rideCancelled {
     if (currentLanguage == AppLanguage.english) {

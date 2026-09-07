@@ -153,7 +153,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         return AppTranslations.rideInProgress;
 
       case RideRequestStatus.completed:
-        return AppTranslations.rideCompleted;
+        return AppTranslations.rideCompletedMessage;
 
       case RideRequestStatus.cancelled:
         return AppTranslations.rideCancelled;
