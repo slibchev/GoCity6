@@ -340,4 +340,24 @@ class AppTranslations {
 
   return 'Откажи заявката';
 }
+static String get cancelRideConfirmationTitle {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Cancel ride?';
+  }
+  return 'Отказ на заявката?';
+}
+
+static String get cancelRideConfirmationMessage {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Are you sure you want to cancel this ride request?';
+  }
+  return 'Сигурни ли сте, че искате да отмените заявката?';
+}
+
+static String get keepRide {
+  if (currentLanguage == AppLanguage.english) {
+    return 'Keep ride';
+  }
+  return 'Запази заявката';
+}
 }

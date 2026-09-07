@@ -541,54 +541,172 @@ void main() {
     expect(find.text(AppTranslations.cancelRide), findsNothing);
   });
   testWidgets(
-    'RideConfirmationScreen cancels ride when cancel button is pressed',
-    (WidgetTester tester) async {
-      final service = CancelTestRideRequestService();
+  'RideConfirmationScreen shows cancellation confirmation dialog',
+  (WidgetTester tester) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
 
-      final request = RideRequestData(
-        pickup: 'Pickup',
-        destination: 'Destination',
-        passengers: 1,
-        paymentMethod: RidePaymentMethod.cash,
-        rideType: RideType.city,
-        requestedAt: DateTime(2026, 1, 1, 10, 0),
-        status: RideRequestStatus.pending,
-        estimatedPrice: 10.50,
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: RideConfirmationScreen(
-            request: request,
-            rideRequestService: service,
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: CancelTestRideRequestService(),
         ),
-      );
+      ),
+    );
 
-      final cancelButton = find.widgetWithText(
-        OutlinedButton,
-        AppTranslations.cancelRide,
-      );
+    final cancelButton = find.widgetWithText(
+      OutlinedButton,
+      AppTranslations.cancelRide,
+    );
 
-      expect(cancelButton, findsOneWidget);
+    expect(cancelButton, findsOneWidget);
 
-      await tester.ensureVisible(cancelButton);
-      await tester.pumpAndSettle();
+    final button = tester.widget<OutlinedButton>(cancelButton);
 
-      await tester.tap(cancelButton);
-      await tester.pumpAndSettle();
+    expect(button.onPressed, isNotNull);
 
-      expect(service.cancelCalled, isTrue);
+    button.onPressed!.call();
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text(AppTranslations.rideCancelled),
-        findsWidgets,
-      );
+    expect(
+      find.text(AppTranslations.cancelRideConfirmationTitle),
+      findsOneWidget,
+    );
 
-      expect(
-        find.text(AppTranslations.cancelRide),
-        findsNothing,
-      );
-    },
-  );
+    expect(
+      find.text(AppTranslations.cancelRideConfirmationMessage),
+      findsOneWidget,
+    );
+
+    expect(
+      find.text(AppTranslations.keepRide),
+      findsOneWidget,
+    );
+  },
+);
+testWidgets(
+  'RideConfirmationScreen keeps ride when cancellation is dismissed',
+  (WidgetTester tester) async {
+    final service = CancelTestRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: service,
+        ),
+      ),
+    );
+
+    final cancelButton = find.widgetWithText(
+      OutlinedButton,
+      AppTranslations.cancelRide,
+    );
+
+    final button = tester.widget<OutlinedButton>(cancelButton);
+
+    button.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.text(AppTranslations.keepRide),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      service.cancelCalled,
+      isFalse,
+    );
+
+    expect(
+      find.text(AppTranslations.rideRequestSent),
+      findsOneWidget,
+    );
+  },
+);
+  testWidgets(
+  'RideConfirmationScreen cancels ride when cancellation is confirmed',
+  (WidgetTester tester) async {
+    final service = CancelTestRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: service,
+        ),
+      ),
+    );
+
+    final cancelButton = find.widgetWithText(
+      OutlinedButton,
+      AppTranslations.cancelRide,
+    );
+
+    final button = tester.widget<OutlinedButton>(
+      cancelButton,
+    );
+
+    button.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppTranslations.cancelRideConfirmationTitle),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.text(AppTranslations.cancelRide).last,
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      service.cancelCalled,
+      isTrue,
+    );
+
+    expect(
+      find.text(AppTranslations.rideCancelled),
+      findsWidgets,
+    );
+
+    expect(
+      find.text(AppTranslations.cancelRide),
+      findsNothing,
+    );
+  },
+);
 }

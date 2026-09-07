@@ -181,9 +181,50 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
       );
     }
   }
+  Future<bool> _confirmRideCancellation() async {
+  final shouldCancel = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(
+          AppTranslations.cancelRideConfirmationTitle,
+        ),
+        content: Text(
+          AppTranslations.cancelRideConfirmationMessage,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(false);
+            },
+            child: Text(
+              AppTranslations.keepRide,
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            child: Text(
+              AppTranslations.cancelRide,
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  return shouldCancel ?? false;
+}
 
   Future<void> _cancelRide() async {
-    final service = widget.rideRequestService;
+  final confirmed = await _confirmRideCancellation();
+
+  if (!confirmed) {
+    return;
+  }
+
+  final service = widget.rideRequestService;
 
     if (service == null) {
       return;
