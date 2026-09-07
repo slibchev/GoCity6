@@ -395,7 +395,11 @@ setState(() {
     height: 50,
     child: OutlinedButton(
       onPressed: _isCancelling ? null : _cancelRide,
-      child: Text(AppTranslations.cancelRide),
+      child: Text(
+  _isCancelling
+      ? AppTranslations.processing
+      : AppTranslations.cancelRide,
+),
     ),
   ),
   const SizedBox(height: 15),

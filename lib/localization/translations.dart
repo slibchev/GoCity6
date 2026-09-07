@@ -340,6 +340,8 @@ class AppTranslations {
 
   return 'Откажи заявката';
 }
+static const String processing = 'Обработва се...';
+
 static String get cancelRideConfirmationTitle {
   if (currentLanguage == AppLanguage.english) {
     return 'Cancel ride?';
