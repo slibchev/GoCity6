@@ -147,7 +147,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         return AppTranslations.rideAcceptedMessage;
 
       case RideRequestStatus.driverArriving:
-        return AppTranslations.driverArriving;
+        return AppTranslations.driverArrivingMessage;
 
       case RideRequestStatus.inProgress:
         return AppTranslations.rideInProgress;

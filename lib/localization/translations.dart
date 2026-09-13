@@ -176,6 +176,14 @@ class AppTranslations {
     return 'Шофьорът пътува към вас';
   }
 
+  static String get driverArrivingMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Your driver is on the way to pick you up.';
+    }
+
+    return 'Вашият шофьор е на път към мястото за взимане.';
+  }
+
   static String get rideInProgress {
     if (currentLanguage == AppLanguage.english) {
       return 'Ride in progress';
