@@ -198,6 +198,13 @@ void main() {
 
     expect(find.text(AppTranslations.rideCompleted), findsWidgets);
     expect(find.text(AppTranslations.rideCompletedMessage), findsOneWidget);
+    AppTranslations.currentLanguage = AppLanguage.english;
+
+    await tester.pump();
+
+    expect(find.text('Thank you for using GoCity6.'), findsOneWidget);
+
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
   });
 
   testWidgets('RideConfirmationScreen shows cancelled status', (
@@ -837,10 +844,10 @@ void main() {
     expect(find.text(AppTranslations.rideCancelled), findsNothing);
 
     expect(find.text(AppTranslations.cancelRide), findsOneWidget);
-  }); 
-  testWidgets(
-  'RideConfirmationScreen shows cancelled message in English',
-  (WidgetTester tester) async {
+  });
+  testWidgets('RideConfirmationScreen shows cancelled message in English', (
+    WidgetTester tester,
+  ) async {
     AppTranslations.currentLanguage = AppLanguage.english;
 
     final request = RideRequestData(
@@ -855,9 +862,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: RideConfirmationScreen(request: request),
-      ),
+      MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
     expect(
@@ -866,7 +871,5 @@ void main() {
     );
 
     AppTranslations.currentLanguage = AppLanguage.bulgarian;
-  },
-);
-  
+  });
 }
