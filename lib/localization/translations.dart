@@ -192,6 +192,14 @@ class AppTranslations {
     return 'Курсът е започнал';
   }
 
+  static String get rideInProgressMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'You are on the way to your destination.';
+    }
+
+    return 'Пътувате към вашата крайна точка.';
+  }
+
   static String get rideCompleted {
     if (currentLanguage == AppLanguage.english) {
       return 'Ride completed';
@@ -200,8 +208,13 @@ class AppTranslations {
     return 'Курсът е завършен';
   }
 
-  static const String rideCompletedMessage =
-      'Благодарим, че използвахте GoCity6.';
+  static String get rideCompletedMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Thank you for using GoCity6.';
+    }
+
+    return 'Благодарим, че използвахте GoCity6.';
+  }
 
   static String get rideCancelled {
     if (currentLanguage == AppLanguage.english) {
