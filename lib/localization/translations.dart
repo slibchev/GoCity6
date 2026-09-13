@@ -144,6 +144,14 @@ class AppTranslations {
     return 'Заявката е приета успешно!';
   }
 
+  static String get rideAcceptedMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'The driver accepted your request.';
+    }
+
+    return 'Шофьорът прие заявката ви.';
+  }
+
   static String get rideRequestSent {
     if (currentLanguage == AppLanguage.english) {
       return 'Ride request sent';
@@ -177,15 +185,15 @@ class AppTranslations {
   }
 
   static String get rideCompleted {
-    
     if (currentLanguage == AppLanguage.english) {
       return 'Ride completed';
     }
 
     return 'Курсът е завършен';
   }
+
   static const String rideCompletedMessage =
-    'Благодарим, че използвахте GoCity6.';
+      'Благодарим, че използвахте GoCity6.';
 
   static String get rideCancelled {
     if (currentLanguage == AppLanguage.english) {
@@ -336,39 +344,42 @@ class AppTranslations {
 
     return 'Телефонното приложение не можа да бъде отворено';
   }
+
   static String get cancelRide {
-  if (currentLanguage == AppLanguage.english) {
-    return 'Cancel ride';
+    if (currentLanguage == AppLanguage.english) {
+      return 'Cancel ride';
+    }
+
+    return 'Откажи заявката';
   }
 
-  return 'Откажи заявката';
-}
-static const String processing = 'Обработва се...';
+  static const String processing = 'Обработва се...';
 
-static String get cancelRideConfirmationTitle {
-  if (currentLanguage == AppLanguage.english) {
-    return 'Cancel ride?';
+  static String get cancelRideConfirmationTitle {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Cancel ride?';
+    }
+    return 'Отказ на заявката?';
   }
-  return 'Отказ на заявката?';
-}
 
-static String get cancelRideConfirmationMessage {
-  if (currentLanguage == AppLanguage.english) {
-    return 'Are you sure you want to cancel this ride request?';
+  static String get cancelRideConfirmationMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Are you sure you want to cancel this ride request?';
+    }
+    return 'Сигурни ли сте, че искате да отмените заявката?';
   }
-  return 'Сигурни ли сте, че искате да отмените заявката?';
-}
-static String get cancelRideFailed {
-  if (currentLanguage == AppLanguage.english) {
-    return 'Could not cancel the ride request. Please try again.';
-  }
-  return 'Заявката не можа да бъде отменена. Моля, опитайте отново.';
-}
 
-static String get keepRide {
-  if (currentLanguage == AppLanguage.english) {
-    return 'Keep ride';
+  static String get cancelRideFailed {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Could not cancel the ride request. Please try again.';
+    }
+    return 'Заявката не можа да бъде отменена. Моля, опитайте отново.';
   }
-  return 'Запази заявката';
-}
+
+  static String get keepRide {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Keep ride';
+    }
+    return 'Запази заявката';
+  }
 }
