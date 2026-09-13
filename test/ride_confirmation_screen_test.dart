@@ -204,6 +204,10 @@ void main() {
     );
 
     expect(find.text(AppTranslations.rideCompleted), findsWidgets);
+     expect(
+  find.text(AppTranslations.rideCompletedMessage),
+  findsOneWidget,
+);
   });
 
   testWidgets('RideConfirmationScreen shows cancelled status', (
