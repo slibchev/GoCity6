@@ -200,7 +200,9 @@ void main() {
     expect(find.text(AppTranslations.rideCompletedMessage), findsOneWidget);
     AppTranslations.currentLanguage = AppLanguage.english;
 
-    await tester.pump();
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
 
     expect(find.text('Thank you for using GoCity6.'), findsOneWidget);
 

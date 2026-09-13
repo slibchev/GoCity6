@@ -49,21 +49,23 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
       return;
     }
 
-    _statusSubscription = service.watchRequestStatus(currentRequest).listen(
-      (updatedRequest) {
-        if (!mounted || _ignoreStatusUpdates) {
-          return;
-        }
+    _statusSubscription = service
+        .watchRequestStatus(currentRequest)
+        .listen(
+          (updatedRequest) {
+            if (!mounted || _ignoreStatusUpdates) {
+              return;
+            }
 
-        setState(() {
-          currentRequest = updatedRequest;
-        });
-      },
-      onError: (error) {
-        // Ð—Ð°ÑÐµÐ³Ð° Ð·Ð°Ð¿Ð°Ð·Ð²Ð°Ð¼Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ Ð¸Ð·Ð²ÐµÑÑ‚ÐµÐ½ ÑÑ‚Ð°Ñ‚ÑƒÑ.
-        // ÐŸÐ¾-ÐºÑŠÑÐ½Ð¾ Ñ‰Ðµ Ð¿Ð¾ÐºÐ°Ð¶ÐµÐ¼ Ð¿Ñ€Ð¾Ð±Ð»ÐµÐ¼ Ñ Ð²Ñ€ÑŠÐ·ÐºÐ°Ñ‚Ð° Ð² UI.
-      },
-    );
+            setState(() {
+              currentRequest = updatedRequest;
+            });
+          },
+          onError: (error) {
+            // Ð—Ð°ÑÐµÐ³Ð° Ð·Ð°Ð¿Ð°Ð·Ð²Ð°Ð¼Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ Ð¸Ð·Ð²ÐµÑÑ‚ÐµÐ½ ÑÑ‚Ð°Ñ‚ÑƒÑ.
+            // ÐŸÐ¾-ÐºÑŠÑÐ½Ð¾ Ñ‰Ðµ Ð¿Ð¾ÐºÐ°Ð¶ÐµÐ¼ Ð¿Ñ€Ð¾Ð±Ð»ÐµÐ¼ Ñ Ð²Ñ€ÑŠÐ·ÐºÐ°Ñ‚Ð° Ð² UI.
+          },
+        );
   }
 
   @override
@@ -177,120 +179,107 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppTranslations.callDriverFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTranslations.callDriverFailed)));
     }
   }
-  Future<bool> _confirmRideCancellation() async {
-  final shouldCancel = await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text(
-          AppTranslations.cancelRideConfirmationTitle,
-        ),
-        content: Text(
-          AppTranslations.cancelRideConfirmationMessage,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(false);
-            },
-            child: Text(
-              AppTranslations.keepRide,
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true);
-            },
-            child: Text(
-              AppTranslations.cancelRide,
-            ),
-          ),
-        ],
-      );
-    },
-  );
 
-  return shouldCancel ?? false;
-}
+  Future<bool> _confirmRideCancellation() async {
+    final shouldCancel = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(AppTranslations.cancelRideConfirmationTitle),
+          content: Text(AppTranslations.cancelRideConfirmationMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text(AppTranslations.keepRide),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: Text(AppTranslations.cancelRide),
+            ),
+          ],
+        );
+      },
+    );
+
+    return shouldCancel ?? false;
+  }
 
   Future<void> _cancelRide() async {
     if (_isCancelling) {
-  return;
-}
-
-setState(() {
-  _isCancelling = true;
-});
-  final confirmed = await _confirmRideCancellation();
-
-  if (!confirmed) {
-  if (mounted) {
-    setState(() {
-      _isCancelling = false;
-    });
-  }
-  return;
-}
-
-  final service = widget.rideRequestService;
-
-  if (service == null) {
-  if (mounted) {
-    setState(() {
-      _isCancelling = false;
-    });
-  }
-  return;
-}
-
-  final requestToCancel = currentRequest;
-
-  try {
-    final cancelledRequest = await service.cancelRequest(
-      requestToCancel,
-    );
-
-    if (!mounted) {
       return;
     }
 
-    if (cancelledRequest.status == RideRequestStatus.cancelled) {
-      _ignoreStatusUpdates = true;
+    setState(() {
+      _isCancelling = true;
+    });
+    final confirmed = await _confirmRideCancellation();
 
-      final subscription = _statusSubscription;
-      _statusSubscription = null;
-
-      if (subscription != null) {
-        unawaited(subscription.cancel());
+    if (!confirmed) {
+      if (mounted) {
+        setState(() {
+          _isCancelling = false;
+        });
       }
-    }
-
-    setState(() {
-  currentRequest = cancelledRequest;
-  _isCancelling = false;
-});
-  } catch (error) {
-    if (!mounted) {
       return;
     }
-    setState(() {
-  _isCancelling = false;
-});
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppTranslations.cancelRideFailed,
-        ),
-      ),
-    );
+    final service = widget.rideRequestService;
+
+    if (service == null) {
+      if (mounted) {
+        setState(() {
+          _isCancelling = false;
+        });
+      }
+      return;
+    }
+
+    final requestToCancel = currentRequest;
+
+    try {
+      final cancelledRequest = await service.cancelRequest(requestToCancel);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (cancelledRequest.status == RideRequestStatus.cancelled) {
+        _ignoreStatusUpdates = true;
+
+        final subscription = _statusSubscription;
+        _statusSubscription = null;
+
+        if (subscription != null) {
+          unawaited(subscription.cancel());
+        }
+      }
+
+      setState(() {
+        currentRequest = cancelledRequest;
+        _isCancelling = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isCancelling = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTranslations.cancelRideFailed)));
+    }
   }
-}
 
   Widget buildDriverInfo() {
     final driverInfo = currentRequest.driverInfo;
@@ -305,29 +294,48 @@ setState(() {
         const SizedBox(height: 25),
         const Divider(),
         const SizedBox(height: 15),
-        Text(
-          'ðŸ‘¤ ${driverInfo.name}',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.person),
+            const SizedBox(width: 8),
+            Text(
+              driverInfo.name,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
-        Text(
-          'ðŸš ${driverInfo.vehicle}',
-          style: const TextStyle(fontSize: 18),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.directions_car),
+            const SizedBox(width: 8),
+            Text(driverInfo.vehicle, style: const TextStyle(fontSize: 18)),
+          ],
         ),
         const SizedBox(height: 10),
-        Text(
-          'ðŸ”¢ ${driverInfo.licensePlate}',
-          style: const TextStyle(fontSize: 18),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.confirmation_number),
+            const SizedBox(width: 8),
+            Text(driverInfo.licensePlate, style: const TextStyle(fontSize: 18)),
+          ],
         ),
         if (driverInfo.etaMinutes != null) ...[
           const SizedBox(height: 10),
-          Text(
-            'â±ï¸ ${AppTranslations.arrivalTime}: '
-            '${driverInfo.etaMinutes} ${AppTranslations.minutes}',
-            style: const TextStyle(fontSize: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.access_time),
+              const SizedBox(width: 8),
+              Text(
+                '${AppTranslations.arrivalTime}: '
+                '${driverInfo.etaMinutes} ${AppTranslations.minutes}',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ],
           ),
         ],
         if (driverInfo.phoneNumber != null) ...[
@@ -362,11 +370,7 @@ setState(() {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                getStatusIcon(),
-                size: 100,
-                color: getStatusColor(),
-              ),
+              Icon(getStatusIcon(), size: 100, color: getStatusColor()),
               const SizedBox(height: 30),
               Text(
                 getStatusTitle(),
@@ -390,20 +394,20 @@ setState(() {
               ),
               buildDriverInfo(),
               if (currentRequest.status.canBeCancelled) ...[
-  SizedBox(
-    width: double.infinity,
-    height: 50,
-    child: OutlinedButton(
-      onPressed: _isCancelling ? null : _cancelRide,
-      child: Text(
-  _isCancelling
-      ? AppTranslations.processing
-      : AppTranslations.cancelRide,
-),
-    ),
-  ),
-  const SizedBox(height: 15),
-],
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: _isCancelling ? null : _cancelRide,
+                    child: Text(
+                      _isCancelling
+                          ? AppTranslations.processing
+                          : AppTranslations.cancelRide,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+              ],
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
