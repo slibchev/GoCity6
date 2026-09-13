@@ -106,6 +106,33 @@ void main() {
     expect(find.text(AppTranslations.rideAccepted), findsWidgets);
     expect(find.text(AppTranslations.rideAcceptedMessage), findsOneWidget);
   });
+  testWidgets('RideConfirmationScreen shows driver info when accepted', (
+    WidgetTester tester,
+  ) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.accepted,
+      estimatedPrice: 10.50,
+      driverInfo: const DriverInfo(
+        name: 'Ivan Ivanov',
+        vehicle: 'Toyota Prius',
+        licensePlate: 'CB1234AB',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+
+    expect(find.text('Ivan Ivanov'), findsOneWidget);
+    expect(find.text('Toyota Prius'), findsOneWidget);
+    expect(find.text('CB1234AB'), findsOneWidget);
+  });
 
   testWidgets('RideConfirmationScreen updates through stream to completed', (
     WidgetTester tester,

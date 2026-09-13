@@ -284,8 +284,11 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   Widget buildDriverInfo() {
     final driverInfo = currentRequest.driverInfo;
 
-    if (currentRequest.status != RideRequestStatus.driverArriving ||
-        driverInfo == null) {
+    final shouldShowDriverInfo =
+        currentRequest.status == RideRequestStatus.accepted ||
+        currentRequest.status == RideRequestStatus.driverArriving;
+
+    if (!shouldShowDriverInfo || driverInfo == null) {
       return const SizedBox.shrink();
     }
 
