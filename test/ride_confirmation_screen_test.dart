@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taxi_app/localization/translations.dart';
+import 'package:taxi_app/localization/app_language.dart';
 import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
@@ -836,5 +837,36 @@ void main() {
     expect(find.text(AppTranslations.rideCancelled), findsNothing);
 
     expect(find.text(AppTranslations.cancelRide), findsOneWidget);
-  });
+  }); 
+  testWidgets(
+  'RideConfirmationScreen shows cancelled message in English',
+  (WidgetTester tester) async {
+    AppTranslations.currentLanguage = AppLanguage.english;
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.cancelled,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(request: request),
+      ),
+    );
+
+    expect(
+      find.text('The ride request was cancelled successfully.'),
+      findsOneWidget,
+    );
+
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+  },
+);
+  
 }
