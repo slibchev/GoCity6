@@ -563,6 +563,7 @@ void main() {
     );
 
     expect(find.text(AppTranslations.cancelRide), findsNothing);
+    expect(find.text(AppTranslations.rideInProgressMessage), findsOneWidget);
   });
   testWidgets('RideConfirmationScreen shows cancellation confirmation dialog', (
     WidgetTester tester,
