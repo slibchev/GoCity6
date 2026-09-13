@@ -218,6 +218,7 @@ void main() {
     );
 
     expect(find.text(AppTranslations.rideCancelled), findsWidgets);
+    expect(find.text(AppTranslations.rideCancelledMessage), findsOneWidget);
   });
 
   testWidgets(
