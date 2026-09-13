@@ -351,10 +351,23 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
             children: [
               const Icon(Icons.access_time),
               const SizedBox(width: 8),
-              Text(
-                '${AppTranslations.arrivalTime}: '
-                '${driverInfo.etaMinutes} ${AppTranslations.minutes}',
-                style: const TextStyle(fontSize: 18),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${AppTranslations.arrivalTime}: '
+                  '${driverInfo.etaMinutes} ${AppTranslations.minutes}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
