@@ -122,6 +122,7 @@ void main() {
         name: 'Ivan Ivanov',
         vehicle: 'Toyota Prius',
         licensePlate: 'CB1234AB',
+        etaMinutes: 5,
       ),
     );
 
@@ -132,6 +133,10 @@ void main() {
     expect(find.text('Ivan Ivanov'), findsOneWidget);
     expect(find.text('Toyota Prius'), findsOneWidget);
     expect(find.text('CB1234AB'), findsOneWidget);
+    expect(
+      find.text('${AppTranslations.arrivalTime}: 5 ${AppTranslations.minutes}'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('RideConfirmationScreen updates through stream to completed', (
