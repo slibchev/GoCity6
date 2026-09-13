@@ -7,16 +7,14 @@ import '../models/ride_request_data.dart';
 import '../services/route_service.dart';
 import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
+import '../services/mock_ride_request_service.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
   final DateTime Function() now;
 
-  RideRequestScreen({
-  super.key,
-  this.routeService,
-  DateTime Function()? now,
-}) : now = now ?? DateTime.now;
+  RideRequestScreen({super.key, this.routeService, DateTime Function()? now})
+    : now = now ?? DateTime.now;
 
   @override
   State<RideRequestScreen> createState() => _RideRequestScreenState();
@@ -24,6 +22,7 @@ class RideRequestScreen extends StatefulWidget {
 
 class _RideRequestScreenState extends State<RideRequestScreen> {
   int passengers = 1;
+  bool hasLuggage = false;
   RidePaymentMethod paymentMethod = RidePaymentMethod.cash;
   RideType rideType = RideType.city;
   bool isCalculatingRoute = false;
@@ -33,44 +32,42 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
   Future<void> submitRide() async {
     if (pickupController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppTranslations.pickupRequired),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTranslations.pickupRequired)));
       return;
     }
 
     if (destinationController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppTranslations.destinationRequired),
-        ),
+        SnackBar(content: Text(AppTranslations.destinationRequired)),
       );
       return;
     }
 
     if (widget.routeService == null) {
-  final request = RideRequestData(
-    pickup: pickupController.text.trim(),
-    destination: destinationController.text.trim(),
-    passengers: passengers,
-    paymentMethod: paymentMethod,
-    rideType: rideType,
-    requestedAt: widget.now(),
-  );
+      final request = RideRequestData(
+        pickup: pickupController.text.trim(),
+        destination: destinationController.text.trim(),
+        passengers: passengers,
+        hasLuggage: hasLuggage,
+        paymentMethod: paymentMethod,
+        rideType: rideType,
+        requestedAt: widget.now(),
+      );
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => RideSummaryScreen.fromRequest(
-        request: request,
-      ),
-    ),
-  );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RideSummaryScreen.fromRequest(
+            request: request,
+            rideRequestService: MockRideRequestService(),
+          ),
+        ),
+      );
 
-  return;
-}
+      return;
+    }
 
     setState(() {
       isCalculatingRoute = true;
@@ -87,29 +84,31 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       }
       final requestedAt = widget.now();
 
-final estimatedPrice = PricingCalculator.calculateEstimatedPrice(
-  startTime: requestedAt,
-  kilometers: routeResult.distanceKm,
-  intercity: rideType == RideType.intercity,
-);
+      final estimatedPrice = PricingCalculator.calculateEstimatedPrice(
+        startTime: requestedAt,
+        kilometers: routeResult.distanceKm,
+        intercity: rideType == RideType.intercity,
+      );
 
-final request = RideRequestData(
-  pickup: pickupController.text.trim(),
-  destination: destinationController.text.trim(),
-  passengers: passengers,
-  paymentMethod: paymentMethod,
-  rideType: rideType,
-  requestedAt: requestedAt,
-  routeResult: routeResult,
-  estimatedPrice: estimatedPrice,
-);
+      final request = RideRequestData(
+        pickup: pickupController.text.trim(),
+        destination: destinationController.text.trim(),
+        passengers: passengers,
+        hasLuggage: hasLuggage,
+        paymentMethod: paymentMethod,
+        rideType: rideType,
+        requestedAt: requestedAt,
+        routeResult: routeResult,
+        estimatedPrice: estimatedPrice,
+      );
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => RideSummaryScreen.fromRequest(
-  request: request,
-),
+            request: request,
+            rideRequestService: MockRideRequestService(),
+          ),
         ),
       );
     } catch (error) {
@@ -118,9 +117,7 @@ final request = RideRequestData(
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppTranslations.routeCalculationFailed),
-        ),
+        SnackBar(content: Text(AppTranslations.routeCalculationFailed)),
       );
     } finally {
       if (mounted) {
@@ -195,12 +192,7 @@ final request = RideRequestData(
                     icon: const Icon(Icons.remove_circle),
                   ),
 
-                  Text(
-                    '$passengers',
-                    style: const TextStyle(
-                      fontSize: 24,
-                    ),
-                  ),
+                  Text('$passengers', style: const TextStyle(fontSize: 24)),
 
                   IconButton(
                     onPressed: () {
@@ -254,6 +246,31 @@ final request = RideRequestData(
               ),
 
               const SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              Text(
+                AppTranslations.luggage,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SwitchListTile(
+                title: Text(
+                  hasLuggage
+                      ? AppTranslations.luggageYes
+                      : AppTranslations.luggageNo,
+                ),
+                value: hasLuggage,
+                onChanged: (bool value) {
+                  setState(() {
+                    hasLuggage = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 20),
 
               Text(
                 AppTranslations.payment,
@@ -264,49 +281,49 @@ final request = RideRequestData(
               ),
 
               RadioListTile<RidePaymentMethod>(
-  title: Text(AppTranslations.cash),
-  value: RidePaymentMethod.cash,
-  groupValue: paymentMethod,
-  onChanged: (RidePaymentMethod? value) {
-    if (value == null) {
-      return;
-    }
+                title: Text(AppTranslations.cash),
+                value: RidePaymentMethod.cash,
+                groupValue: paymentMethod,
+                onChanged: (RidePaymentMethod? value) {
+                  if (value == null) {
+                    return;
+                  }
 
-    setState(() {
-      paymentMethod = value;
-    });
-  },
-),
-
-              RadioListTile<RidePaymentMethod>(
-  title: Text(AppTranslations.card),
-  value: RidePaymentMethod.card,
-  groupValue: paymentMethod,
-  onChanged: (RidePaymentMethod? value) {
-    if (value == null) {
-      return;
-    }
-
-    setState(() {
-      paymentMethod = value;
-    });
-  },
-),
+                  setState(() {
+                    paymentMethod = value;
+                  });
+                },
+              ),
 
               RadioListTile<RidePaymentMethod>(
-  title: Text(AppTranslations.voucher),
-  value: RidePaymentMethod.voucher,
-  groupValue: paymentMethod,
-  onChanged: (RidePaymentMethod? value) {
-    if (value == null) {
-      return;
-    }
+                title: Text(AppTranslations.card),
+                value: RidePaymentMethod.card,
+                groupValue: paymentMethod,
+                onChanged: (RidePaymentMethod? value) {
+                  if (value == null) {
+                    return;
+                  }
 
-    setState(() {
-      paymentMethod = value;
-    });
-  },
-),
+                  setState(() {
+                    paymentMethod = value;
+                  });
+                },
+              ),
+
+              RadioListTile<RidePaymentMethod>(
+                title: Text(AppTranslations.voucher),
+                value: RidePaymentMethod.voucher,
+                groupValue: paymentMethod,
+                onChanged: (RidePaymentMethod? value) {
+                  if (value == null) {
+                    return;
+                  }
+
+                  setState(() {
+                    paymentMethod = value;
+                  });
+                },
+              ),
 
               const SizedBox(height: 20),
 
@@ -324,17 +341,14 @@ final request = RideRequestData(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed:
-                      isCalculatingRoute ? null : submitRide,
+                  onPressed: isCalculatingRoute ? null : submitRide,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: AppColors.primary,
                   ),
                   child: Text(
                     AppTranslations.confirmRide,
-                    style: const TextStyle(
-                      fontSize: 18,
-                    ),
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
               ),

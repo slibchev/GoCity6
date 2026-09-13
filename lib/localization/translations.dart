@@ -268,6 +268,22 @@ class AppTranslations {
     return 'Багаж';
   }
 
+  static String get luggageYes {
+    if (currentLanguage == AppLanguage.english) {
+      return 'With luggage';
+    }
+
+    return 'С багаж';
+  }
+
+  static String get luggageNo {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Without luggage';
+    }
+
+    return 'Без багаж';
+  }
+
   static String get luggageInfo {
     if (currentLanguage == AppLanguage.english) {
       return 'Not selected';

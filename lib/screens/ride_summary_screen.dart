@@ -18,52 +18,52 @@ class RideSummaryScreen extends StatelessWidget {
   final double? estimatedPrice;
   final RideRequestService? rideRequestService;
 
-  
   RideSummaryScreen.fromRequest({
-  super.key,
-  required this.request,
-  this.rideRequestService,
-})  : pickup = request.pickup,
-      destination = request.destination,
-      passengers = request.passengers,
-      paymentMethod = request.paymentMethod,
-      rideType = request.rideType,
-      routeResult = request.routeResult,
-      estimatedPrice = request.estimatedPrice;
+    super.key,
+    required this.request,
+    this.rideRequestService,
+  }) : pickup = request.pickup,
+       destination = request.destination,
+       passengers = request.passengers,
+       paymentMethod = request.paymentMethod,
+       rideType = request.rideType,
+       routeResult = request.routeResult,
+       estimatedPrice = request.estimatedPrice;
 
   String getPaymentText() {
-  switch (paymentMethod) {
-    case RidePaymentMethod.cash:
-      return AppTranslations.cash;
+    switch (paymentMethod) {
+      case RidePaymentMethod.cash:
+        return AppTranslations.cash;
 
-    case RidePaymentMethod.card:
-      return AppTranslations.card;
+      case RidePaymentMethod.card:
+        return AppTranslations.card;
 
-    case RidePaymentMethod.voucher:
-      return AppTranslations.voucher;
-  }
-}
-Future<void> _confirmRide(BuildContext context) async {
-  final service = rideRequestService;
-
-  final submittedRequest = service == null
-      ? request
-      : await service.submitRequest(request);
-
-  if (!context.mounted) {
-    return;
+      case RidePaymentMethod.voucher:
+        return AppTranslations.voucher;
+    }
   }
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => RideConfirmationScreen(
-        request: submittedRequest,
-        rideRequestService: service,
+  Future<void> _confirmRide(BuildContext context) async {
+    final service = rideRequestService;
+
+    final submittedRequest = service == null
+        ? request
+        : await service.submitRequest(request);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RideConfirmationScreen(
+          request: submittedRequest,
+          rideRequestService: service,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,27 +104,21 @@ Future<void> _confirmRide(BuildContext context) async {
 
               Text(
                 '📍 ${AppTranslations.from}: $pickup',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
 
               Text(
                 '📍 ${AppTranslations.to}: $destination',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
 
               Text(
                 '👥 ${AppTranslations.passengersLabel}: $passengers',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
@@ -132,71 +126,59 @@ Future<void> _confirmRide(BuildContext context) async {
               Text(
                 '🚕 ${AppTranslations.rideType}: '
                 '${rideType == RideType.city ? AppTranslations.cityRide : AppTranslations.intercityRide}',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
 
               Text(
                 '💳 ${AppTranslations.paymentMethod}: ${getPaymentText()}',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
 
               Text(
                 '🧳 ${AppTranslations.luggage}: '
-                '${AppTranslations.luggageInfo}',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                '${request.hasLuggage ? AppTranslations.luggageYes : AppTranslations.luggageNo}',
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
-if (routeResult != null) ...[
-  Text(
-    '🛣️ ${AppTranslations.distance}: '
-    '${routeResult!.distanceKm.toStringAsFixed(1)} km',
-    style: const TextStyle(
-      fontSize: 18,
-    ),
-  ),
+              if (routeResult != null) ...[
+                Text(
+                  '🛣️ ${AppTranslations.distance}: '
+                  '${routeResult!.distanceKm.toStringAsFixed(1)} km',
+                  style: const TextStyle(fontSize: 18),
+                ),
 
-  const SizedBox(height: 15),
+                const SizedBox(height: 15),
 
-  Text(
-    '⏱️ ${AppTranslations.estimatedDuration}: '
-    '${routeResult!.durationMinutes.toStringAsFixed(0)} '
-    '${AppTranslations.minutes}',
-    style: const TextStyle(
-      fontSize: 18,
-    ),
-  ),
+                Text(
+                  '⏱️ ${AppTranslations.estimatedDuration}: '
+                  '${routeResult!.durationMinutes.toStringAsFixed(0)} '
+                  '${AppTranslations.minutes}',
+                  style: const TextStyle(fontSize: 18),
+                ),
 
-  const SizedBox(height: 15),
-],
+                const SizedBox(height: 15),
+              ],
               Text(
                 '🕒 ${AppTranslations.arrivalTime}: '
                 '${AppTranslations.calculating}',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontSize: 18),
               ),
 
               const SizedBox(height: 15),
 
               Text(
-  '💰 ${AppTranslations.priceLabel}: '
-  '${estimatedPrice == null ? AppTranslations.calculating : '${estimatedPrice!.toStringAsFixed(2)} лв.'}',
-  style: const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-  ),
-),
+                '💰 ${AppTranslations.priceLabel}: '
+                '${estimatedPrice == null ? AppTranslations.calculating : '${estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 30),
 
               SizedBox(
@@ -204,8 +186,8 @@ if (routeResult != null) ...[
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () async {
-  await _confirmRide(context);
-},
+                    await _confirmRide(context);
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: AppColors.primary,
