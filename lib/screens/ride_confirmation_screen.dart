@@ -415,10 +415,17 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                'ðŸ’° ${AppTranslations.priceLabel}: '
-                '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} Ð»Ð².'}',
-                style: const TextStyle(fontSize: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.payments),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${AppTranslations.priceLabel}: '
+                    '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               Text(
