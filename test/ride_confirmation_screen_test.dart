@@ -103,6 +103,7 @@ void main() {
     );
 
     expect(find.text(AppTranslations.rideAccepted), findsWidgets);
+    expect(find.text(AppTranslations.rideAcceptedMessage), findsOneWidget);
   });
 
   testWidgets('RideConfirmationScreen updates through stream to completed', (
