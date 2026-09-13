@@ -297,6 +297,11 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         const SizedBox(height: 25),
         const Divider(),
         const SizedBox(height: 15),
+        Text(
+          AppTranslations.driverInfoTitle,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 15),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
