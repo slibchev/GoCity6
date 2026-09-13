@@ -153,6 +153,7 @@ void main() {
     );
 
     expect(find.text(AppTranslations.driverArriving), findsWidgets);
+    expect(find.text(AppTranslations.driverArrivingMessage), findsOneWidget);
   });
 
   testWidgets('RideConfirmationScreen shows ride in progress status', (
