@@ -224,6 +224,14 @@ class AppTranslations {
     return 'Заявката е анулирана';
   }
 
+  static String get rideCancelledMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'The ride request was cancelled successfully.';
+    }
+
+    return 'Заявката за курс беше отменена успешно.';
+  }
+
   static String get rideSummary {
     if (currentLanguage == AppLanguage.english) {
       return 'Ride summary';
