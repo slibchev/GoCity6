@@ -328,7 +328,20 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
           children: [
             const Icon(Icons.confirmation_number),
             const SizedBox(width: 8),
-            Text(driverInfo.licensePlate, style: const TextStyle(fontSize: 18)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                driverInfo.licensePlate,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
         ),
         if (driverInfo.etaMinutes != null) ...[
