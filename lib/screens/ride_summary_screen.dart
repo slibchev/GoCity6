@@ -61,23 +61,33 @@ class RideSummaryScreen extends StatelessWidget {
   Future<void> _confirmRide(BuildContext context) async {
     final service = rideRequestService;
 
-    final submittedRequest = service == null
-        ? request
-        : await service.submitRequest(request);
+    try {
+      final submittedRequest = service == null
+          ? request
+          : await service.submitRequest(request);
 
-    if (!context.mounted) {
-      return;
-    }
+      if (!context.mounted) {
+        return;
+      }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RideConfirmationScreen(
-          request: submittedRequest,
-          rideRequestService: service,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RideConfirmationScreen(
+            request: submittedRequest,
+            rideRequestService: service,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTranslations.submitRideFailed)));
+    }
   }
 
   @override

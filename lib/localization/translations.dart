@@ -429,6 +429,14 @@ class AppTranslations {
     return 'Заявката не можа да бъде отменена. Моля, опитайте отново.';
   }
 
+  static String get submitRideFailed {
+    if (currentLanguage == AppLanguage.english) {
+      return 'The ride request could not be sent. Please try again.';
+    }
+
+    return 'Заявката за курс не можа да бъде изпратена. Опитайте отново.';
+  }
+
   static String get keepRide {
     if (currentLanguage == AppLanguage.english) {
       return 'Keep ride';
