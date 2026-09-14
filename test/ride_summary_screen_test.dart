@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:taxi_app/localization/translations.dart';
 import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
@@ -44,6 +44,33 @@ class FailingRideRequestService implements RideRequestService {
   @override
   Future<RideRequestData> submitRequest(RideRequestData request) async {
     throw Exception('submit failed');
+  }
+
+  @override
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> cancelRequest(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {
+    yield request;
+  }
+}
+
+class DelayedRideRequestService implements RideRequestService {
+  int submitCallCount = 0;
+  final Completer<RideRequestData> submitCompleter =
+      Completer<RideRequestData>();
+
+  @override
+  Future<RideRequestData> submitRequest(RideRequestData request) {
+    submitCallCount++;
+    return submitCompleter.future;
   }
 
   @override
@@ -135,5 +162,53 @@ void main() {
     expect(find.text(AppTranslations.submitRideFailed), findsOneWidget);
 
     expect(find.byType(RideConfirmationScreen), findsNothing);
+  });
+  testWidgets('RideSummaryScreen prevents duplicate ride submissions', (
+    WidgetTester tester,
+  ) async {
+    final service = DelayedRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideSummaryScreen.fromRequest(
+          request: request,
+          rideRequestService: service,
+        ),
+      ),
+    );
+
+    final confirmButton = find.text(AppTranslations.confirmRide);
+
+    await tester.tap(confirmButton);
+    await tester.pump();
+
+    expect(find.text(AppTranslations.processing), findsOneWidget);
+
+    await tester.tap(find.text(AppTranslations.processing));
+    await tester.pump();
+
+    expect(service.submitCallCount, 1);
+
+    service.submitCompleter.complete(
+      request.copyWith(
+        requestId: 'delayed-request-001',
+        status: RideRequestStatus.pending,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RideConfirmationScreen), findsOneWidget);
   });
 }
