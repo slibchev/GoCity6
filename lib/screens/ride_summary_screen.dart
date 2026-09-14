@@ -7,7 +7,7 @@ import '../models/route_result.dart';
 import 'ride_confirmation_screen.dart';
 import '../services/ride_request_service.dart';
 
-class RideSummaryScreen extends StatelessWidget {
+class RideSummaryScreen extends StatefulWidget {
   final String pickup;
   final String destination;
   final int passengers;
@@ -29,6 +29,22 @@ class RideSummaryScreen extends StatelessWidget {
        rideType = request.rideType,
        routeResult = request.routeResult,
        estimatedPrice = request.estimatedPrice;
+
+  @override
+  State<RideSummaryScreen> createState() => _RideSummaryScreenState();
+}
+
+class _RideSummaryScreenState extends State<RideSummaryScreen> {
+  bool _isSubmitting = false;
+  String get pickup => widget.pickup;
+  String get destination => widget.destination;
+  int get passengers => widget.passengers;
+  RidePaymentMethod get paymentMethod => widget.paymentMethod;
+  RideType get rideType => widget.rideType;
+  RouteResult? get routeResult => widget.routeResult;
+  RideRequestData get request => widget.request;
+  double? get estimatedPrice => widget.estimatedPrice;
+  RideRequestService? get rideRequestService => widget.rideRequestService;
 
   String getPaymentText() {
     switch (paymentMethod) {
@@ -59,6 +75,14 @@ class RideSummaryScreen extends StatelessWidget {
   }
 
   Future<void> _confirmRide(BuildContext context) async {
+    if (_isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
     final service = rideRequestService;
 
     try {
@@ -87,6 +111,12 @@ class RideSummaryScreen extends StatelessWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(AppTranslations.submitRideFailed)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -210,15 +240,19 @@ class RideSummaryScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    await _confirmRide(context);
-                  },
+                  onPressed: _isSubmitting
+                      ? null
+                      : () async {
+                          await _confirmRide(context);
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: AppColors.primary,
                   ),
                   child: Text(
-                    AppTranslations.confirmRide,
+                    _isSubmitting
+                        ? AppTranslations.processing
+                        : AppTranslations.confirmRide,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
