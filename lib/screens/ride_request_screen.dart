@@ -8,13 +8,18 @@ import '../services/route_service.dart';
 import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
 import '../services/mock_ride_request_service.dart';
+import '../services/mock_route_service.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
   final DateTime Function() now;
 
-  RideRequestScreen({super.key, this.routeService, DateTime Function()? now})
-    : now = now ?? DateTime.now;
+  RideRequestScreen({
+    super.key,
+    RouteService? routeService,
+    DateTime Function()? now,
+  }) : routeService = routeService ?? MockRouteService(),
+       now = now ?? DateTime.now;
 
   @override
   State<RideRequestScreen> createState() => _RideRequestScreenState();
