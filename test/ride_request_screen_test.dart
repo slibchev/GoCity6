@@ -110,6 +110,7 @@ void main() {
       find.textContaining('25 ${AppTranslations.minutes}'),
       findsOneWidget,
     );
+    expect(find.textContaining('10:25'), findsOneWidget);
     final formattedPrice = summaryScreen.estimatedPrice!.toStringAsFixed(2);
 
     expect(find.textContaining(formattedPrice), findsOneWidget);
