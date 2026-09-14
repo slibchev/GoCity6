@@ -28,14 +28,33 @@ class RecordingRideRequestService implements RideRequestService {
   Future<RideRequestData> getRequestStatus(RideRequestData request) async {
     return request;
   }
+
   @override
-Future<RideRequestData> cancelRequest(
-  RideRequestData request,
-) async {
-  return request.copyWith(
-    status: RideRequestStatus.cancelled,
-  );
+  Future<RideRequestData> cancelRequest(RideRequestData request) async {
+    return request.copyWith(status: RideRequestStatus.cancelled);
+  }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {
+    yield request;
+  }
 }
+
+class FailingRideRequestService implements RideRequestService {
+  @override
+  Future<RideRequestData> submitRequest(RideRequestData request) async {
+    throw Exception('submit failed');
+  }
+
+  @override
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> cancelRequest(RideRequestData request) async {
+    return request;
+  }
 
   @override
   Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {
@@ -85,5 +104,36 @@ void main() {
     );
 
     expect(confirmationScreen.request.requestId, 'recording-request-001');
+  });
+  testWidgets('RideSummaryScreen shows error when ride submission fails', (
+    WidgetTester tester,
+  ) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideSummaryScreen.fromRequest(
+          request: request,
+          rideRequestService: FailingRideRequestService(),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text(AppTranslations.confirmRide));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppTranslations.submitRideFailed), findsOneWidget);
+
+    expect(find.byType(RideConfirmationScreen), findsNothing);
   });
 }
