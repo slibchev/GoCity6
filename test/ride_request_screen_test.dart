@@ -106,7 +106,10 @@ void main() {
     expect(summaryScreen.request.status, RideRequestStatus.pending);
     expect(find.textContaining('12.5 km'), findsOneWidget);
 
-    expect(find.textContaining('25'), findsOneWidget);
+    expect(
+      find.textContaining('25 ${AppTranslations.minutes}'),
+      findsOneWidget,
+    );
     final formattedPrice = summaryScreen.estimatedPrice!.toStringAsFixed(2);
 
     expect(find.textContaining(formattedPrice), findsOneWidget);

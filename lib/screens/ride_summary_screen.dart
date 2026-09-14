@@ -43,6 +43,21 @@ class RideSummaryScreen extends StatelessWidget {
     }
   }
 
+  String getEstimatedArrivalTime() {
+    if (routeResult == null) {
+      return AppTranslations.calculating;
+    }
+
+    final arrivalTime = request.requestedAt.add(
+      Duration(minutes: routeResult!.durationMinutes.round()),
+    );
+
+    final hour = arrivalTime.hour.toString().padLeft(2, '0');
+    final minute = arrivalTime.minute.toString().padLeft(2, '0');
+
+    return '$hour:$minute';
+  }
+
   Future<void> _confirmRide(BuildContext context) async {
     final service = rideRequestService;
 
@@ -165,7 +180,7 @@ class RideSummaryScreen extends StatelessWidget {
               ],
               Text(
                 '🕒 ${AppTranslations.arrivalTime}: '
-                '${AppTranslations.calculating}',
+                '${getEstimatedArrivalTime()}',
                 style: const TextStyle(fontSize: 18),
               ),
 
