@@ -5,6 +5,7 @@ import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../localization/app_language.dart';
 import 'ride_request_screen.dart';
+import '../services/backend_route_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -66,7 +67,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RideRequestScreen(),
+                          builder: (context) => RideRequestScreen(
+                            routeService: const BackendRouteService(),
+                          ),
                         ),
                       );
                     },
@@ -96,26 +99,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 right: 15,
                 child: ElevatedButton(
                   onPressed: () async {
-  final newLanguage =
-      AppTranslations.currentLanguage == AppLanguage.bulgarian
-          ? AppLanguage.english
-          : AppLanguage.bulgarian;
+                    final newLanguage =
+                        AppTranslations.currentLanguage == AppLanguage.bulgarian
+                        ? AppLanguage.english
+                        : AppLanguage.bulgarian;
 
-  AppTranslations.currentLanguage = newLanguage;
+                    AppTranslations.currentLanguage = newLanguage;
 
-  final prefs = await SharedPreferences.getInstance();
+                    final prefs = await SharedPreferences.getInstance();
 
-  await prefs.setString(
-    'language',
-    newLanguage == AppLanguage.english
-        ? 'english'
-        : 'bulgarian',
-  );
+                    await prefs.setString(
+                      'language',
+                      newLanguage == AppLanguage.english
+                          ? 'english'
+                          : 'bulgarian',
+                    );
 
-  if (!mounted) return;
+                    if (!mounted) return;
 
-  setState(() {});
-},
+                    setState(() {});
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.primary,
