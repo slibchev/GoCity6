@@ -309,4 +309,23 @@ void main() {
 
     expect(find.text('бул. „Витоша“ 100, София, България'), findsOneWidget);
   });
+  testWidgets('RideRequestScreen shows destination autocomplete suggestions', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(placesService: const FakePlacesService()),
+      ),
+    );
+
+    final textFields = find.byType(TextField);
+
+    await tester.enterText(textFields.at(1), 'бул. Вит');
+
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('бул. „Витоша“, София, България'), findsOneWidget);
+
+    expect(find.text('бул. „Витоша“ 100, София, България'), findsOneWidget);
+  });
 }
