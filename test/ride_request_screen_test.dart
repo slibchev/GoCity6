@@ -46,6 +46,24 @@ class NightIntercityRouteService implements RouteService {
   }
 }
 
+class RecordingPlaceIdRouteService implements RouteService {
+  String? pickupPlaceId;
+  String? destinationPlaceId;
+
+  @override
+  Future<RouteResult> calculateRoute({
+    required String pickup,
+    required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
+  }) async {
+    this.pickupPlaceId = pickupPlaceId;
+    this.destinationPlaceId = destinationPlaceId;
+
+    return const RouteResult(distanceKm: 10, durationMinutes: 20);
+  }
+}
+
 class FakePlacesService extends BackendPlacesService {
   const FakePlacesService();
 
@@ -333,5 +351,45 @@ void main() {
     expect(find.text('бул. „Витоша“, София, България'), findsOneWidget);
 
     expect(find.text('бул. „Витоша“ 100, София, България'), findsOneWidget);
+  });
+  testWidgets('RideRequestScreen passes selected place IDs to RouteService', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingPlaceIdRouteService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+
+    final textFields = find.byType(TextField);
+
+    await tester.enterText(textFields.at(0), 'бул. Вит');
+
+    await tester.pump(const Duration(milliseconds: 500));
+
+    await tester.tap(find.text('бул. „Витоша“, София, България'));
+
+    await tester.enterText(textFields.at(1), 'бул. Вит');
+
+    await tester.pump(const Duration(milliseconds: 500));
+
+    await tester.tap(find.text('бул. „Витоша“ 100, София, България'));
+
+    final confirmButton = find.byType(ElevatedButton);
+
+    final button = tester.widget<ElevatedButton>(confirmButton);
+
+    button.onPressed!();
+
+    await tester.pumpAndSettle();
+
+    expect(routeService.pickupPlaceId, 'pickup-place-001');
+
+    expect(routeService.destinationPlaceId, 'pickup-place-002');
   });
 }
