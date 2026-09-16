@@ -45,9 +45,13 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   bool isLoadingPickupSuggestions = false;
   List<PlaceSuggestion> destinationSuggestions = [];
   bool isLoadingDestinationSuggestions = false;
+  String? selectedPickupPlaceId;
+  String? selectedDestinationPlaceId;
   Timer? _pickupDebounce;
   Timer? _destinationDebounce;
   void _onPickupChanged(String input) {
+    selectedPickupPlaceId = null;
+
     _pickupDebounce?.cancel();
 
     _pickupDebounce = Timer(const Duration(milliseconds: 400), () {
@@ -56,6 +60,8 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   }
 
   void _onDestinationChanged(String input) {
+    selectedDestinationPlaceId = null;
+
     _destinationDebounce?.cancel();
 
     _destinationDebounce = Timer(const Duration(milliseconds: 400), () {
@@ -204,6 +210,8 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       final routeResult = await widget.routeService!.calculateRoute(
         pickup: pickupController.text.trim(),
         destination: destinationController.text.trim(),
+        pickupPlaceId: selectedPickupPlaceId,
+        destinationPlaceId: selectedDestinationPlaceId,
       );
 
       if (!mounted) {
@@ -302,6 +310,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                     onTap: () {
                       setState(() {
                         pickupController.text = suggestion.text;
+                        selectedPickupPlaceId = suggestion.placeId;
                         pickupSuggestions = [];
                         isLoadingPickupSuggestions = false;
                       });
@@ -334,6 +343,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                     onTap: () {
                       setState(() {
                         destinationController.text = suggestion.text;
+                        selectedDestinationPlaceId = suggestion.placeId;
                         destinationSuggestions = [];
                         isLoadingDestinationSuggestions = false;
                       });

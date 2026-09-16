@@ -15,6 +15,8 @@ class FailingRouteService implements RouteService {
   Future<RouteResult> calculateRoute({
     required String pickup,
     required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
   }) async {
     throw Exception('Route calculation failed');
   }
@@ -25,6 +27,8 @@ class SuccessfulRouteService implements RouteService {
   Future<RouteResult> calculateRoute({
     required String pickup,
     required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
   }) async {
     return const RouteResult(distanceKm: 12.5, durationMinutes: 25);
   }
@@ -35,6 +39,8 @@ class NightIntercityRouteService implements RouteService {
   Future<RouteResult> calculateRoute({
     required String pickup,
     required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
   }) async {
     return const RouteResult(distanceKm: 10, durationMinutes: 20);
   }

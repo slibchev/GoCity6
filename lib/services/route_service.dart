@@ -4,5 +4,7 @@ abstract class RouteService {
   Future<RouteResult> calculateRoute({
     required String pickup,
     required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
   });
 }
