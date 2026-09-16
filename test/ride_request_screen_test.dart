@@ -392,4 +392,39 @@ void main() {
 
     expect(routeService.destinationPlaceId, 'pickup-place-002');
   });
+  testWidgets('RideRequestScreen clears pickup place ID after manual edit', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingPlaceIdRouteService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+
+    final textFields = find.byType(TextField);
+
+    await tester.enterText(textFields.at(0), 'бул. Вит');
+
+    await tester.pump(const Duration(milliseconds: 500));
+
+    await tester.tap(find.text('бул. „Витоша“, София, България'));
+
+    await tester.enterText(textFields.at(0), 'Ръчно променен адрес');
+
+    await tester.enterText(textFields.at(1), 'Destination');
+
+    final confirmButton = find.byType(ElevatedButton);
+    final button = tester.widget<ElevatedButton>(confirmButton);
+
+    button.onPressed!();
+
+    await tester.pumpAndSettle();
+
+    expect(routeService.pickupPlaceId, isNull);
+  });
 }
