@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
@@ -41,6 +42,24 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   bool isLoadingPickupSuggestions = false;
   List<PlaceSuggestion> destinationSuggestions = [];
   bool isLoadingDestinationSuggestions = false;
+  Timer? _pickupDebounce;
+  Timer? _destinationDebounce;
+  void _onPickupChanged(String input) {
+    _pickupDebounce?.cancel();
+
+    _pickupDebounce = Timer(const Duration(milliseconds: 400), () {
+      _loadPickupSuggestions(input);
+    });
+  }
+
+  void _onDestinationChanged(String input) {
+    _destinationDebounce?.cancel();
+
+    _destinationDebounce = Timer(const Duration(milliseconds: 400), () {
+      _loadDestinationSuggestions(input);
+    });
+  }
+
   Future<void> _loadPickupSuggestions(String input) async {
     final query = input.trim();
 
@@ -235,8 +254,12 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
   @override
   void dispose() {
+    _pickupDebounce?.cancel();
+    _destinationDebounce?.cancel();
+
     pickupController.dispose();
     destinationController.dispose();
+
     super.dispose();
   }
 
@@ -255,7 +278,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
             children: [
               TextField(
                 controller: pickupController,
-                onChanged: _loadPickupSuggestions,
+                onChanged: _onPickupChanged,
                 decoration: InputDecoration(
                   labelText: AppTranslations.pickupLocation,
                   prefixIcon: const Icon(Icons.location_on),
@@ -287,7 +310,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
               TextField(
                 controller: destinationController,
-                onChanged: _loadDestinationSuggestions,
+                onChanged: _onDestinationChanged,
                 decoration: InputDecoration(
                   labelText: AppTranslations.destinationLocation,
                   prefixIcon: const Icon(Icons.flag),
