@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:taxi_app/models/place_suggestion.dart';
+import 'package:taxi_app/services/backend_places_service.dart';
 import 'package:taxi_app/localization/translations.dart';
 import 'package:taxi_app/models/route_result.dart';
 import 'package:taxi_app/screens/ride_request_screen.dart';
@@ -36,6 +37,27 @@ class NightIntercityRouteService implements RouteService {
     required String destination,
   }) async {
     return const RouteResult(distanceKm: 10, durationMinutes: 20);
+  }
+}
+
+class FakePlacesService extends BackendPlacesService {
+  const FakePlacesService();
+
+  @override
+  Future<List<PlaceSuggestion>> autocomplete({
+    required String input,
+    String? sessionToken,
+  }) async {
+    return const [
+      PlaceSuggestion(
+        placeId: 'pickup-place-001',
+        text: 'бул. „Витоша“, София, България',
+      ),
+      PlaceSuggestion(
+        placeId: 'pickup-place-002',
+        text: 'бул. „Витоша“ 100, София, България',
+      ),
+    ];
   }
 }
 
@@ -267,5 +289,24 @@ void main() {
     );
 
     expect(summaryScreen.request.hasLuggage, isFalse);
+  });
+  testWidgets('RideRequestScreen shows pickup autocomplete suggestions', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(placesService: const FakePlacesService()),
+      ),
+    );
+
+    final textFields = find.byType(TextField);
+
+    await tester.enterText(textFields.at(0), 'бул. Вит');
+
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('бул. „Витоша“, София, България'), findsOneWidget);
+
+    expect(find.text('бул. „Витоша“ 100, София, България'), findsOneWidget);
   });
 }

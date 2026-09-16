@@ -14,13 +14,16 @@ import '../services/backend_places_service.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
+  final BackendPlacesService placesService;
   final DateTime Function() now;
 
   RideRequestScreen({
     super.key,
     RouteService? routeService,
+    BackendPlacesService? placesService,
     DateTime Function()? now,
   }) : routeService = routeService ?? MockRouteService(),
+       placesService = placesService ?? const BackendPlacesService(),
        now = now ?? DateTime.now;
 
   @override
@@ -36,7 +39,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
-  final BackendPlacesService placesService = const BackendPlacesService();
+  BackendPlacesService get placesService => widget.placesService;
 
   List<PlaceSuggestion> pickupSuggestions = [];
   bool isLoadingPickupSuggestions = false;
