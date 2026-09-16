@@ -303,17 +303,31 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                 ),
 
               if (pickupSuggestions.isNotEmpty)
-                ...pickupSuggestions.map(
-                  (suggestion) => ListTile(
-                    leading: const Icon(Icons.location_on_outlined),
-                    title: Text(suggestion.text),
-                    onTap: () {
-                      setState(() {
-                        pickupController.text = suggestion.text;
-                        selectedPickupPlaceId = suggestion.placeId;
-                        pickupSuggestions = [];
-                        isLoadingPickupSuggestions = false;
-                      });
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: pickupSuggestions.length,
+                    itemBuilder: (context, index) {
+                      final suggestion = pickupSuggestions[index];
+
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.location_on_outlined),
+                        title: Text(
+                          suggestion.text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          setState(() {
+                            pickupController.text = suggestion.text;
+                            selectedPickupPlaceId = suggestion.placeId;
+                            pickupSuggestions = [];
+                            isLoadingPickupSuggestions = false;
+                          });
+                        },
+                      );
                     },
                   ),
                 ),
@@ -336,17 +350,31 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                 ),
 
               if (destinationSuggestions.isNotEmpty)
-                ...destinationSuggestions.map(
-                  (suggestion) => ListTile(
-                    leading: const Icon(Icons.location_on_outlined),
-                    title: Text(suggestion.text),
-                    onTap: () {
-                      setState(() {
-                        destinationController.text = suggestion.text;
-                        selectedDestinationPlaceId = suggestion.placeId;
-                        destinationSuggestions = [];
-                        isLoadingDestinationSuggestions = false;
-                      });
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: destinationSuggestions.length,
+                    itemBuilder: (context, index) {
+                      final suggestion = destinationSuggestions[index];
+
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.location_on_outlined),
+                        title: Text(
+                          suggestion.text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          setState(() {
+                            destinationController.text = suggestion.text;
+                            selectedDestinationPlaceId = suggestion.placeId;
+                            destinationSuggestions = [];
+                            isLoadingDestinationSuggestions = false;
+                          });
+                        },
+                      );
                     },
                   ),
                 ),
