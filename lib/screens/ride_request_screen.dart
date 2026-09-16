@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride.dart';
@@ -9,6 +8,8 @@ import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
 import '../services/mock_ride_request_service.dart';
 import '../services/mock_route_service.dart';
+import '../models/place_suggestion.dart';
+import '../services/backend_places_service.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
@@ -34,6 +35,105 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
+  final BackendPlacesService placesService = const BackendPlacesService();
+
+  List<PlaceSuggestion> pickupSuggestions = [];
+  bool isLoadingPickupSuggestions = false;
+  List<PlaceSuggestion> destinationSuggestions = [];
+  bool isLoadingDestinationSuggestions = false;
+  Future<void> _loadPickupSuggestions(String input) async {
+    final query = input.trim();
+
+    if (query.length < 3) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        pickupSuggestions = [];
+        isLoadingPickupSuggestions = false;
+      });
+
+      return;
+    }
+
+    setState(() {
+      isLoadingPickupSuggestions = true;
+    });
+
+    try {
+      final suggestions = await placesService.autocomplete(input: query);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (pickupController.text.trim() != query) {
+        return;
+      }
+
+      setState(() {
+        pickupSuggestions = suggestions;
+        isLoadingPickupSuggestions = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        pickupSuggestions = [];
+        isLoadingPickupSuggestions = false;
+      });
+    }
+  }
+
+  Future<void> _loadDestinationSuggestions(String input) async {
+    final query = input.trim();
+
+    if (query.length < 3) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        destinationSuggestions = [];
+        isLoadingDestinationSuggestions = false;
+      });
+
+      return;
+    }
+
+    setState(() {
+      isLoadingDestinationSuggestions = true;
+    });
+
+    try {
+      final suggestions = await placesService.autocomplete(input: query);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (destinationController.text.trim() != query) {
+        return;
+      }
+
+      setState(() {
+        destinationSuggestions = suggestions;
+        isLoadingDestinationSuggestions = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        destinationSuggestions = [];
+        isLoadingDestinationSuggestions = false;
+      });
+    }
+  }
 
   Future<void> submitRide() async {
     if (pickupController.text.trim().isEmpty) {
@@ -155,23 +255,65 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
             children: [
               TextField(
                 controller: pickupController,
+                onChanged: _loadPickupSuggestions,
                 decoration: InputDecoration(
                   labelText: AppTranslations.pickupLocation,
                   prefixIcon: const Icon(Icons.location_on),
                   border: const OutlineInputBorder(),
                 ),
               ),
+              if (isLoadingPickupSuggestions)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(AppTranslations.processing),
+                ),
+
+              if (pickupSuggestions.isNotEmpty)
+                ...pickupSuggestions.map(
+                  (suggestion) => ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(suggestion.text),
+                    onTap: () {
+                      setState(() {
+                        pickupController.text = suggestion.text;
+                        pickupSuggestions = [];
+                        isLoadingPickupSuggestions = false;
+                      });
+                    },
+                  ),
+                ),
 
               const SizedBox(height: 20),
 
               TextField(
                 controller: destinationController,
+                onChanged: _loadDestinationSuggestions,
                 decoration: InputDecoration(
                   labelText: AppTranslations.destinationLocation,
                   prefixIcon: const Icon(Icons.flag),
                   border: const OutlineInputBorder(),
                 ),
               ),
+              if (isLoadingDestinationSuggestions)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(AppTranslations.processing),
+                ),
+
+              if (destinationSuggestions.isNotEmpty)
+                ...destinationSuggestions.map(
+                  (suggestion) => ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(suggestion.text),
+                    onTap: () {
+                      setState(() {
+                        destinationController.text = suggestion.text;
+                        destinationSuggestions = [];
+                        isLoadingDestinationSuggestions = false;
+                      });
+                    },
+                  ),
+                ),
 
               const SizedBox(height: 30),
 
