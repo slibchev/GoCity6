@@ -287,97 +287,138 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              TextField(
-                controller: pickupController,
-                onChanged: _onPickupChanged,
-                decoration: InputDecoration(
-                  labelText: AppTranslations.pickupLocation,
-                  prefixIcon: const Icon(Icons.location_on),
-                  border: const OutlineInputBorder(),
+              TapRegion(
+                onTapOutside: (_) {
+                  if (pickupSuggestions.isNotEmpty ||
+                      isLoadingPickupSuggestions) {
+                    setState(() {
+                      pickupSuggestions = [];
+                      isLoadingPickupSuggestions = false;
+                    });
+
+                    FocusScope.of(context).unfocus();
+                  }
+                },
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: pickupController,
+                      onChanged: _onPickupChanged,
+                      decoration: InputDecoration(
+                        labelText: AppTranslations.pickupLocation,
+                        prefixIcon: const Icon(Icons.location_on),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+
+                    if (isLoadingPickupSuggestions)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(AppTranslations.processing),
+                      ),
+
+                    if (pickupSuggestions.isNotEmpty)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: pickupSuggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = pickupSuggestions[index];
+
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.location_on_outlined),
+                              title: Text(
+                                suggestion.text,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  pickupController.text = suggestion.text;
+                                  selectedPickupPlaceId = suggestion.placeId;
+                                  pickupSuggestions = [];
+                                  isLoadingPickupSuggestions = false;
+                                });
+
+                                FocusScope.of(context).unfocus();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              if (isLoadingPickupSuggestions)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(AppTranslations.processing),
-                ),
-
-              if (pickupSuggestions.isNotEmpty)
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 180),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: pickupSuggestions.length,
-                    itemBuilder: (context, index) {
-                      final suggestion = pickupSuggestions[index];
-
-                      return ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.location_on_outlined),
-                        title: Text(
-                          suggestion.text,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () {
-                          setState(() {
-                            pickupController.text = suggestion.text;
-                            selectedPickupPlaceId = suggestion.placeId;
-                            pickupSuggestions = [];
-                            isLoadingPickupSuggestions = false;
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
 
               const SizedBox(height: 20),
 
-              TextField(
-                controller: destinationController,
-                onChanged: _onDestinationChanged,
-                decoration: InputDecoration(
-                  labelText: AppTranslations.destinationLocation,
-                  prefixIcon: const Icon(Icons.flag),
-                  border: const OutlineInputBorder(),
+              TapRegion(
+                onTapOutside: (_) {
+                  if (destinationSuggestions.isNotEmpty ||
+                      isLoadingDestinationSuggestions) {
+                    setState(() {
+                      destinationSuggestions = [];
+                      isLoadingDestinationSuggestions = false;
+                    });
+
+                    FocusScope.of(context).unfocus();
+                  }
+                },
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: destinationController,
+                      onChanged: _onDestinationChanged,
+                      decoration: InputDecoration(
+                        labelText: AppTranslations.destinationLocation,
+                        prefixIcon: const Icon(Icons.flag),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+
+                    if (isLoadingDestinationSuggestions)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(AppTranslations.processing),
+                      ),
+
+                    if (destinationSuggestions.isNotEmpty)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: destinationSuggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = destinationSuggestions[index];
+
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.location_on_outlined),
+                              title: Text(
+                                suggestion.text,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  destinationController.text = suggestion.text;
+                                  selectedDestinationPlaceId =
+                                      suggestion.placeId;
+                                  destinationSuggestions = [];
+                                  isLoadingDestinationSuggestions = false;
+                                });
+
+                                FocusScope.of(context).unfocus();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              if (isLoadingDestinationSuggestions)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(AppTranslations.processing),
-                ),
-
-              if (destinationSuggestions.isNotEmpty)
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 180),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: destinationSuggestions.length,
-                    itemBuilder: (context, index) {
-                      final suggestion = destinationSuggestions[index];
-
-                      return ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.location_on_outlined),
-                        title: Text(
-                          suggestion.text,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () {
-                          setState(() {
-                            destinationController.text = suggestion.text;
-                            selectedDestinationPlaceId = suggestion.placeId;
-                            destinationSuggestions = [];
-                            isLoadingDestinationSuggestions = false;
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
 
               const SizedBox(height: 30),
 
