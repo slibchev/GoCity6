@@ -40,8 +40,10 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
     target: LatLng(42.6977, 23.3219),
     zoom: 12,
   );
+
   Set<Marker> get _routeMarkers {
     final routeResult = widget.routeResult;
+
     if (routeResult == null) {
       return {};
     }
@@ -70,6 +72,56 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
         infoWindow: InfoWindow(title: AppTranslations.destinationLocation),
       ),
     };
+  }
+
+  void _fitRouteOnMap(GoogleMapController controller) {
+    final routeResult = widget.routeResult;
+
+    if (routeResult == null) {
+      return;
+    }
+
+    final pickupLatitude = routeResult.pickupLatitude;
+    final pickupLongitude = routeResult.pickupLongitude;
+    final destinationLatitude = routeResult.destinationLatitude;
+    final destinationLongitude = routeResult.destinationLongitude;
+
+    if (pickupLatitude == null ||
+        pickupLongitude == null ||
+        destinationLatitude == null ||
+        destinationLongitude == null) {
+      return;
+    }
+
+    final pickup = LatLng(pickupLatitude, pickupLongitude);
+
+    final destination = LatLng(destinationLatitude, destinationLongitude);
+
+    if (pickup == destination) {
+      controller.animateCamera(CameraUpdate.newLatLngZoom(pickup, 16));
+      return;
+    }
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(
+        pickupLatitude < destinationLatitude
+            ? pickupLatitude
+            : destinationLatitude,
+        pickupLongitude < destinationLongitude
+            ? pickupLongitude
+            : destinationLongitude,
+      ),
+      northeast: LatLng(
+        pickupLatitude > destinationLatitude
+            ? pickupLatitude
+            : destinationLatitude,
+        pickupLongitude > destinationLongitude
+            ? pickupLongitude
+            : destinationLongitude,
+      ),
+    );
+
+    controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
   }
 
   bool _isSubmitting = false;
@@ -178,6 +230,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                   child: GoogleMap(
                     initialCameraPosition: _initialMapPosition,
                     markers: _routeMarkers,
+                    onMapCreated: _fitRouteOnMap,
                     zoomControlsEnabled: false,
                     myLocationButtonEnabled: false,
                   ),
