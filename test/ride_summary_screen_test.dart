@@ -117,7 +117,10 @@ void main() {
 
     expect(service.submitCalled, isFalse);
 
-    await tester.tap(find.text(AppTranslations.confirmRide));
+    final confirmButton = find.text(AppTranslations.confirmRide);
+
+    await tester.ensureVisible(confirmButton);
+    await tester.tap(confirmButton);
 
     await tester.pumpAndSettle();
 
@@ -155,7 +158,10 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text(AppTranslations.confirmRide));
+    final confirmButton = find.text(AppTranslations.confirmRide);
+
+    await tester.ensureVisible(confirmButton);
+    await tester.tap(confirmButton);
 
     await tester.pumpAndSettle();
 
@@ -189,7 +195,7 @@ void main() {
     );
 
     final confirmButton = find.text(AppTranslations.confirmRide);
-
+    await tester.ensureVisible(confirmButton);
     await tester.tap(confirmButton);
     await tester.pump();
 

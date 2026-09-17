@@ -6,6 +6,7 @@ import '../models/ride_request_data.dart';
 import '../models/route_result.dart';
 import 'ride_confirmation_screen.dart';
 import '../services/ride_request_service.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RideSummaryScreen extends StatefulWidget {
   final String pickup;
@@ -35,6 +36,10 @@ class RideSummaryScreen extends StatefulWidget {
 }
 
 class _RideSummaryScreenState extends State<RideSummaryScreen> {
+  static const CameraPosition _initialMapPosition = CameraPosition(
+    target: LatLng(42.6977, 23.3219),
+    zoom: 12,
+  );
   bool _isSubmitting = false;
   String get pickup => widget.pickup;
   String get destination => widget.destination;
@@ -134,6 +139,17 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(
+                height: 220,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: const GoogleMap(
+                    initialCameraPosition: _initialMapPosition,
+                    zoomControlsEnabled: false,
+                    myLocationButtonEnabled: false,
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
 
               Text(
