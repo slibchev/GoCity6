@@ -40,6 +40,38 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
     target: LatLng(42.6977, 23.3219),
     zoom: 12,
   );
+  Set<Marker> get _routeMarkers {
+    final routeResult = widget.routeResult;
+    if (routeResult == null) {
+      return {};
+    }
+
+    final pickupLatitude = routeResult.pickupLatitude;
+    final pickupLongitude = routeResult.pickupLongitude;
+    final destinationLatitude = routeResult.destinationLatitude;
+    final destinationLongitude = routeResult.destinationLongitude;
+
+    if (pickupLatitude == null ||
+        pickupLongitude == null ||
+        destinationLatitude == null ||
+        destinationLongitude == null) {
+      return {};
+    }
+
+    return {
+      Marker(
+        markerId: const MarkerId('pickup'),
+        position: LatLng(pickupLatitude, pickupLongitude),
+        infoWindow: InfoWindow(title: AppTranslations.pickupLocation),
+      ),
+      Marker(
+        markerId: const MarkerId('destination'),
+        position: LatLng(destinationLatitude, destinationLongitude),
+        infoWindow: InfoWindow(title: AppTranslations.destinationLocation),
+      ),
+    };
+  }
+
   bool _isSubmitting = false;
   String get pickup => widget.pickup;
   String get destination => widget.destination;
@@ -143,8 +175,9 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                 height: 220,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: const GoogleMap(
+                  child: GoogleMap(
                     initialCameraPosition: _initialMapPosition,
+                    markers: _routeMarkers,
                     zoomControlsEnabled: false,
                     myLocationButtonEnabled: false,
                   ),
