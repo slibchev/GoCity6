@@ -41,6 +41,10 @@ class BackendRouteService implements RouteService {
     return RouteResult(
       distanceKm: (data['distanceKm'] as num).toDouble(),
       durationMinutes: (data['durationMinutes'] as num).toDouble(),
+      pickupLatitude: (data['pickupLatitude'] as num?)?.toDouble(),
+      pickupLongitude: (data['pickupLongitude'] as num?)?.toDouble(),
+      destinationLatitude: (data['destinationLatitude'] as num?)?.toDouble(),
+      destinationLongitude: (data['destinationLongitude'] as num?)?.toDouble(),
     );
   }
 }
