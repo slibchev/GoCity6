@@ -16,6 +16,8 @@ class BackendRouteService implements RouteService {
     required String destination,
     String? pickupPlaceId,
     String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/route'),
@@ -23,6 +25,8 @@ class BackendRouteService implements RouteService {
       body: jsonEncode({
         'pickup': pickup,
         'destination': destination,
+        if (pickupLatitude != null) 'pickupLatitude': pickupLatitude,
+        if (pickupLongitude != null) 'pickupLongitude': pickupLongitude,
         if (pickupPlaceId != null) 'pickupPlaceId': pickupPlaceId,
         if (destinationPlaceId != null)
           'destinationPlaceId': destinationPlaceId,

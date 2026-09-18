@@ -6,5 +6,7 @@ abstract class RouteService {
     required String destination,
     String? pickupPlaceId,
     String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
   });
 }

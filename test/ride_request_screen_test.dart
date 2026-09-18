@@ -17,6 +17,8 @@ class FailingRouteService implements RouteService {
     required String destination,
     String? pickupPlaceId,
     String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
   }) async {
     throw Exception('Route calculation failed');
   }
@@ -29,6 +31,8 @@ class SuccessfulRouteService implements RouteService {
     required String destination,
     String? pickupPlaceId,
     String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
   }) async {
     return const RouteResult(distanceKm: 12.5, durationMinutes: 25);
   }
@@ -41,6 +45,8 @@ class NightIntercityRouteService implements RouteService {
     required String destination,
     String? pickupPlaceId,
     String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
   }) async {
     return const RouteResult(distanceKm: 10, durationMinutes: 20);
   }
@@ -56,6 +62,8 @@ class RecordingPlaceIdRouteService implements RouteService {
     required String destination,
     String? pickupPlaceId,
     String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
   }) async {
     this.pickupPlaceId = pickupPlaceId;
     this.destinationPlaceId = destinationPlaceId;
