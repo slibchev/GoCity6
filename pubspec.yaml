@@ -37,6 +37,7 @@ dependencies:
   url_launcher: ^6.3.2
   http: ^1.6.0
   google_maps_flutter: ^2.18.1
+  flutter_polyline_points: ^3.1.0
 
 dev_dependencies:
   flutter_test:
