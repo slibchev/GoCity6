@@ -298,6 +298,8 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         destination: destinationController.text.trim(),
         pickupPlaceId: selectedPickupPlaceId,
         destinationPlaceId: selectedDestinationPlaceId,
+        pickupLatitude: selectedPickupLatitude,
+        pickupLongitude: selectedPickupLongitude,
       );
 
       if (!mounted) {
@@ -394,6 +396,21 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                         labelText: AppTranslations.pickupLocation,
                         prefixIcon: const Icon(Icons.location_on),
                         border: const OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: isGettingCurrentLocation
+                            ? null
+                            : _useCurrentLocation,
+                        icon: const Icon(Icons.my_location),
+                        label: Text(
+                          isGettingCurrentLocation
+                              ? AppTranslations.processing
+                              : AppTranslations.myLocation,
+                        ),
                       ),
                     ),
 
