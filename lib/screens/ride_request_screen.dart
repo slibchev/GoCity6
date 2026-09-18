@@ -702,13 +702,62 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           height: 55,
           child: ElevatedButton(
             onPressed: isCalculatingRoute ? null : submitRide,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              foregroundColor: AppColors.primary,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return AppColors.silver;
+                  }
+
+                  if (states.contains(WidgetState.pressed)) {
+                    return AppColors.accent;
+                  }
+
+                  return AppColors.secondary;
+                },
+              ),
+              foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return AppColors.textSecondary;
+                  }
+
+                  if (states.contains(WidgetState.pressed)) {
+                    return Colors.white;
+                  }
+
+                  return AppColors.primary;
+                },
+              ),
+              elevation: WidgetStateProperty.resolveWith<double>(
+                (states) {
+                  if (states.contains(WidgetState.pressed)) {
+                    return 2;
+                  }
+
+                  return 7;
+                },
+              ),
+              shadowColor: const WidgetStatePropertyAll(
+                AppColors.accent,
+              ),
+              overlayColor: WidgetStatePropertyAll(
+                Colors.white.withValues(alpha: 0.12),
+              ),
+              shape: WidgetStatePropertyAll(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              animationDuration: const Duration(milliseconds: 120),
             ),
             child: Text(
               AppTranslations.confirmRide,
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ),

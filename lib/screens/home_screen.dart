@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/app_config.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../localization/app_language.dart';
@@ -9,6 +8,7 @@ import '../services/backend_route_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -21,7 +21,10 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.primary, Color(0xFF183A63)],
+            colors: [
+              AppColors.primary,
+              Color(0xFF183A63),
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -29,70 +32,62 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.airport_shuttle,
-                    size: 110,
-                    color: AppColors.secondary,
-                  ),
-                  const SizedBox(height: 25),
-                  Text(
-                    AppConfig.appName,
-                    style: const TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Text(
-                    AppTranslations.slogan,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      color: AppColors.secondary,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    AppTranslations.comfortText,
-                    style: const TextStyle(fontSize: 16, color: Colors.white70),
-                  ),
-                  const SizedBox(height: 50),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RideRequestScreen(
-                            routeService: const BackendRouteService(),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/city6_logo.png',
+                        width: 280,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        AppTranslations.welcomeTagline,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 75),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RideRequestScreen(
+                                routeService: const BackendRouteService(),
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 55,
+                            vertical: 18,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 55,
-                        vertical: 18,
+                        child: Text(
+                          AppTranslations.orderButton,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text(
-                      AppTranslations.orderButton,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
               Positioned(
                 top: 15,
@@ -100,7 +95,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     final newLanguage =
-                        AppTranslations.currentLanguage == AppLanguage.bulgarian
+                        AppTranslations.currentLanguage ==
+                            AppLanguage.bulgarian
                         ? AppLanguage.english
                         : AppLanguage.bulgarian;
 
@@ -115,7 +111,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           : 'bulgarian',
                     );
 
-                    if (!mounted) return;
+                    if (!mounted) {
+                      return;
+                    }
 
                     setState(() {});
                   },
@@ -134,7 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     AppTranslations.currentLanguage == AppLanguage.bulgarian
                         ? 'EN'
                         : 'БГ',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

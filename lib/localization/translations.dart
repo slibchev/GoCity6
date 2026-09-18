@@ -366,6 +366,14 @@ class AppTranslations {
     return 'Назад';
   }
 
+  static String get welcomeTagline {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Travel together';
+    }
+
+    return 'Пътувайте заедно';
+  }
+
   static String get slogan {
     if (currentLanguage == AppLanguage.english) {
       return 'Be 6 – Be Together';
