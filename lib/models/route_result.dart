@@ -7,6 +7,8 @@ class RouteResult {
   final double? destinationLatitude;
   final double? destinationLongitude;
 
+  final String? encodedPolyline;
+
   const RouteResult({
     required this.distanceKm,
     required this.durationMinutes,
@@ -14,5 +16,6 @@ class RouteResult {
     this.pickupLongitude,
     this.destinationLatitude,
     this.destinationLongitude,
+    this.encodedPolyline,
   });
 }

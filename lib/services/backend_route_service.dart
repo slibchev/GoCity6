@@ -45,6 +45,7 @@ class BackendRouteService implements RouteService {
       pickupLongitude: (data['pickupLongitude'] as num?)?.toDouble(),
       destinationLatitude: (data['destinationLatitude'] as num?)?.toDouble(),
       destinationLongitude: (data['destinationLongitude'] as num?)?.toDouble(),
+      encodedPolyline: data['encodedPolyline'] as String?,
     );
   }
 }
