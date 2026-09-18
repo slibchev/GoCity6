@@ -165,10 +165,10 @@ class AppTranslations {
 
   static String get rideAcceptedMessage {
     if (currentLanguage == AppLanguage.english) {
-      return 'The driver accepted your request.';
+      return 'The driver accepted your request';
     }
 
-    return 'Шофьорът прие заявката ви.';
+    return 'Шофьорът прие заявката ви';
   }
 
   static String get rideRequestSent {
@@ -181,10 +181,10 @@ class AppTranslations {
 
   static String get waitingForDriverConfirmation {
     if (currentLanguage == AppLanguage.english) {
-      return 'Looking for a driver...';
+      return 'Waiting for driver confirmation';
     }
 
-    return 'Търсим шофьор...';
+    return 'Очаква се потвърждение от шофьора';
   }
 
   static String get driverArriving {
@@ -197,10 +197,10 @@ class AppTranslations {
 
   static String get driverArrivingMessage {
     if (currentLanguage == AppLanguage.english) {
-      return 'Your driver is on the way to pick you up.';
+      return 'Your driver is on the way to pick you up';
     }
 
-    return 'Вашият шофьор е на път към мястото за взимане.';
+    return 'Шофьорът идва';
   }
 
   static String get driverInfoTitle {
