@@ -4,11 +4,14 @@ import 'package:http/http.dart' as http;
 
 import '../models/route_result.dart';
 import 'route_service.dart';
+import '../config/backend_config.dart';
 
 class BackendRouteService implements RouteService {
-  final String baseUrl;
+  final String? baseUrl;
 
-  const BackendRouteService({this.baseUrl = 'http://localhost:8080'});
+  const BackendRouteService({this.baseUrl});
+
+  String get _baseUrl => baseUrl ?? BackendConfig.baseUrl;
 
   @override
   Future<RouteResult> calculateRoute({
@@ -20,7 +23,7 @@ class BackendRouteService implements RouteService {
     double? pickupLongitude,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/route'),
+      Uri.parse('${_baseUrl}/route'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode({
         'pickup': pickup,

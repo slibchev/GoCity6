@@ -2,19 +2,23 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../config/backend_config.dart';
 import '../models/place_suggestion.dart';
 
 class BackendPlacesService {
-  final String baseUrl;
+  final String? baseUrl;
 
-  const BackendPlacesService({this.baseUrl = 'http://localhost:8080'});
+  const BackendPlacesService({this.baseUrl});
+
+  String get _baseUrl => baseUrl ?? BackendConfig.baseUrl;
 
   Future<List<PlaceSuggestion>> autocomplete({
     required String input,
     String? sessionToken,
   }) async {
+
     final response = await http.post(
-      Uri.parse('$baseUrl/places/autocomplete'),
+      Uri.parse('${_baseUrl}/places/autocomplete'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode({
         'input': input,
