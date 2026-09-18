@@ -99,7 +99,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
         polylineId: const PolylineId('route'),
         points: points,
         width: 5,
-        color: AppColors.primary,
+        color: AppColors.route,
       ),
     };
   }
