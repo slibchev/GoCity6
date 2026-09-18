@@ -1,5 +1,5 @@
 class AppConfig {
-  static const String appName = 'GoCity6';
+  static const String appName = 'City6';
 
   static const String slogan = 'Be 6 – Be Together';
 

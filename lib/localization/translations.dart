@@ -34,9 +34,9 @@ class AppTranslations {
 
   static String get welcomeText {
     if (currentLanguage == AppLanguage.english) {
-      return 'Welcome to GoCity6';
+      return 'Welcome to City6';
     }
-    return 'Добре дошли в GoCity6';
+    return 'Добре дошли в City6';
   }
 
   static String get pickupLocation {
@@ -237,10 +237,10 @@ class AppTranslations {
 
   static String get rideCompletedMessage {
     if (currentLanguage == AppLanguage.english) {
-      return 'Thank you for using GoCity6.';
+      return 'Thank you for using City6.';
     }
 
-    return 'Благодарим, че използвахте GoCity6.';
+    return 'Благодарим, че използвахте City6.';
   }
 
   static String get rideCancelled {
@@ -275,9 +275,9 @@ class AppTranslations {
 
   static String get vehicleInfo {
     if (currentLanguage == AppLanguage.english) {
-      return 'GoCity6 - 6 seats';
+      return 'City6 - 6 seats';
     }
-    return 'GoCity6 - 6 места';
+    return 'City6 - 6 места';
   }
 
   static String get luggage {

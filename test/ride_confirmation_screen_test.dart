@@ -236,7 +236,7 @@ void main() {
       MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
-    expect(find.text('Thank you for using GoCity6.'), findsOneWidget);
+    expect(find.text('Thank you for using City6.'), findsOneWidget);
 
     AppTranslations.currentLanguage = AppLanguage.bulgarian;
   });

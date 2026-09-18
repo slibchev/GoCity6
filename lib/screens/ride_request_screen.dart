@@ -366,7 +366,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GoCity6'),
+        title: const Text('City6'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
