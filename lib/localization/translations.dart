@@ -46,6 +46,25 @@ class AppTranslations {
     return 'От къде?';
   }
 
+  static String get myLocation => currentLanguage == AppLanguage.english
+      ? 'My location'
+      : 'Моето местоположение';
+
+  static String get locationServicesDisabled =>
+      currentLanguage == AppLanguage.english
+      ? 'Location services are disabled.'
+      : 'Услугите за местоположение са изключени.';
+
+  static String get locationPermissionDenied =>
+      currentLanguage == AppLanguage.english
+      ? 'Location permission was denied.'
+      : 'Достъпът до местоположението беше отказан.';
+
+  static String get locationPermissionDeniedForever =>
+      currentLanguage == AppLanguage.english
+      ? 'Location permission is permanently denied. Enable it in the device settings.'
+      : 'Достъпът до местоположението е забранен. Разрешете го от настройките на устройството.';
+
   static String get destinationLocation {
     if (currentLanguage == AppLanguage.english) {
       return 'Destination';
