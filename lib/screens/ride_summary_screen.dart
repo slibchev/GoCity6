@@ -74,6 +74,70 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
     };
   }
 
+  List<LatLng> _decodePolyline(String encoded) {
+    final points = <LatLng>[];
+
+    var index = 0;
+    var latitude = 0;
+    var longitude = 0;
+
+    while (index < encoded.length) {
+      var shift = 0;
+      var result = 0;
+      int byte;
+
+      do {
+        byte = encoded.codeUnitAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+
+      final latitudeChange = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
+
+      latitude += latitudeChange;
+
+      shift = 0;
+      result = 0;
+
+      do {
+        byte = encoded.codeUnitAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+
+      final longitudeChange = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
+
+      longitude += longitudeChange;
+
+      points.add(LatLng(latitude / 100000, longitude / 100000));
+    }
+
+    return points;
+  }
+
+  Set<Polyline> get _routePolylines {
+    final encodedPolyline = widget.routeResult?.encodedPolyline;
+
+    if (encodedPolyline == null || encodedPolyline.isEmpty) {
+      return {};
+    }
+
+    final points = _decodePolyline(encodedPolyline);
+
+    if (points.length < 2) {
+      return {};
+    }
+
+    return {
+      Polyline(
+        polylineId: const PolylineId('route'),
+        points: points,
+        width: 5,
+        color: AppColors.primary,
+      ),
+    };
+  }
+
   void _fitRouteOnMap(GoogleMapController controller) {
     final routeResult = widget.routeResult;
 
@@ -230,6 +294,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                   child: GoogleMap(
                     initialCameraPosition: _initialMapPosition,
                     markers: _routeMarkers,
+                    polylines: _routePolylines,
                     onMapCreated: _fitRouteOnMap,
                     zoomControlsEnabled: false,
                     myLocationButtonEnabled: false,
