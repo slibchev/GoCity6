@@ -181,10 +181,10 @@ class AppTranslations {
 
   static String get waitingForDriverConfirmation {
     if (currentLanguage == AppLanguage.english) {
-      return 'Waiting for driver confirmation';
+      return 'Looking for a driver...';
     }
 
-    return 'Очаква се потвърждение от шофьора';
+    return 'Търсим шофьор...';
   }
 
   static String get driverArriving {

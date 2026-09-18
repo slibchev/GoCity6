@@ -433,6 +433,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 18),
               ),
+              if (currentRequest.status == RideRequestStatus.pending) ...[
+                const SizedBox(height: 15),
+                Icon(Icons.person_search, size: 34, color: getStatusColor()),
+              ],
               buildDriverInfo(),
               if (currentRequest.status.canBeCancelled) ...[
                 SizedBox(
