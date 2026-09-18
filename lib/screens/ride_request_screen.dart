@@ -11,6 +11,7 @@ import '../services/mock_ride_request_service.dart';
 import '../services/mock_route_service.dart';
 import '../models/place_suggestion.dart';
 import '../services/backend_places_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
@@ -47,10 +48,95 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   bool isLoadingDestinationSuggestions = false;
   String? selectedPickupPlaceId;
   String? selectedDestinationPlaceId;
+  double? selectedPickupLatitude;
+  double? selectedPickupLongitude;
+  bool isGettingCurrentLocation = false;
   Timer? _pickupDebounce;
   Timer? _destinationDebounce;
+  Future<void> _useCurrentLocation() async {
+    if (isGettingCurrentLocation) {
+      return;
+    }
+
+    setState(() {
+      isGettingCurrentLocation = true;
+    });
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.locationServicesDisabled)),
+        );
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.locationPermissionDenied)),
+        );
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.locationPermissionDeniedForever),
+          ),
+        );
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        selectedPickupPlaceId = null;
+        selectedPickupLatitude = position.latitude;
+        selectedPickupLongitude = position.longitude;
+
+        pickupController.text = AppTranslations.myLocation;
+
+        pickupSuggestions = [];
+        isLoadingPickupSuggestions = false;
+      });
+
+      FocusScope.of(context).unfocus();
+    } finally {
+      if (mounted) {
+        setState(() {
+          isGettingCurrentLocation = false;
+        });
+      }
+    }
+  }
+
   void _onPickupChanged(String input) {
     selectedPickupPlaceId = null;
+    selectedPickupLatitude = null;
+    selectedPickupLongitude = null;
 
     _pickupDebounce?.cancel();
 
