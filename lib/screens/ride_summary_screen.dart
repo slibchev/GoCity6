@@ -155,6 +155,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
   }
 
   bool _isSubmitting = false;
+
   String get pickup => widget.pickup;
   String get destination => widget.destination;
   int get passengers => widget.passengers;
@@ -268,7 +269,6 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
               Text(
                 AppTranslations.rideSummary,
                 style: const TextStyle(
@@ -276,9 +276,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 30),
-
               Text(
                 '🚐 ${AppTranslations.vehicleInfo}',
                 style: TextStyle(
@@ -287,51 +285,38 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 25),
-
               Text(
                 '📍 ${AppTranslations.from}: $pickup',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
-
               Text(
                 '📍 ${AppTranslations.to}: $destination',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
-
               Text(
                 '👥 ${AppTranslations.passengersLabel}: $passengers',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
-
               Text(
                 '🚕 ${AppTranslations.rideType}: '
                 '${rideType == RideType.city ? AppTranslations.cityRide : AppTranslations.intercityRide}',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
-
               Text(
                 '💳 ${AppTranslations.paymentMethod}: ${getPaymentText()}',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
-
               Text(
                 '🧳 ${AppTranslations.luggage}: '
                 '${request.hasLuggage ? AppTranslations.luggageYes : AppTranslations.luggageNo}',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
               if (routeResult != null) ...[
                 Text(
@@ -339,16 +324,13 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                   '${routeResult!.distanceKm.toStringAsFixed(1)} km',
                   style: const TextStyle(fontSize: 18),
                 ),
-
                 const SizedBox(height: 15),
-
                 Text(
                   '⏱️ ${AppTranslations.estimatedDuration}: '
                   '${routeResult!.durationMinutes.toStringAsFixed(0)} '
                   '${AppTranslations.minutes}',
                   style: const TextStyle(fontSize: 18),
                 ),
-
                 const SizedBox(height: 15),
               ],
               Text(
@@ -356,9 +338,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                 '${getEstimatedArrivalTime()}',
                 style: const TextStyle(fontSize: 18),
               ),
-
               const SizedBox(height: 15),
-
               Text(
                 '💰 ${AppTranslations.priceLabel}: '
                 '${estimatedPrice == null ? AppTranslations.calculating : '${estimatedPrice!.toStringAsFixed(2)} лв.'}',
@@ -367,33 +347,32 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 30),
-
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () async {
-                          await _confirmRide(context);
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: AppColors.primary,
-                  ),
-                  child: Text(
-                    _isSubmitting
-                        ? AppTranslations.processing
-                        : AppTranslations.confirmRide,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 12),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        child: SizedBox(
+          width: double.infinity,
+          height: 55,
+          child: ElevatedButton(
+            onPressed: _isSubmitting
+                ? null
+                : () async {
+                    await _confirmRide(context);
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: AppColors.primary,
+            ),
+            child: Text(
+              _isSubmitting
+                  ? AppTranslations.processing
+                  : AppTranslations.confirmRide,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ),

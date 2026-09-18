@@ -690,24 +690,26 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
-
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: isCalculatingRoute ? null : submitRide,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: AppColors.primary,
-                  ),
-                  child: Text(
-                    AppTranslations.confirmRide,
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 12),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        child: SizedBox(
+          width: double.infinity,
+          height: 55,
+          child: ElevatedButton(
+            onPressed: isCalculatingRoute ? null : submitRide,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: AppColors.primary,
+            ),
+            child: Text(
+              AppTranslations.confirmRide,
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ),
