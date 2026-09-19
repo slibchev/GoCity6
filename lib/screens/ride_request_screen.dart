@@ -14,6 +14,7 @@ import '../services/mock_route_service.dart';
 import '../models/place_suggestion.dart';
 import '../services/backend_places_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
@@ -53,8 +54,69 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   double? selectedPickupLatitude;
   double? selectedPickupLongitude;
   bool isGettingCurrentLocation = false;
+  GoogleMapController? _requestMapController;
+
+  LatLng? _currentClientPosition;
+
+  bool _locationPermissionGranted = false;
   Timer? _pickupDebounce;
   Timer? _destinationDebounce;
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCurrentLocationForMap();
+    });
+  }
+
+  Future<void> _loadCurrentLocationForMap() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+
+      if (!mounted) {
+        return;
+      }
+
+      final currentPosition = LatLng(position.latitude, position.longitude);
+
+      setState(() {
+        _currentClientPosition = currentPosition;
+        _locationPermissionGranted = true;
+      });
+
+      final controller = _requestMapController;
+
+      if (controller != null) {
+        await controller.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: currentPosition, zoom: 17),
+          ),
+        );
+      }
+    } catch (_) {
+      // Не блокираме ride request екрана,
+      // ако текущата позиция временно не може да се зареди.
+    }
+  }
+
   Future<void> _useCurrentLocation() async {
     if (isGettingCurrentLocation) {
       return;
@@ -113,17 +175,29 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       if (!mounted) {
         return;
       }
+      final currentPosition = LatLng(position.latitude, position.longitude);
 
       setState(() {
         selectedPickupPlaceId = null;
         selectedPickupLatitude = position.latitude;
         selectedPickupLongitude = position.longitude;
+        _currentClientPosition = currentPosition;
+        _locationPermissionGranted = true;
 
         pickupController.text = AppTranslations.myLocation;
 
         pickupSuggestions = [];
         isLoadingPickupSuggestions = false;
       });
+      final controller = _requestMapController;
+
+      if (controller != null) {
+        await controller.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: currentPosition, zoom: 17),
+          ),
+        );
+      }
 
       FocusScope.of(context).unfocus();
     } finally {
@@ -379,83 +453,37 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              TapRegion(
-                onTapOutside: (_) {
-                  if (pickupSuggestions.isNotEmpty ||
-                      isLoadingPickupSuggestions) {
-                    setState(() {
-                      pickupSuggestions = [];
-                      isLoadingPickupSuggestions = false;
-                    });
-
-                    FocusScope.of(context).unfocus();
-                  }
-                },
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: pickupController,
-                      onChanged: _onPickupChanged,
-                      decoration: InputDecoration(
-                        labelText: AppTranslations.pickupLocation,
-                        prefixIcon: const Icon(Icons.location_on),
-                        border: const OutlineInputBorder(),
-                      ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 220,
+                  child: GoogleMap(
+                    initialCameraPosition: const CameraPosition(
+                      target: LatLng(42.6977, 23.3219),
+                      zoom: 12,
                     ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: isGettingCurrentLocation
-                            ? null
-                            : _useCurrentLocation,
-                        icon: const Icon(Icons.my_location),
-                        label: Text(
-                          isGettingCurrentLocation
-                              ? AppTranslations.processing
-                              : AppTranslations.myLocation,
-                        ),
-                      ),
-                    ),
+                    onMapCreated: (GoogleMapController controller) {
+                      _requestMapController = controller;
 
-                    if (isLoadingPickupSuggestions)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(AppTranslations.processing),
-                      ),
-
-                    if (pickupSuggestions.isNotEmpty)
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 180),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: pickupSuggestions.length,
-                          itemBuilder: (context, index) {
-                            final suggestion = pickupSuggestions[index];
-
-                            return ListTile(
-                              dense: true,
-                              leading: const Icon(Icons.location_on_outlined),
-                              title: Text(
-                                suggestion.text,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  pickupController.text = suggestion.text;
-                                  selectedPickupPlaceId = suggestion.placeId;
-                                  pickupSuggestions = [];
-                                  isLoadingPickupSuggestions = false;
-                                });
-
-                                FocusScope.of(context).unfocus();
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                  ],
+                      if (_currentClientPosition != null) {
+                        controller.animateCamera(
+                          CameraUpdate.newCameraPosition(
+                            CameraPosition(
+                              target: _currentClientPosition!,
+                              zoom: 17,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    mapType: MapType.normal,
+                    myLocationEnabled: _locationPermissionGranted,
+                    myLocationButtonEnabled: true,
+                    zoomControlsEnabled: false,
+                    compassEnabled: true,
+                    mapToolbarEnabled: false,
+                  ),
                 ),
               ),
 
