@@ -14,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _isOrderButtonPressed = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,10 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppColors.primary,
-              Color(0xFF183A63),
-            ],
+            colors: [AppColors.primary, Color(0xFF183A63)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -55,33 +53,92 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 75),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RideRequestScreen(
-                                routeService: const BackendRouteService(),
+                      Listener(
+                        onPointerDown: (_) {
+                          setState(() {
+                            _isOrderButtonPressed = true;
+                          });
+                        },
+                        onPointerUp: (_) {
+                          setState(() {
+                            _isOrderButtonPressed = false;
+                          });
+                        },
+                        onPointerCancel: (_) {
+                          setState(() {
+                            _isOrderButtonPressed = false;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 90),
+                          curve: Curves.easeOut,
+                          transform: Matrix4.diagonal3Values(
+                            _isOrderButtonPressed ? 0.98 : 1.0,
+                            _isOrderButtonPressed ? 0.92 : 1.0,
+                            1.0,
+                          ),
+                          transformAlignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF7FDBFF),
+                                Color(0xFF20C4FF),
+                                Color(0xFF2F80FF),
+                                Color(0xFFBFC7D1),
+                              ],
+                              stops: [0.0, 0.38, 0.78, 1.0],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: _isOrderButtonPressed ? 0.06 : 0.22,
+                                ),
+                                blurRadius: _isOrderButtonPressed ? 1 : 10,
+                                offset: Offset(
+                                  0,
+                                  _isOrderButtonPressed ? 0 : 5,
+                                ),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RideRequestScreen(
+                                    routeService: const BackendRouteService(),
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 55,
+                                vertical: 18,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 55,
-                            vertical: 18,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: Text(
-                          AppTranslations.orderButton,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                            child: Text(
+                              AppTranslations.orderButton,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -95,8 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     final newLanguage =
-                        AppTranslations.currentLanguage ==
-                            AppLanguage.bulgarian
+                        AppTranslations.currentLanguage == AppLanguage.bulgarian
                         ? AppLanguage.english
                         : AppLanguage.bulgarian;
 
@@ -132,9 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     AppTranslations.currentLanguage == AppLanguage.bulgarian
                         ? 'EN'
                         : 'БГ',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

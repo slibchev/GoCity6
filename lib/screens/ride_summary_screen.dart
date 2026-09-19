@@ -8,6 +8,8 @@ import 'ride_confirmation_screen.dart';
 import '../services/ride_request_service.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import '../widgets/city6_app_bar_title.dart';
+import '../widgets/city6_primary_button.dart';
 
 class RideSummaryScreen extends StatefulWidget {
   final String pickup;
@@ -243,8 +245,10 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('City6'),
+        title: const City6AppBarTitle(),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -357,22 +361,15 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
         child: SizedBox(
           width: double.infinity,
           height: 55,
-          child: ElevatedButton(
+          child: City6PrimaryButton(
+            text: _isSubmitting
+                ? AppTranslations.processing
+                : AppTranslations.confirmRide,
             onPressed: _isSubmitting
                 ? null
                 : () async {
                     await _confirmRide(context);
                   },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              foregroundColor: AppColors.primary,
-            ),
-            child: Text(
-              _isSubmitting
-                  ? AppTranslations.processing
-                  : AppTranslations.confirmRide,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
           ),
         ),
       ),

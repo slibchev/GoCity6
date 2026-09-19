@@ -13,11 +13,11 @@ class AppColors {
   // Маршрут върху картата
   static const Color route = Color(0xFF2F80FF);
 
-  // Основен светъл фон
-  static const Color background = Color(0xFFF4F7FB);
+  // Леко синьо-сиво-метален фон
+  static const Color background = Color(0xFFE3E6EA);
 
-  // Карти и светли панели
-  static const Color surface = Color(0xFFFFFFFF);
+  // Светли панели и карти
+  static const Color surface = Color(0xFFF8FAFC);
 
   // Тъмни панели / premium секции
   static const Color surfaceDark = Color(0xFF0D2438);

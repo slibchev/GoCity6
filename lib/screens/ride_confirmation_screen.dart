@@ -1,8 +1,8 @@
 import 'dart:async';
-
+import '../widgets/city6_primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import '../widgets/city6_app_bar_title.dart';
 import '../config/colors.dart';
 import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
@@ -393,8 +393,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('City6'),
+        title: const City6AppBarTitle(),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -457,21 +459,11 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 55,
-                child: ElevatedButton(
+                child: City6PrimaryButton(
+                  text: AppTranslations.backButton,
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: AppColors.primary,
-                  ),
-                  child: Text(
-                    AppTranslations.backButton,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
               ),
             ],

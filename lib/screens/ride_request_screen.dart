@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../config/colors.dart';
+import '../widgets/city6_app_bar_title.dart';
+import '../widgets/city6_primary_button.dart';
 import '../localization/translations.dart';
 import '../models/ride.dart';
 import '../models/ride_request_data.dart';
@@ -365,8 +367,10 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('City6'),
+        title: const City6AppBarTitle(),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -700,65 +704,9 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         child: SizedBox(
           width: double.infinity,
           height: 55,
-          child: ElevatedButton(
+          child: City6PrimaryButton(
+            text: AppTranslations.confirmRide,
             onPressed: isCalculatingRoute ? null : submitRide,
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                (states) {
-                  if (states.contains(WidgetState.disabled)) {
-                    return AppColors.silver;
-                  }
-
-                  if (states.contains(WidgetState.pressed)) {
-                    return AppColors.accent;
-                  }
-
-                  return AppColors.secondary;
-                },
-              ),
-              foregroundColor: WidgetStateProperty.resolveWith<Color?>(
-                (states) {
-                  if (states.contains(WidgetState.disabled)) {
-                    return AppColors.textSecondary;
-                  }
-
-                  if (states.contains(WidgetState.pressed)) {
-                    return Colors.white;
-                  }
-
-                  return AppColors.primary;
-                },
-              ),
-              elevation: WidgetStateProperty.resolveWith<double>(
-                (states) {
-                  if (states.contains(WidgetState.pressed)) {
-                    return 2;
-                  }
-
-                  return 7;
-                },
-              ),
-              shadowColor: const WidgetStatePropertyAll(
-                AppColors.accent,
-              ),
-              overlayColor: WidgetStatePropertyAll(
-                Colors.white.withValues(alpha: 0.12),
-              ),
-              shape: WidgetStatePropertyAll(
-                RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              animationDuration: const Duration(milliseconds: 120),
-            ),
-            child: Text(
-              AppTranslations.confirmRide,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
           ),
         ),
       ),
