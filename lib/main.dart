@@ -7,8 +7,7 @@ import 'localization/app_language.dart';
 import 'localization/translations.dart';
 import 'screens/home_screen.dart';
 import 'screens/registration_screen.dart';
-import 'screens/ride_request_screen.dart';
-import 'services/backend_route_service.dart';
+import 'screens/main_navigation_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,8 +47,8 @@ class TaxiApp extends StatelessWidget {
         ),
       ),
       home: isRegistered
-          ? RideRequestScreen(routeService: const BackendRouteService())
-          : const RegistrationScreen(),
+    ? const MainNavigationScreen()
+    : const RegistrationScreen(),
     );
   }
 }
