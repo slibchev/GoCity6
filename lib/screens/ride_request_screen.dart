@@ -37,12 +37,15 @@ class RideRequestScreen extends StatefulWidget {
 class _RideRequestScreenState extends State<RideRequestScreen> {
   int passengers = 1;
   bool hasLuggage = false;
+  bool _isManualPickupEntry = false;
   RidePaymentMethod paymentMethod = RidePaymentMethod.cash;
   RideType rideType = RideType.city;
   bool isCalculatingRoute = false;
 
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
+  final FocusNode _pickupFocusNode = FocusNode();
+  final MenuController _pickupMenuController = MenuController();
   BackendPlacesService get placesService => widget.placesService;
 
   List<PlaceSuggestion> pickupSuggestions = [];
@@ -112,8 +115,8 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         );
       }
     } catch (_) {
-      // Не блокираме ride request екрана,
-      // ако текущата позиция временно не може да се зареди.
+      // Не блокираме екрана, ако текущата позиция
+      // временно не може да бъде заредена.
     }
   }
 
@@ -178,16 +181,11 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       final currentPosition = LatLng(position.latitude, position.longitude);
 
       setState(() {
-        selectedPickupPlaceId = null;
-        selectedPickupLatitude = position.latitude;
-        selectedPickupLongitude = position.longitude;
         _currentClientPosition = currentPosition;
         _locationPermissionGranted = true;
+        _isManualPickupEntry = false;
 
-        pickupController.text = AppTranslations.myLocation;
-
-        pickupSuggestions = [];
-        isLoadingPickupSuggestions = false;
+        _setPickupToCurrentLocation(currentPosition);
       });
       final controller = _requestMapController;
 
@@ -209,15 +207,42 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
     }
   }
 
+  void _setPickupToCurrentLocation(LatLng position) {
+    selectedPickupPlaceId = null;
+    selectedPickupLatitude = position.latitude;
+    selectedPickupLongitude = position.longitude;
+
+    pickupSuggestions = [];
+    isLoadingPickupSuggestions = false;
+
+    pickupController.value = TextEditingValue(
+      text: AppTranslations.myLocation,
+      selection: TextSelection.collapsed(
+        offset: AppTranslations.myLocation.length,
+      ),
+    );
+  }
+
   void _onPickupChanged(String input) {
+    _pickupDebounce?.cancel();
+
     selectedPickupPlaceId = null;
     selectedPickupLatitude = null;
     selectedPickupLongitude = null;
 
-    _pickupDebounce?.cancel();
+    final query = input.trim();
+
+    if (query.isEmpty) {
+      setState(() {
+        pickupSuggestions = [];
+        isLoadingPickupSuggestions = false;
+      });
+
+      return;
+    }
 
     _pickupDebounce = Timer(const Duration(milliseconds: 400), () {
-      _loadPickupSuggestions(input);
+      _loadPickupSuggestions(query);
     });
   }
 
@@ -434,6 +459,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
     pickupController.dispose();
     destinationController.dispose();
+    _pickupFocusNode.dispose();
 
     super.dispose();
   }
@@ -484,6 +510,144 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                     compassEnabled: true,
                     mapToolbarEnabled: false,
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              TapRegion(
+                onTapOutside: (_) {
+                  if (pickupSuggestions.isNotEmpty ||
+                      isLoadingPickupSuggestions) {
+                    setState(() {
+                      pickupSuggestions = [];
+                      isLoadingPickupSuggestions = false;
+                    });
+                  }
+
+                  FocusScope.of(context).unfocus();
+                },
+                child: Column(
+                  children: [
+                    MenuAnchor(
+                      controller: _pickupMenuController,
+                      alignmentOffset: const Offset(0, 4),
+                      menuChildren: [
+                        MenuItemButton(
+                          leadingIcon: Icon(
+                            Icons.my_location,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () async {
+                            FocusScope.of(context).unfocus();
+                            await _useCurrentLocation();
+                          },
+                          child: Text(AppTranslations.myLocation),
+                        ),
+
+                        MenuItemButton(
+                          leadingIcon: Icon(
+                            Icons.edit_location_alt_outlined,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isManualPickupEntry = true;
+
+                              pickupController.clear();
+
+                              selectedPickupPlaceId = null;
+                              selectedPickupLatitude = null;
+                              selectedPickupLongitude = null;
+
+                              pickupSuggestions = [];
+                              isLoadingPickupSuggestions = false;
+                            });
+
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                _pickupFocusNode.requestFocus();
+                              }
+                            });
+                          },
+                          child: const Text(
+                            '\u0412\u044a\u0432\u0435\u0434\u0438 \u0430\u0434\u0440\u0435\u0441',
+                          ),
+                        ),
+                      ],
+                      child: TextField(
+                        controller: pickupController,
+                        focusNode: _pickupFocusNode,
+                        readOnly: !_isManualPickupEntry,
+                        onTap: () {
+                          if (!_isManualPickupEntry &&
+                              !_pickupMenuController.isOpen) {
+                            _pickupMenuController.open();
+                          }
+                        },
+                        onChanged: _onPickupChanged,
+                        decoration: InputDecoration(
+                          labelText: AppTranslations.pickupLocation,
+                          hintText: _isManualPickupEntry
+                              ? '\u0412\u044a\u0432\u0435\u0434\u0435\u0442\u0435 \u043d\u0430\u0447\u0430\u043b\u0435\u043d \u0430\u0434\u0440\u0435\u0441'
+                              : '\u0418\u0437\u0431\u0435\u0440\u0435\u0442\u0435 \u043d\u0430\u0447\u0430\u043b\u043d\u0430 \u0442\u043e\u0447\u043a\u0430',
+                          prefixIcon: const Icon(Icons.location_on),
+                          suffixIcon: IconButton(
+                            tooltip:
+                                '\u0418\u0437\u0431\u0435\u0440\u0438 \u043d\u0430\u0447\u0430\u043b\u043d\u0430 \u0442\u043e\u0447\u043a\u0430',
+                            icon: const Icon(Icons.arrow_drop_down),
+                            onPressed: () {
+                              FocusScope.of(context).unfocus();
+
+                              if (_pickupMenuController.isOpen) {
+                                _pickupMenuController.close();
+                              } else {
+                                _pickupMenuController.open();
+                              }
+                            },
+                          ),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+
+                    if (isLoadingPickupSuggestions)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(AppTranslations.processing),
+                      ),
+
+                    if (pickupSuggestions.isNotEmpty)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: pickupSuggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = pickupSuggestions[index];
+
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.location_on_outlined),
+                              title: Text(
+                                suggestion.text,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  pickupController.text = suggestion.text;
+                                  selectedPickupPlaceId = suggestion.placeId;
+                                  pickupSuggestions = [];
+                                  isLoadingPickupSuggestions = false;
+                                });
+
+                                FocusScope.of(context).unfocus();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ),
 

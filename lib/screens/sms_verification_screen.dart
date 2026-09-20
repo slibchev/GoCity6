@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'ride_request_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/backend_route_service.dart';
 
 class SmsVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -26,7 +27,10 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => RideRequestScreen()),
+        MaterialPageRoute(
+          builder: (_) =>
+              RideRequestScreen(routeService: const BackendRouteService()),
+        ),
         (route) => false,
       );
 

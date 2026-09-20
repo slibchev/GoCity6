@@ -8,6 +8,7 @@ import 'localization/translations.dart';
 import 'screens/home_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/ride_request_screen.dart';
+import 'services/backend_route_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,20 +25,14 @@ Future<void> main() async {
 
   final isRegistered = prefs.getBool('isRegistered') ?? false;
 
-  runApp(
-    TaxiApp(
-      savedLanguage: savedLanguage,
-      isRegistered: isRegistered,
-    ),
-  );
+  runApp(TaxiApp(savedLanguage: savedLanguage, isRegistered: isRegistered));
 }
 
 class TaxiApp extends StatelessWidget {
   final String? savedLanguage;
   final bool isRegistered;
 
-  const TaxiApp({super.key, this.savedLanguage,required this.isRegistered,});
-  
+  const TaxiApp({super.key, this.savedLanguage, required this.isRegistered});
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +48,8 @@ class TaxiApp extends StatelessWidget {
         ),
       ),
       home: isRegistered
-          ? RideRequestScreen()
-    : const RegistrationScreen(),
+          ? RideRequestScreen(routeService: const BackendRouteService())
+          : const RegistrationScreen(),
     );
   }
 }
