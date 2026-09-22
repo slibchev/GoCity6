@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../services/backend_route_service.dart';
 import 'favorites_screen.dart';
-import 'history_screen.dart';
 import 'ride_request_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -29,7 +28,6 @@ class _MainNavigationScreenState
         routeService: const BackendRouteService(),
       ),
       const FavoritesScreen(),
-      const HistoryScreen(),
     ];
   }
 
@@ -61,11 +59,6 @@ class _MainNavigationScreenState
             activeIcon: Icon(Icons.star),
             label:
                 '\u041b\u044e\u0431\u0438\u043c\u0438',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label:
-                '\u0418\u0441\u0442\u043e\u0440\u0438\u044f',
           ),
         ],
       ),
