@@ -93,6 +93,20 @@ class FakePlacesService extends BackendPlacesService {
   }
 }
 
+Future<void> enableManualPickup(WidgetTester tester) async {
+  final pickupField = find.byType(TextField).at(0);
+
+  await tester.tap(pickupField);
+  await tester.pumpAndSettle();
+
+  final manualAddressOption = find.text('Въведи адрес');
+
+  expect(manualAddressOption, findsOneWidget);
+
+  await tester.tap(manualAddressOption);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('RideRequestScreen handles route calculation error', (
     WidgetTester tester,
@@ -102,6 +116,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'Pickup location');
 
@@ -134,6 +149,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'Pickup location');
 
@@ -182,12 +198,16 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'Pickup location');
 
     await tester.enterText(textFields.at(1), 'Destination location');
 
-    await tester.tap(find.text(AppTranslations.intercityRide));
+    final intercityOption = find.text(AppTranslations.intercityRide);
+
+    await tester.ensureVisible(intercityOption);
+    await tester.tap(intercityOption);
 
     await tester.pump();
 
@@ -224,6 +244,7 @@ void main() {
       );
 
       final textFields = find.byType(TextField);
+      await enableManualPickup(tester);
 
       await tester.enterText(textFields.at(0), 'Pickup location');
 
@@ -264,6 +285,7 @@ void main() {
       );
 
       final textFields = find.byType(TextField);
+      await enableManualPickup(tester);
 
       await tester.enterText(textFields.at(0), 'Pickup location');
       await tester.enterText(textFields.at(1), 'Destination location');
@@ -303,6 +325,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'Pickup location');
     await tester.enterText(textFields.at(1), 'Destination location');
@@ -332,6 +355,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'бул. Вит');
 
@@ -351,6 +375,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(1), 'бул. Вит');
 
@@ -375,6 +400,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'бул. Вит');
 
@@ -415,6 +441,7 @@ void main() {
     );
 
     final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
 
     await tester.enterText(textFields.at(0), 'бул. Вит');
 
