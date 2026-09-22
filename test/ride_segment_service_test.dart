@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taxi_app/models/ride_segment.dart';
 import 'package:taxi_app/models/tariff_type.dart';
 import 'package:taxi_app/services/ride_segment_service.dart';
-import 'package:taxi_app/services/pricing_calculator.dart';
 
 void main() {
   group('Ride segment tariff switching', () {

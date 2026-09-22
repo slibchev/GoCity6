@@ -12,7 +12,9 @@ import '../services/pricing_calculator.dart';
 import '../services/mock_ride_request_service.dart';
 import '../services/mock_route_service.dart';
 import '../models/place_suggestion.dart';
+import '../models/favorite_place.dart';
 import '../services/backend_places_service.dart';
+import '../services/favorites_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -46,6 +48,10 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   final TextEditingController destinationController = TextEditingController();
   final FocusNode _pickupFocusNode = FocusNode();
   final MenuController _pickupMenuController = MenuController();
+  final FavoritesService _favoritesService = const FavoritesService();
+
+  List<FavoritePlace> _favoritePlaces = [];
+
   BackendPlacesService get placesService => widget.placesService;
 
   List<PlaceSuggestion> pickupSuggestions = [];
@@ -68,9 +74,145 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   void initState() {
     super.initState();
 
+    _loadFavoritePlaces();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCurrentLocationForMap();
     });
+  }
+
+  Future<void> _loadFavoritePlaces() async {
+    try {
+      final favorites = await _favoritesService.getFavorites();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _favoritePlaces = favorites;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _favoritePlaces = [];
+      });
+    }
+  }
+
+  void _openPickupMenu() {
+    FocusScope.of(context).unfocus();
+
+    if (_pickupMenuController.isOpen) {
+      _pickupMenuController.close();
+      return;
+    }
+
+    _pickupMenuController.open();
+
+    _loadFavoritePlaces();
+  }
+
+  void _selectFavoriteAsPickup(FavoritePlace favorite) {
+    setState(() {
+      _isManualPickupEntry = false;
+
+      pickupController.text = favorite.address;
+      selectedPickupPlaceId = favorite.placeId;
+
+      selectedPickupLatitude = null;
+      selectedPickupLongitude = null;
+
+      pickupSuggestions = [];
+      isLoadingPickupSuggestions = false;
+    });
+
+    FocusScope.of(context).unfocus();
+  }
+
+  void _selectFavoriteAsDestination(FavoritePlace favorite) {
+    setState(() {
+      destinationController.text = favorite.address;
+      selectedDestinationPlaceId = favorite.placeId;
+
+      destinationSuggestions = [];
+      isLoadingDestinationSuggestions = false;
+    });
+
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _showDestinationFavorites() async {
+    FocusScope.of(context).unfocus();
+
+    await _loadFavoritePlaces();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (_favoritePlaces.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'ÐÑÐ¼Ð°Ñ‚Ðµ Ð·Ð°Ð¿Ð°Ð·ÐµÐ½Ð¸ Ð»ÑŽÐ±Ð¸Ð¼Ð¸ Ð°Ð´Ñ€ÐµÑÐ¸.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    final favorite = await showModalBottomSheet<FavoritePlace>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Ð˜Ð·Ð±ÐµÑ€ÐµÑ‚Ðµ Ð»ÑŽÐ±Ð¸Ð¼ Ð°Ð´Ñ€ÐµÑ',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _favoritePlaces.length,
+                  itemBuilder: (context, index) {
+                    final favorite = _favoritePlaces[index];
+
+                    return ListTile(
+                      leading: Icon(Icons.star, color: AppColors.primary),
+                      title: Text(
+                        favorite.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(favorite.address),
+                      onTap: () {
+                        Navigator.pop(context, favorite);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (favorite == null || !mounted) {
+      return;
+    }
+
+    _selectFavoriteAsDestination(favorite);
   }
 
   Future<void> _loadCurrentLocationForMap() async {
@@ -115,8 +257,8 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         );
       }
     } catch (_) {
-      // Не блокираме екрана, ако текущата позиция
-      // временно не може да бъде заредена.
+      // ÐÐµ Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð°Ð¼Ðµ ÐµÐºÑ€Ð°Ð½Ð°, Ð°ÐºÐ¾ Ñ‚ÐµÐºÑƒÑ‰Ð°Ñ‚Ð° Ð¿Ð¾Ð·Ð¸Ñ†Ð¸Ñ
+      // Ð²Ñ€ÐµÐ¼ÐµÐ½Ð½Ð¾ Ð½Ðµ Ð¼Ð¾Ð¶Ðµ Ð´Ð° Ð±ÑŠÐ´Ðµ Ð·Ð°Ñ€ÐµÐ´ÐµÐ½Ð°.
     }
   }
 
@@ -573,15 +715,48 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                             '\u0412\u044a\u0432\u0435\u0434\u0438 \u0430\u0434\u0440\u0435\u0441',
                           ),
                         ),
+
+                        if (_favoritePlaces.isNotEmpty) const Divider(),
+
+                        ..._favoritePlaces.map((favorite) {
+                          return MenuItemButton(
+                            leadingIcon: Icon(
+                              Icons.star,
+                              color: AppColors.primary,
+                            ),
+                            onPressed: () {
+                              _selectFavoriteAsPickup(favorite);
+                            },
+                            child: SizedBox(
+                              width: 240,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    favorite.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    favorite.address,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
                       ],
                       child: TextField(
                         controller: pickupController,
                         focusNode: _pickupFocusNode,
                         readOnly: !_isManualPickupEntry,
                         onTap: () {
-                          if (!_isManualPickupEntry &&
-                              !_pickupMenuController.isOpen) {
-                            _pickupMenuController.open();
+                          if (!_isManualPickupEntry) {
+                            _openPickupMenu();
                           }
                         },
                         onChanged: _onPickupChanged,
@@ -595,15 +770,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                             tooltip:
                                 '\u0418\u0437\u0431\u0435\u0440\u0438 \u043d\u0430\u0447\u0430\u043b\u043d\u0430 \u0442\u043e\u0447\u043a\u0430',
                             icon: const Icon(Icons.arrow_drop_down),
-                            onPressed: () {
-                              FocusScope.of(context).unfocus();
-
-                              if (_pickupMenuController.isOpen) {
-                                _pickupMenuController.close();
-                              } else {
-                                _pickupMenuController.open();
-                              }
-                            },
+                            onPressed: _openPickupMenu,
                           ),
                           border: const OutlineInputBorder(),
                         ),
@@ -673,6 +840,11 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                       decoration: InputDecoration(
                         labelText: AppTranslations.destinationLocation,
                         prefixIcon: const Icon(Icons.flag),
+                        suffixIcon: IconButton(
+                          tooltip: 'Ð›ÑŽÐ±Ð¸Ð¼Ð¸ Ð°Ð´Ñ€ÐµÑÐ¸',
+                          icon: const Icon(Icons.star_outline),
+                          onPressed: _showDestinationFavorites,
+                        ),
                         border: const OutlineInputBorder(),
                       ),
                     ),

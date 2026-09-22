@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/language_screen.dart';
 import 'config/app_config.dart';
 import 'config/colors.dart';
 import 'localization/app_language.dart';
 import 'localization/translations.dart';
-import 'screens/home_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/main_navigation_screen.dart';
 
