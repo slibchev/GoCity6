@@ -62,8 +62,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/city6_logo.png
-    - assets/images/City6_registration_screen_background.png
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

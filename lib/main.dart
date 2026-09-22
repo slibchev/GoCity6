@@ -5,7 +5,7 @@ import 'config/colors.dart';
 import 'localization/app_language.dart';
 import 'localization/translations.dart';
 import 'screens/registration_screen.dart';
-import 'screens/main_navigation_screen.dart';
+import 'screens/city6_intro_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,8 +45,11 @@ class TaxiApp extends StatelessWidget {
         ),
       ),
       home: isRegistered
-    ? const MainNavigationScreen()
-    : const RegistrationScreen(),
+          ? const City6IntroScreen(
+              backgroundAsset: 'assets/images/city6_intro_background.png',
+              logoAsset: 'assets/images/city6_intro_logo.png',
+            )
+          : const RegistrationScreen(),
     );
   }
 }

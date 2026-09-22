@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'main_navigation_screen.dart';
+import 'city6_intro_screen.dart';
 
 class SmsVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -25,8 +25,14 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const City6IntroScreen(
+            backgroundAsset: 'assets/images/city6_intro_background.png',
+            logoAsset: 'assets/images/city6_intro_logo.png',
+          ),
+        ),
         (route) => false,
       );
 
