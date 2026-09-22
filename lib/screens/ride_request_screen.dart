@@ -121,7 +121,9 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       _isManualPickupEntry = false;
 
       pickupController.text = favorite.address;
-      selectedPickupPlaceId = favorite.placeId;
+
+      // При любим адрес маршрутизираме по адрес.
+      selectedPickupPlaceId = null;
 
       selectedPickupLatitude = null;
       selectedPickupLongitude = null;
@@ -136,7 +138,9 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   void _selectFavoriteAsDestination(FavoritePlace favorite) {
     setState(() {
       destinationController.text = favorite.address;
-      selectedDestinationPlaceId = favorite.placeId;
+
+      // При любим адрес маршрутизираме по адрес.
+      selectedDestinationPlaceId = null;
 
       destinationSuggestions = [];
       isLoadingDestinationSuggestions = false;
@@ -176,7 +180,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Ð˜Ð·Ð±ÐµÑ€ÐµÑ‚Ðµ Ð»ÑŽÐ±Ð¸Ð¼ Ð°Ð´Ñ€ÐµÑ',
+                  'Изберете любим адрес',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -711,9 +715,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                               }
                             });
                           },
-                          child: const Text(
-                            '\u0412\u044a\u0432\u0435\u0434\u0438 \u0430\u0434\u0440\u0435\u0441',
-                          ),
+                          child: const Text('Въведи адрес'),
                         ),
 
                         if (_favoritePlaces.isNotEmpty) const Divider(),
@@ -763,12 +765,11 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                         decoration: InputDecoration(
                           labelText: AppTranslations.pickupLocation,
                           hintText: _isManualPickupEntry
-                              ? '\u0412\u044a\u0432\u0435\u0434\u0435\u0442\u0435 \u043d\u0430\u0447\u0430\u043b\u0435\u043d \u0430\u0434\u0440\u0435\u0441'
-                              : '\u0418\u0437\u0431\u0435\u0440\u0435\u0442\u0435 \u043d\u0430\u0447\u0430\u043b\u043d\u0430 \u0442\u043e\u0447\u043a\u0430',
+                              ? 'Въведете начален адрес'
+                              : 'Изберете начална точка',
                           prefixIcon: const Icon(Icons.location_on),
                           suffixIcon: IconButton(
-                            tooltip:
-                                '\u0418\u0437\u0431\u0435\u0440\u0438 \u043d\u0430\u0447\u0430\u043b\u043d\u0430 \u0442\u043e\u0447\u043a\u0430',
+                            tooltip: 'Избери начална точка',
                             icon: const Icon(Icons.arrow_drop_down),
                             onPressed: _openPickupMenu,
                           ),
