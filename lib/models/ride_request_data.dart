@@ -3,9 +3,18 @@ import 'route_result.dart';
 import 'ride_request_status.dart';
 import 'driver_info.dart';
 
+const Object _notProvided = Object();
+
 class RideRequestData {
   final String? requestId;
+
+  // Presentation information shown to the customer.
   final DriverInfo? driverInfo;
+
+  // Authoritative backend relationships.
+  final String? assignedDriverId;
+  final String? assignedVehicleId;
+
   final String pickup;
   final String destination;
   final int passengers;
@@ -20,9 +29,15 @@ class RideRequestData {
   final RouteResult? routeResult;
   final double? estimatedPrice;
 
+  // Completion information.
+  final String? completedByDriverId;
+  final DateTime? completedAt;
+
   const RideRequestData({
     this.requestId,
     this.driverInfo,
+    this.assignedDriverId,
+    this.assignedVehicleId,
     required this.pickup,
     required this.destination,
     required this.passengers,
@@ -33,10 +48,15 @@ class RideRequestData {
     this.status = RideRequestStatus.pending,
     this.routeResult,
     this.estimatedPrice,
+    this.completedByDriverId,
+    this.completedAt,
   });
+
   RideRequestData copyWith({
-    String? requestId,
-    DriverInfo? driverInfo,
+    Object? requestId = _notProvided,
+    Object? driverInfo = _notProvided,
+    Object? assignedDriverId = _notProvided,
+    Object? assignedVehicleId = _notProvided,
     String? pickup,
     String? destination,
     int? passengers,
@@ -45,12 +65,24 @@ class RideRequestData {
     RideType? rideType,
     DateTime? requestedAt,
     RideRequestStatus? status,
-    RouteResult? routeResult,
-    double? estimatedPrice,
+    Object? routeResult = _notProvided,
+    Object? estimatedPrice = _notProvided,
+    Object? completedByDriverId = _notProvided,
+    Object? completedAt = _notProvided,
   }) {
     return RideRequestData(
-      requestId: requestId ?? this.requestId,
-      driverInfo: driverInfo ?? this.driverInfo,
+      requestId: identical(requestId, _notProvided)
+          ? this.requestId
+          : requestId as String?,
+      driverInfo: identical(driverInfo, _notProvided)
+          ? this.driverInfo
+          : driverInfo as DriverInfo?,
+      assignedDriverId: identical(assignedDriverId, _notProvided)
+          ? this.assignedDriverId
+          : assignedDriverId as String?,
+      assignedVehicleId: identical(assignedVehicleId, _notProvided)
+          ? this.assignedVehicleId
+          : assignedVehicleId as String?,
       pickup: pickup ?? this.pickup,
       destination: destination ?? this.destination,
       passengers: passengers ?? this.passengers,
@@ -59,8 +91,19 @@ class RideRequestData {
       rideType: rideType ?? this.rideType,
       requestedAt: requestedAt ?? this.requestedAt,
       status: status ?? this.status,
-      routeResult: routeResult ?? this.routeResult,
-      estimatedPrice: estimatedPrice ?? this.estimatedPrice,
+      routeResult: identical(routeResult, _notProvided)
+          ? this.routeResult
+          : routeResult as RouteResult?,
+      estimatedPrice: identical(estimatedPrice, _notProvided)
+          ? this.estimatedPrice
+          : estimatedPrice as double?,
+      completedByDriverId:
+          identical(completedByDriverId, _notProvided)
+              ? this.completedByDriverId
+              : completedByDriverId as String?,
+      completedAt: identical(completedAt, _notProvided)
+          ? this.completedAt
+          : completedAt as DateTime?,
     );
   }
 }
