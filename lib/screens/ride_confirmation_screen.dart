@@ -76,8 +76,12 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   IconData getStatusIcon() {
     switch (currentRequest.status) {
+      case RideRequestStatus.waitingForVehicle:
       case RideRequestStatus.pending:
         return Icons.hourglass_top;
+
+      case RideRequestStatus.reserved:
+        return Icons.event_available;
 
       case RideRequestStatus.accepted:
         return Icons.check_circle;
@@ -98,15 +102,15 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   Color getStatusColor() {
     switch (currentRequest.status) {
+      case RideRequestStatus.waitingForVehicle:
       case RideRequestStatus.pending:
         return Colors.orange;
 
+      case RideRequestStatus.reserved:
       case RideRequestStatus.accepted:
         return Colors.green;
 
       case RideRequestStatus.driverArriving:
-        return Colors.blue;
-
       case RideRequestStatus.inProgress:
         return Colors.blue;
 
@@ -120,9 +124,11 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   String getStatusTitle() {
     switch (currentRequest.status) {
+      case RideRequestStatus.waitingForVehicle:
       case RideRequestStatus.pending:
         return AppTranslations.rideRequestSent;
 
+      case RideRequestStatus.reserved:
       case RideRequestStatus.accepted:
         return AppTranslations.rideAccepted;
 
@@ -142,9 +148,11 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   String getStatusMessage() {
     switch (currentRequest.status) {
+      case RideRequestStatus.waitingForVehicle:
       case RideRequestStatus.pending:
         return AppTranslations.waitingForDriverConfirmation;
 
+      case RideRequestStatus.reserved:
       case RideRequestStatus.accepted:
         return AppTranslations.rideAcceptedMessage;
 
@@ -285,6 +293,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     final driverInfo = currentRequest.driverInfo;
 
     final shouldShowDriverInfo =
+        currentRequest.status == RideRequestStatus.reserved ||
         currentRequest.status == RideRequestStatus.accepted ||
         currentRequest.status == RideRequestStatus.driverArriving;
 

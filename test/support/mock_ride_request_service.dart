@@ -14,7 +14,13 @@ class MockRideRequestService implements RideRequestService {
   @override
   Future<RideRequestData> getRequestStatus(RideRequestData request) async {
     switch (request.status) {
+      case RideRequestStatus.waitingForVehicle:
+        return request.copyWith(status: RideRequestStatus.reserved);
+
       case RideRequestStatus.pending:
+        return request.copyWith(status: RideRequestStatus.accepted);
+
+      case RideRequestStatus.reserved:
         return request.copyWith(status: RideRequestStatus.accepted);
 
       case RideRequestStatus.accepted:

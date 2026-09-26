@@ -15,6 +15,18 @@ class MockRideRequestService implements RideRequestService {
   @override
   Future<RideRequestData> getRequestStatus(RideRequestData request) async {
     switch (request.status) {
+      case RideRequestStatus.waitingForVehicle:
+        return request.copyWith(
+          status: RideRequestStatus.reserved,
+          driverInfo: const DriverInfo(
+            name: 'Ivan Ivanov',
+            vehicle: 'Toyota Prius',
+            licensePlate: 'CB1234AB',
+            etaMinutes: 5,
+            phoneNumber: '+359888123456',
+          ),
+        );
+
       case RideRequestStatus.pending:
         return request.copyWith(
           status: RideRequestStatus.accepted,
@@ -26,6 +38,9 @@ class MockRideRequestService implements RideRequestService {
             phoneNumber: '+359888123456',
           ),
         );
+
+      case RideRequestStatus.reserved:
+        return request.copyWith(status: RideRequestStatus.accepted);
 
       case RideRequestStatus.accepted:
         return request.copyWith(status: RideRequestStatus.driverArriving);
