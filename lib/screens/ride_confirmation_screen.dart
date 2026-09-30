@@ -31,11 +31,15 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   late RideRequestData currentRequest;
 
   StreamSubscription<RideRequestData>? _statusSubscription;
-  bool _ignoreStatusUpdates = false;
-  bool _isCancelling = false;
+bool _ignoreStatusUpdates = false;
+bool _isCancelling = false;
 
-  @override
-  void initState() {
+bool get _canLeaveScreen =>
+    currentRequest.status == RideRequestStatus.completed ||
+    currentRequest.status == RideRequestStatus.cancelled;
+
+@override
+void initState() {
     super.initState();
 
     currentRequest = widget.request;
@@ -400,8 +404,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+Widget build(BuildContext context) {
+  return PopScope(
+    canPop: _canLeaveScreen,
+    child: Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const City6AppBarTitle(),
@@ -469,16 +475,18 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                 width: double.infinity,
                 height: 55,
                 child: City6PrimaryButton(
-                  text: AppTranslations.backButton,
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
+  text: AppTranslations.backButton,
+  onPressed: _canLeaveScreen
+      ? () {
+          Navigator.pop(context);
+        }
+      : null,
+),
               ),
             ],
           ),
         ),
       ),
-    );
+  ));
   }
 }
