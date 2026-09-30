@@ -9,7 +9,8 @@ import '../models/ride_request_data.dart';
 import '../services/route_service.dart';
 import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
-import '../services/mock_ride_request_service.dart';
+import '../services/backend_ride_request_service.dart';
+import '../services/ride_request_service.dart';
 import '../services/mock_route_service.dart';
 import '../models/place_suggestion.dart';
 import '../models/favorite_place.dart';
@@ -21,15 +22,18 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
   final BackendPlacesService placesService;
+  final RideRequestService rideRequestService;
   final DateTime Function() now;
 
   RideRequestScreen({
     super.key,
     RouteService? routeService,
     BackendPlacesService? placesService,
+    RideRequestService? rideRequestService,
     DateTime Function()? now,
   }) : routeService = routeService ?? MockRouteService(),
        placesService = placesService ?? const BackendPlacesService(),
+       rideRequestService = rideRequestService ?? BackendRideRequestService(),
        now = now ?? DateTime.now;
 
   @override
@@ -527,7 +531,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         MaterialPageRoute(
           builder: (context) => RideSummaryScreen.fromRequest(
             request: request,
-            rideRequestService: MockRideRequestService(),
+            rideRequestService: widget.rideRequestService,
           ),
         ),
       );
@@ -577,7 +581,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         MaterialPageRoute(
           builder: (context) => RideSummaryScreen.fromRequest(
             request: request,
-            rideRequestService: MockRideRequestService(),
+            rideRequestService: widget.rideRequestService,
           ),
         ),
       );
