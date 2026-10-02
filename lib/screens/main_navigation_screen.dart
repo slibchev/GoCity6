@@ -4,17 +4,17 @@ import '../config/colors.dart';
 import '../services/backend_route_service.dart';
 import 'favorites_screen.dart';
 import 'ride_request_screen.dart';
+import '../services/active_ride_store.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final ActiveRideStore? activeRideStore;
 
+  const MainNavigationScreen({super.key, this.activeRideStore});
   @override
-  State<MainNavigationScreen> createState() =>
-      _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState
-    extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   late final List<Widget> _screens;
@@ -26,6 +26,7 @@ class _MainNavigationScreenState
     _screens = [
       RideRequestScreen(
         routeService: const BackendRouteService(),
+        activeRideStore: widget.activeRideStore,
       ),
       const FavoritesScreen(),
     ];
@@ -34,10 +35,7 @@ class _MainNavigationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: AppColors.primary,
@@ -51,14 +49,12 @@ class _MainNavigationScreenState
           BottomNavigationBarItem(
             icon: Icon(Icons.local_taxi_outlined),
             activeIcon: Icon(Icons.local_taxi),
-            label:
-                '\u041f\u043e\u0440\u044a\u0447\u0430\u0439',
+            label: '\u041f\u043e\u0440\u044a\u0447\u0430\u0439',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star_border),
             activeIcon: Icon(Icons.star),
-            label:
-                '\u041b\u044e\u0431\u0438\u043c\u0438',
+            label: '\u041b\u044e\u0431\u0438\u043c\u0438',
           ),
         ],
       ),
