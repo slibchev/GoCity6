@@ -4,15 +4,18 @@ import 'package:flutter/material.dart';
 
 import '../config/colors.dart';
 import 'main_navigation_screen.dart';
+import '../services/active_ride_store.dart';
 
 class City6IntroScreen extends StatefulWidget {
   final String backgroundAsset;
   final String logoAsset;
+  final ActiveRideStore? activeRideStore;
 
   const City6IntroScreen({
     super.key,
     required this.backgroundAsset,
     required this.logoAsset,
+    this.activeRideStore,
   });
 
   @override
@@ -71,7 +74,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 700),
         pageBuilder: (context, animation, secondaryAnimation) {
-          return const MainNavigationScreen();
+          return MainNavigationScreen(activeRideStore: widget.activeRideStore);
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
