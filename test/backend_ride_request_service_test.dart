@@ -8,6 +8,7 @@ import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/models/route_result.dart';
 import 'package:taxi_app/services/backend_ride_request_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:taxi_app/models/driver_info.dart';
 
 void main() {
   RideRequestData createRequest({
@@ -24,10 +25,7 @@ void main() {
       rideType: RideType.city,
       requestedAt: DateTime(2026, 9, 30, 20, 0),
       status: status,
-      routeResult: const RouteResult(
-        distanceKm: 4.2,
-        durationMinutes: 11,
-      ),
+      routeResult: const RouteResult(distanceKm: 4.2, durationMinutes: 11),
       estimatedPrice: 12.50,
     );
   }
@@ -65,18 +63,11 @@ void main() {
 
       final client = MockClient((request) async {
         expect(request.method, 'POST');
-        expect(
-          request.url.toString(),
-          'http://example.test/rides',
-        );
+        expect(request.url.toString(), 'http://example.test/rides');
 
-        sentBody =
-            jsonDecode(request.body) as Map<String, dynamic>;
+        sentBody = jsonDecode(request.body) as Map<String, dynamic>;
 
-        return http.Response(
-          jsonEncode(backendRide(status: 'pending')),
-          201,
-        );
+        return http.Response(jsonEncode(backendRide(status: 'pending')), 201);
       });
 
       final service = BackendRideRequestService(
@@ -105,96 +96,94 @@ void main() {
     },
   );
 
-  test(
-    'getRequestStatus applies authoritative reservation state',
-    () async {
-      final client = MockClient((request) async {
-        expect(request.method, 'GET');
-        expect(
-          request.url.toString(),
-          'http://example.test/rides/ride-001',
-        );
+  test('getRequestStatus applies authoritative reservation state', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.toString(), 'http://example.test/rides/ride-001');
 
-        return http.Response(
-          jsonEncode(backendRide(status: 'reserved')),
-          200,
-        );
-      });
+      return http.Response(jsonEncode(backendRide(status: 'reserved')), 200);
+    });
 
-      final service = BackendRideRequestService(
-        baseUrl: 'http://example.test',
-        client: client,
-      );
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
 
-      final result = await service.getRequestStatus(
-        createRequest(requestId: 'ride-001'),
-      );
+    final result = await service.getRequestStatus(
+      createRequest(requestId: 'ride-001'),
+    );
 
-      expect(result.status, RideRequestStatus.reserved);
-      expect(result.assignedDriverId, isNull);
-      expect(result.assignedVehicleId, isNull);
-    },
-  );
+    expect(result.status, RideRequestStatus.reserved);
+    expect(result.assignedDriverId, isNull);
+    expect(result.assignedVehicleId, isNull);
+  });
 
-  test(
-    'getRequestStatus applies accepted assignment data',
-    () async {
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode(
-            backendRide(
+  test('getRequestStatus applies accepted assignment data', () async {
+    final client = MockClient((request) async {
+      return http.Response.bytes(
+        utf8.encode(
+          jsonEncode({
+            ...backendRide(
               status: 'accepted',
               assignedDriverId: 'driver-001',
               assignedVehicleId: 'vehicle-001',
             ),
-          ),
-          200,
-        );
-      });
+            'driverInfo': {
+              'driverId': 'driver-001',
+              'vehicleId': 'vehicle-001',
+              'name': 'Иван Иванов',
+              'phoneNumber': '+359888123456',
+              'licensePlate': 'CA1234AB',
+            },
+          }),
+        ),
+        200,
+        headers: {'Content-Type': 'application/json; charset=utf-8'},
+      );
+    });
 
-      final service = BackendRideRequestService(
-        baseUrl: 'http://example.test',
-        client: client,
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
+
+    final result = await service.getRequestStatus(
+      createRequest(requestId: 'ride-001'),
+    );
+
+    expect(result.status, RideRequestStatus.accepted);
+    expect(result.assignedDriverId, 'driver-001');
+    expect(result.assignedVehicleId, 'vehicle-001');
+    expect(result.driverInfo, isA<DriverInfo>());
+    expect(result.driverInfo!.name, 'Иван Иванов');
+    expect(result.driverInfo!.vehicle, isNull);
+    expect(result.driverInfo!.licensePlate, 'CA1234AB');
+    expect(result.driverInfo!.phoneNumber, '+359888123456');
+    expect(result.driverInfo!.etaMinutes, isNull);
+  });
+
+  test('cancelRequest applies backend cancelled state', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(
+        request.url.toString(),
+        'http://example.test/rides/ride-001/cancel',
       );
 
-      final result = await service.getRequestStatus(
-        createRequest(requestId: 'ride-001'),
-      );
+      return http.Response(jsonEncode(backendRide(status: 'cancelled')), 200);
+    });
 
-      expect(result.status, RideRequestStatus.accepted);
-      expect(result.assignedDriverId, 'driver-001');
-      expect(result.assignedVehicleId, 'vehicle-001');
-    },
-  );
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
 
-  test(
-    'cancelRequest applies backend cancelled state',
-    () async {
-      final client = MockClient((request) async {
-        expect(request.method, 'POST');
-        expect(
-          request.url.toString(),
-          'http://example.test/rides/ride-001/cancel',
-        );
+    final result = await service.cancelRequest(
+      createRequest(requestId: 'ride-001'),
+    );
 
-        return http.Response(
-          jsonEncode(backendRide(status: 'cancelled')),
-          200,
-        );
-      });
-
-      final service = BackendRideRequestService(
-        baseUrl: 'http://example.test',
-        client: client,
-      );
-
-      final result = await service.cancelRequest(
-        createRequest(requestId: 'ride-001'),
-      );
-
-      expect(result.status, RideRequestStatus.cancelled);
-    },
-  );
+    expect(result.status, RideRequestStatus.cancelled);
+  });
 
   test(
     'watchRequestStatus polls until backend returns terminal state',
@@ -232,9 +221,7 @@ void main() {
       );
 
       final statuses = await service
-          .watchRequestStatus(
-            createRequest(requestId: 'ride-001'),
-          )
+          .watchRequestStatus(createRequest(requestId: 'ride-001'))
           .map((request) => request.status)
           .toList();
 
@@ -248,27 +235,18 @@ void main() {
     },
   );
 
-  test(
-    'status and cancellation require backend request id',
-    () async {
-      final service = BackendRideRequestService(
-        baseUrl: 'http://example.test',
-        client: MockClient((request) async {
-          throw StateError('HTTP must not be called.');
-        }),
-      );
+  test('status and cancellation require backend request id', () async {
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: MockClient((request) async {
+        throw StateError('HTTP must not be called.');
+      }),
+    );
 
-      final request = createRequest();
+    final request = createRequest();
 
-      expect(
-        () => service.getRequestStatus(request),
-        throwsA(isA<StateError>()),
-      );
+    expect(() => service.getRequestStatus(request), throwsA(isA<StateError>()));
 
-      expect(
-        () => service.cancelRequest(request),
-        throwsA(isA<StateError>()),
-      );
-    },
-  );
+    expect(() => service.cancelRequest(request), throwsA(isA<StateError>()));
+  });
 }

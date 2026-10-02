@@ -7,6 +7,7 @@ import '../config/backend_config.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import 'ride_request_service.dart';
+import '../models/driver_info.dart';
 
 class BackendRideRequestService implements RideRequestService {
   final String? baseUrl;
@@ -40,10 +41,7 @@ class BackendRideRequestService implements RideRequestService {
       );
     }
 
-    return _mergeBackendRide(
-      request,
-      _decodeRide(response.body),
-    );
+    return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
   }
 
   @override
@@ -61,10 +59,7 @@ class BackendRideRequestService implements RideRequestService {
       );
     }
 
-    return _mergeBackendRide(
-      request,
-      _decodeRide(response.body),
-    );
+    return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
   }
 
   @override
@@ -82,16 +77,11 @@ class BackendRideRequestService implements RideRequestService {
       );
     }
 
-    return _mergeBackendRide(
-      request,
-      _decodeRide(response.body),
-    );
+    return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
   }
 
   @override
-  Stream<RideRequestData> watchRequestStatus(
-    RideRequestData request,
-  ) async* {
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {
     var currentRequest = request;
 
     yield currentRequest;
@@ -115,8 +105,8 @@ class BackendRideRequestService implements RideRequestService {
     return requestId;
   }
 
-  Map<String, dynamic> _decodeRide(String body) {
-    final decoded = jsonDecode(body);
+  Map<String, dynamic> _decodeRide(List<int> bodyBytes) {
+    final decoded = jsonDecode(utf8.decode(bodyBytes));
 
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException(
@@ -155,9 +145,7 @@ class BackendRideRequestService implements RideRequestService {
     final parsedRequestedAt = DateTime.tryParse(requestedAt);
 
     if (parsedRequestedAt == null) {
-      throw const FormatException(
-        'Backend ride requestedAt is invalid.',
-      );
+      throw const FormatException('Backend ride requestedAt is invalid.');
     }
 
     RideRequestStatus parsedStatus;
@@ -165,53 +153,45 @@ class BackendRideRequestService implements RideRequestService {
     try {
       parsedStatus = RideRequestStatus.values.byName(status);
     } on ArgumentError {
-      throw FormatException(
-        'Unknown backend ride status: $status',
-      );
+      throw FormatException('Unknown backend ride status: $status');
     }
 
     final assignedDriverId = ride['assignedDriverId'];
     final assignedVehicleId = ride['assignedVehicleId'];
     final completedByDriverId = ride['completedByDriverId'];
     final completedAt = ride['completedAt'];
+    final hasDriverInfo = ride.containsKey('driverInfo');
+    final parsedDriverInfo = hasDriverInfo
+        ? _parseDriverInfo(ride['driverInfo'])
+        : null;
 
     if (assignedDriverId != null && assignedDriverId is! String) {
-      throw const FormatException(
-        'Backend assignedDriverId is invalid.',
-      );
+      throw const FormatException('Backend assignedDriverId is invalid.');
     }
 
     if (assignedVehicleId != null && assignedVehicleId is! String) {
-      throw const FormatException(
-        'Backend assignedVehicleId is invalid.',
-      );
+      throw const FormatException('Backend assignedVehicleId is invalid.');
     }
 
     if (completedByDriverId != null && completedByDriverId is! String) {
-      throw const FormatException(
-        'Backend completedByDriverId is invalid.',
-      );
+      throw const FormatException('Backend completedByDriverId is invalid.');
     }
 
     DateTime? parsedCompletedAt;
 
     if (completedAt != null) {
       if (completedAt is! String) {
-        throw const FormatException(
-          'Backend completedAt is invalid.',
-        );
+        throw const FormatException('Backend completedAt is invalid.');
       }
 
       parsedCompletedAt = DateTime.tryParse(completedAt);
 
       if (parsedCompletedAt == null) {
-        throw const FormatException(
-          'Backend completedAt is invalid.',
-        );
+        throw const FormatException('Backend completedAt is invalid.');
       }
     }
 
-    return localRequest.copyWith(
+    final mergedRequest = localRequest.copyWith(
       requestId: id,
       pickup: pickup,
       destination: destination,
@@ -223,6 +203,40 @@ class BackendRideRequestService implements RideRequestService {
       assignedVehicleId: assignedVehicleId,
       completedByDriverId: completedByDriverId,
       completedAt: parsedCompletedAt?.toLocal(),
+    );
+
+    if (!hasDriverInfo) {
+      return mergedRequest;
+    }
+
+    return mergedRequest.copyWith(driverInfo: parsedDriverInfo);
+  }
+
+  DriverInfo? _parseDriverInfo(Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is! Map<String, dynamic>) {
+      throw const FormatException('Backend driverInfo is invalid.');
+    }
+
+    final name = value['name'];
+    final licensePlate = value['licensePlate'];
+    final phoneNumber = value['phoneNumber'];
+
+    if (name is! String ||
+        name.trim().isEmpty ||
+        licensePlate is! String ||
+        licensePlate.trim().isEmpty ||
+        (phoneNumber != null && phoneNumber is! String)) {
+      throw const FormatException('Backend driverInfo is invalid.');
+    }
+
+    return DriverInfo(
+      name: name,
+      licensePlate: licensePlate,
+      phoneNumber: phoneNumber as String?,
     );
   }
 

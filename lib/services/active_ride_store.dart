@@ -174,7 +174,7 @@ class ActiveRideStore {
     final etaMinutes = value['etaMinutes'];
 
     if (name is! String ||
-        vehicle is! String ||
+        (vehicle != null && vehicle is! String) ||
         licensePlate is! String ||
         (etaMinutes != null && etaMinutes is! int)) {
       throw const FormatException('Stored driver info is invalid.');
@@ -182,7 +182,7 @@ class ActiveRideStore {
 
     return DriverInfo(
       name: name,
-      vehicle: vehicle,
+      vehicle: vehicle as String?,
       licensePlate: licensePlate,
       etaMinutes: etaMinutes as int?,
       phoneNumber: _nullableString(value['phoneNumber']),

@@ -353,15 +353,17 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.directions_car),
-            const SizedBox(width: 8),
-            Text(driverInfo.vehicle, style: const TextStyle(fontSize: 18)),
-          ],
-        ),
+        if (driverInfo.vehicle != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.directions_car),
+              const SizedBox(width: 8),
+              Text(driverInfo.vehicle!, style: const TextStyle(fontSize: 18)),
+            ],
+          ),
+        ],
         const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
