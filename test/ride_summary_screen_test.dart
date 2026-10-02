@@ -8,6 +8,8 @@ import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'package:taxi_app/screens/ride_summary_screen.dart';
 import 'package:taxi_app/services/ride_request_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_app/services/active_ride_store.dart';
 
 class RecordingRideRequestService implements RideRequestService {
   bool submitCalled = false;
@@ -90,6 +92,57 @@ class DelayedRideRequestService implements RideRequestService {
 }
 
 void main() {
+  testWidgets('persists backend ride after successful submission', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final service = RecordingRideRequestService();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 10, 2, 16),
+      status: RideRequestStatus.pending,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideSummaryScreen.fromRequest(
+          request: request,
+          rideRequestService: service,
+          activeRideStore: store,
+        ),
+      ),
+    );
+
+    final confirmButton = find.text(AppTranslations.confirmRide);
+
+    await tester.ensureVisible(confirmButton);
+    await tester.tap(confirmButton);
+    await tester.pumpAndSettle();
+
+    final storedRequest = store.load();
+
+    expect(service.submitCalled, isTrue);
+    expect(storedRequest, isNotNull);
+    expect(storedRequest!.requestId, 'recording-request-001');
+    expect(storedRequest.status, RideRequestStatus.pending);
+
+    expect(find.byType(RideConfirmationScreen), findsOneWidget);
+
+    final confirmationScreen = tester.widget<RideConfirmationScreen>(
+      find.byType(RideConfirmationScreen),
+    );
+
+    expect(confirmationScreen.activeRideStore, same(store));
+  });
   testWidgets('RideSummaryScreen submits request before opening confirmation', (
     WidgetTester tester,
   ) async {

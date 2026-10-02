@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import '../widgets/city6_app_bar_title.dart';
 import '../widgets/city6_primary_button.dart';
+import '../services/active_ride_store.dart';
 
 class RideSummaryScreen extends StatefulWidget {
   final String pickup;
@@ -21,11 +22,13 @@ class RideSummaryScreen extends StatefulWidget {
   final RideRequestData request;
   final double? estimatedPrice;
   final RideRequestService? rideRequestService;
+  final ActiveRideStore? activeRideStore;
 
   RideSummaryScreen.fromRequest({
     super.key,
     required this.request,
     this.rideRequestService,
+    this.activeRideStore,
   }) : pickup = request.pickup,
        destination = request.destination,
        passengers = request.passengers,
@@ -212,6 +215,17 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
           ? request
           : await service.submitRequest(request);
 
+      final activeRideStore = widget.activeRideStore;
+
+      if (activeRideStore != null && submittedRequest.requestId != null) {
+        try {
+          await activeRideStore.save(submittedRequest);
+        } catch (_) {
+          // The backend ride already exists. A local persistence failure must
+          // not make the submission look failed or allow a duplicate POST.
+        }
+      }
+
       if (!context.mounted) {
         return;
       }
@@ -222,6 +236,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
           builder: (context) => RideConfirmationScreen(
             request: submittedRequest,
             rideRequestService: service,
+            activeRideStore: activeRideStore,
           ),
         ),
       );
