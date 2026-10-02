@@ -11,7 +11,7 @@ import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
 import '../services/backend_ride_request_service.dart';
 import '../services/ride_request_service.dart';
-import '../services/mock_route_service.dart';
+import '../services/backend_route_service.dart';
 import '../models/place_suggestion.dart';
 import '../models/favorite_place.dart';
 import '../services/backend_places_service.dart';
@@ -31,7 +31,7 @@ class RideRequestScreen extends StatefulWidget {
     BackendPlacesService? placesService,
     RideRequestService? rideRequestService,
     DateTime Function()? now,
-  }) : routeService = routeService ?? MockRouteService(),
+  }) : routeService = routeService ?? const BackendRouteService(),
        placesService = placesService ?? const BackendPlacesService(),
        rideRequestService = rideRequestService ?? BackendRideRequestService(),
        now = now ?? DateTime.now;
