@@ -18,11 +18,13 @@ import '../services/backend_places_service.dart';
 import '../services/favorites_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../services/active_ride_store.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
   final BackendPlacesService placesService;
   final RideRequestService rideRequestService;
+  final ActiveRideStore? activeRideStore;
   final DateTime Function() now;
 
   RideRequestScreen({
@@ -30,6 +32,7 @@ class RideRequestScreen extends StatefulWidget {
     RouteService? routeService,
     BackendPlacesService? placesService,
     RideRequestService? rideRequestService,
+    this.activeRideStore,
     DateTime Function()? now,
   }) : routeService = routeService ?? const BackendRouteService(),
        placesService = placesService ?? const BackendPlacesService(),
@@ -532,6 +535,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           builder: (context) => RideSummaryScreen.fromRequest(
             request: request,
             rideRequestService: widget.rideRequestService,
+            activeRideStore: widget.activeRideStore,
           ),
         ),
       );
@@ -582,6 +586,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           builder: (context) => RideSummaryScreen.fromRequest(
             request: request,
             rideRequestService: widget.rideRequestService,
+            activeRideStore: widget.activeRideStore,
           ),
         ),
       );
