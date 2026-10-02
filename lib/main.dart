@@ -62,6 +62,7 @@ class TaxiApp extends StatelessWidget {
           ? City6IntroScreen(
               backgroundAsset: 'assets/images/city6_intro_background.png',
               logoAsset: 'assets/images/city6_intro_logo.png',
+              activeRideStore: activeRideStore,
             )
           : const RegistrationScreen(),
     );
