@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/active_ride_store.dart';
 import 'city6_intro_screen.dart';
 
 class SmsVerificationScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
 
     if (code == '123456') {
       final prefs = await SharedPreferences.getInstance();
+      final activeRideStore = ActiveRideStore(prefs);
 
       await prefs.setBool('isRegistered', true);
 
@@ -28,9 +30,10 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => const City6IntroScreen(
+          builder: (_) => City6IntroScreen(
             backgroundAsset: 'assets/images/city6_intro_background.png',
             logoAsset: 'assets/images/city6_intro_logo.png',
+            activeRideStore: activeRideStore,
           ),
         ),
         (route) => false,
