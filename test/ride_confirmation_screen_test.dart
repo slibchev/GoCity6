@@ -9,6 +9,8 @@ import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'support/mock_ride_request_service.dart';
 import 'package:taxi_app/models/driver_info.dart';
 import 'package:taxi_app/services/ride_request_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_app/services/active_ride_store.dart';
 
 class CancelTestRideRequestService implements RideRequestService {
   bool cancelCalled = false;
@@ -58,7 +60,120 @@ class FailingCancelRideRequestService implements RideRequestService {
   }
 }
 
+class StatusStreamRideRequestService implements RideRequestService {
+  final RideRequestData updatedRequest;
+
+  StatusStreamRideRequestService(this.updatedRequest);
+
+  @override
+  Future<RideRequestData> submitRequest(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async {
+    return updatedRequest;
+  }
+
+  @override
+  Future<RideRequestData> cancelRequest(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) {
+    return Stream<RideRequestData>.value(updatedRequest);
+  }
+}
+
 void main() {
+  testWidgets('persists active ride status update', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+
+    final request = RideRequestData(
+      requestId: 'ride-persistence-001',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 10, 2, 16),
+      status: RideRequestStatus.waitingForVehicle,
+      estimatedPrice: 10.50,
+    );
+
+    final acceptedRequest = request.copyWith(
+      status: RideRequestStatus.accepted,
+      assignedDriverId: 'driver-001',
+      assignedVehicleId: 'vehicle-001',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: StatusStreamRideRequestService(acceptedRequest),
+          activeRideStore: store,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final storedRequest = store.load();
+
+    expect(storedRequest, isNotNull);
+    expect(storedRequest!.requestId, 'ride-persistence-001');
+    expect(storedRequest.status, RideRequestStatus.accepted);
+    expect(storedRequest.assignedDriverId, 'driver-001');
+    expect(storedRequest.assignedVehicleId, 'vehicle-001');
+  });
+
+  testWidgets('clears persisted ride when status becomes completed', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+
+    final request = RideRequestData(
+      requestId: 'ride-persistence-002',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 10, 2, 16),
+      status: RideRequestStatus.inProgress,
+      estimatedPrice: 10.50,
+    );
+
+    await store.save(request);
+
+    final completedRequest = request.copyWith(
+      status: RideRequestStatus.completed,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: StatusStreamRideRequestService(completedRequest),
+          activeRideStore: store,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(store.load(), isNull);
+  });
   testWidgets('RideConfirmationScreen shows pending status', (
     WidgetTester tester,
   ) async {

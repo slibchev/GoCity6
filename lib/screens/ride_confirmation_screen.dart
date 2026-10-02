@@ -8,18 +8,21 @@ import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import '../services/ride_request_service.dart';
+import '../services/active_ride_store.dart';
 
 typedef PhoneLauncher = Future<bool> Function(Uri uri);
 
 class RideConfirmationScreen extends StatefulWidget {
   final RideRequestData request;
   final RideRequestService? rideRequestService;
+  final ActiveRideStore? activeRideStore;
   final PhoneLauncher? phoneLauncher;
 
   const RideConfirmationScreen({
     super.key,
     required this.request,
     this.rideRequestService,
+    this.activeRideStore,
     this.phoneLauncher,
   });
 
@@ -31,15 +34,37 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   late RideRequestData currentRequest;
 
   StreamSubscription<RideRequestData>? _statusSubscription;
-bool _ignoreStatusUpdates = false;
-bool _isCancelling = false;
+  bool _ignoreStatusUpdates = false;
+  bool _isCancelling = false;
+  Future<void> _persistenceChain = Future<void>.value();
 
-bool get _canLeaveScreen =>
-    currentRequest.status == RideRequestStatus.completed ||
-    currentRequest.status == RideRequestStatus.cancelled;
+  void _queuePersistence(RideRequestData request) {
+    final store = widget.activeRideStore;
 
-@override
-void initState() {
+    if (store == null) {
+      return;
+    }
+
+    _persistenceChain = _persistenceChain.then((_) async {
+      try {
+        if (request.status == RideRequestStatus.completed ||
+            request.status == RideRequestStatus.cancelled) {
+          await store.clear();
+        } else {
+          await store.save(request);
+        }
+      } catch (_) {
+        // Persistence failure must not interrupt the active backend ride.
+      }
+    });
+  }
+
+  bool get _canLeaveScreen =>
+      currentRequest.status == RideRequestStatus.completed ||
+      currentRequest.status == RideRequestStatus.cancelled;
+
+  @override
+  void initState() {
     super.initState();
 
     currentRequest = widget.request;
@@ -64,6 +89,7 @@ void initState() {
             setState(() {
               currentRequest = updatedRequest;
             });
+            _queuePersistence(updatedRequest);
           },
           onError: (error) {
             // Ð—Ð°ÑÐµÐ³Ð° Ð·Ð°Ð¿Ð°Ð·Ð²Ð°Ð¼Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ Ð¸Ð·Ð²ÐµÑÑ‚ÐµÐ½ ÑÑ‚Ð°Ñ‚ÑƒÑ.
@@ -279,6 +305,7 @@ void initState() {
         currentRequest = cancelledRequest;
         _isCancelling = false;
       });
+      _queuePersistence(cancelledRequest);
     } catch (error) {
       if (!mounted) {
         return;
@@ -404,89 +431,90 @@ void initState() {
   }
 
   @override
-Widget build(BuildContext context) {
-  return PopScope(
-    canPop: _canLeaveScreen,
-    child: Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const City6AppBarTitle(),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(getStatusIcon(), size: 100, color: getStatusColor()),
-              const SizedBox(height: 30),
-              Text(
-                getStatusTitle(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.payments),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${AppTranslations.priceLabel}: '
-                    '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
-                    style: const TextStyle(fontSize: 20),
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: _canLeaveScreen,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const City6AppBarTitle(),
+          centerTitle: true,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(25),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(getStatusIcon(), size: 100, color: getStatusColor()),
+                const SizedBox(height: 30),
+                Text(
+                  getStatusTitle(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.payments),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${AppTranslations.priceLabel}: '
+                      '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  getStatusMessage(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18),
+                ),
+                if (currentRequest.status == RideRequestStatus.pending) ...[
+                  const SizedBox(height: 15),
+                  Icon(Icons.person_search, size: 34, color: getStatusColor()),
                 ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                getStatusMessage(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18),
-              ),
-              if (currentRequest.status == RideRequestStatus.pending) ...[
-                const SizedBox(height: 15),
-                Icon(Icons.person_search, size: 34, color: getStatusColor()),
-              ],
-              buildDriverInfo(),
-              if (currentRequest.status.canBeCancelled) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: _isCancelling ? null : _cancelRide,
-                    child: Text(
-                      _isCancelling
-                          ? AppTranslations.processing
-                          : AppTranslations.cancelRide,
+                buildDriverInfo(),
+                if (currentRequest.status.canBeCancelled) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton(
+                      onPressed: _isCancelling ? null : _cancelRide,
+                      child: Text(
+                        _isCancelling
+                            ? AppTranslations.processing
+                            : AppTranslations.cancelRide,
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 15),
+                ],
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: City6PrimaryButton(
+                    text: AppTranslations.backButton,
+                    onPressed: _canLeaveScreen
+                        ? () {
+                            Navigator.pop(context);
+                          }
+                        : null,
+                  ),
                 ),
-                const SizedBox(height: 15),
               ],
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: City6PrimaryButton(
-  text: AppTranslations.backButton,
-  onPressed: _canLeaveScreen
-      ? () {
-          Navigator.pop(context);
-        }
-      : null,
-),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-  ));
+    );
   }
 }
