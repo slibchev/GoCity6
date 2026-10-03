@@ -16,11 +16,13 @@ import 'ride_request_screen.dart';
 class MainNavigationScreen extends StatefulWidget {
   final ActiveRideStore? activeRideStore;
   final RideRequestService? rideRequestService;
+  final bool restoreActiveRide;
 
   const MainNavigationScreen({
     super.key,
     this.activeRideStore,
     this.rideRequestService,
+    this.restoreActiveRide = true,
   });
 
   @override
@@ -49,9 +51,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const FavoritesScreen(),
     ];
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_restoreActiveRide());
-    });
+    if (widget.restoreActiveRide) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_restoreActiveRide());
+      });
+    }
   }
 
   Future<void> _restoreActiveRide() async {

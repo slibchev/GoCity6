@@ -366,6 +366,48 @@ class AppTranslations {
     return 'Назад';
   }
 
+  static String get okButton {
+    if (currentLanguage == AppLanguage.english) {
+      return 'OK';
+    }
+    return 'ОК';
+  }
+
+  static String get orderTaxi {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Book a taxi';
+    }
+    return 'Поръчай такси';
+  }
+
+  static String get activeRideNotice {
+    if (currentLanguage == AppLanguage.english) {
+      return 'You have an active ride request';
+    }
+    return 'Имате направена поръчка';
+  }
+
+  static String get returnToActiveRide {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Back to ride';
+    }
+    return 'Обратно към поръчката';
+  }
+
+  static String get cancelActiveRide {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Cancel ride';
+    }
+    return 'Отказване на поръчката';
+  }
+
+  static String get previousRideCheckFailed {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Could not verify the previous ride request. Please try again.';
+    }
+    return 'Предишната заявка не можа да бъде проверена. Моля, опитайте отново.';
+  }
+
   static String get welcomeTagline {
     if (currentLanguage == AppLanguage.english) {
       return 'Travel together';
