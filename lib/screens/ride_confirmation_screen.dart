@@ -504,10 +504,12 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   width: double.infinity,
                   height: 55,
                   child: City6PrimaryButton(
-                    text: AppTranslations.backButton,
+                    text: AppTranslations.okButton,
                     onPressed: _canLeaveScreen
                         ? () {
-                            Navigator.pop(context);
+                            Navigator.of(
+                              context,
+                            ).popUntil((route) => route.isFirst);
                           }
                         : null,
                   ),

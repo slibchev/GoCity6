@@ -1021,4 +1021,57 @@ void main() {
 
     AppTranslations.currentLanguage = AppLanguage.bulgarian;
   });
+  testWidgets('completed ride OK button returns to first route', (
+    WidgetTester tester,
+  ) async {
+    final navigatorKey = GlobalKey<NavigatorState>();
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10),
+      status: RideRequestStatus.completed,
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        home: const Scaffold(body: Text('Intro screen marker')),
+      ),
+    );
+
+    navigatorKey.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Order flow marker')),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    navigatorKey.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => RideConfirmationScreen(request: request),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppTranslations.okButton), findsOneWidget);
+
+    await tester.ensureVisible(find.text(AppTranslations.okButton));
+
+    await tester.tap(find.text(AppTranslations.okButton));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Intro screen marker'), findsOneWidget);
+
+    expect(find.text('Order flow marker'), findsNothing);
+
+    expect(find.byType(RideConfirmationScreen), findsNothing);
+  });
 }
