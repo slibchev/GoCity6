@@ -326,8 +326,8 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     final shouldShowDriverInfo =
         currentRequest.status == RideRequestStatus.reserved ||
         currentRequest.status == RideRequestStatus.accepted ||
-        currentRequest.status == RideRequestStatus.driverArriving;
-
+        currentRequest.status == RideRequestStatus.driverArriving ||
+        currentRequest.status == RideRequestStatus.inProgress;
     if (!shouldShowDriverInfo || driverInfo == null) {
       return const SizedBox.shrink();
     }
