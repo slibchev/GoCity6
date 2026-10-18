@@ -135,6 +135,13 @@ class AppTranslations {
     return 'Ориентировъчна цена: предстои изчисление';
   }
 
+  static String get placeOrder {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Order';
+    }
+    return 'Поръчай';
+  }
+
   static String get confirmRide {
     if (currentLanguage == AppLanguage.english) {
       return 'Confirm ride';
@@ -177,6 +184,48 @@ class AppTranslations {
     }
 
     return 'Заявката за курс е изпратена';
+  }
+
+  static String get bonusAwaitingDecision {
+    if (currentLanguage == AppLanguage.english) {
+      return 'No eligible driver accepted your request.';
+    }
+    return 'Никой от подходящите шофьори не прие заявката.';
+  }
+
+  static String get bonusOfferExplanation {
+    if (currentLanguage == AppLanguage.english) {
+      return 'You can offer a €5 bonus to try again. If you continue without a bonus, your request stays active and waits for an available vehicle.';
+    }
+    return 'Можете да предложите бонус от 5 € на шофьора, за да изпратим заявката отново. Ако продължите без бонус, заявката остава активна и ще чака свободен автомобил.';
+  }
+
+  static String get acceptFiveEuroBonus {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Offer a €5 bonus';
+    }
+    return 'Предложи бонус +5 €';
+  }
+
+  static String get declineFiveEuroBonus {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Continue without bonus';
+    }
+    return 'Продължи без бонус';
+  }
+
+  static String get bonusAcceptedNotice {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Driver bonus: €5 (not included in the estimated fare).';
+    }
+    return 'Бонус за шофьора: 5 € (не е включен в ориентировъчната цена).';
+  }
+
+  static String get bonusDecisionFailed {
+    if (currentLanguage == AppLanguage.english) {
+      return 'The bonus decision could not be confirmed. Please try again.';
+    }
+    return 'Решението за бонуса не беше потвърдено. Моля, опитайте отново.';
   }
 
   static String get waitingForDriverConfirmation {

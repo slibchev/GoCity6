@@ -8,6 +8,7 @@ import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import '../services/ride_request_service.dart';
+import '../services/ride_bonus_decision_service.dart';
 import '../services/active_ride_store.dart';
 
 typedef PhoneLauncher = Future<bool> Function(Uri uri);
@@ -36,6 +37,14 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   StreamSubscription<RideRequestData>? _statusSubscription;
   bool _ignoreStatusUpdates = false;
   bool _isCancelling = false;
+  bool _isDecidingBonus = false;
+  RideBonusDecision? _confirmedBonusDecision;
+
+  bool get _showBonusOffer =>
+      currentRequest.status == RideRequestStatus.pending &&
+      currentRequest.bonusDecision == RideBonusDecision.awaitingCustomer &&
+      currentRequest.requestId != null &&
+      widget.rideRequestService is RideBonusDecisionService;
   Future<void> _persistenceChain = Future<void>.value();
 
   void _queuePersistence(RideRequestData request) {
@@ -82,8 +91,18 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         .watchRequestStatus(currentRequest)
         .listen(
           (updatedRequest) {
-            if (!mounted || _ignoreStatusUpdates) {
+            if (!mounted || _ignoreStatusUpdates || _isDecidingBonus) {
               return;
+            }
+
+            if (_confirmedBonusDecision != null &&
+                updatedRequest.bonusDecision ==
+                    RideBonusDecision.awaitingCustomer) {
+              return;
+            }
+
+            if (updatedRequest.bonusDecision == _confirmedBonusDecision) {
+              _confirmedBonusDecision = null;
             }
 
             setState(() {
@@ -177,6 +196,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   }
 
   String getStatusMessage() {
+    if (currentRequest.status == RideRequestStatus.pending &&
+        currentRequest.bonusDecision == RideBonusDecision.awaitingCustomer) {
+      return AppTranslations.bonusAwaitingDecision;
+    }
     switch (currentRequest.status) {
       case RideRequestStatus.waitingForVehicle:
       case RideRequestStatus.pending:
@@ -197,6 +220,62 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
       case RideRequestStatus.cancelled:
         return AppTranslations.rideCancelledMessage;
+    }
+  }
+
+  Future<void> _decideBonus({required bool accept}) async {
+    final service = widget.rideRequestService;
+
+    if (service is! RideBonusDecisionService ||
+        _isDecidingBonus ||
+        _isCancelling ||
+        !_showBonusOffer) {
+      return;
+    }
+
+    final bonusService = service as RideBonusDecisionService;
+
+    setState(() {
+      _isDecidingBonus = true;
+    });
+
+    try {
+      final updated = accept
+          ? await bonusService.acceptBonus(currentRequest)
+          : await bonusService.declineBonus(currentRequest);
+
+      final expected = accept
+          ? RideBonusDecision.accepted
+          : RideBonusDecision.declined;
+
+      if (updated.bonusDecision != expected) {
+        throw StateError('Bonus decision not confirmed');
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      _confirmedBonusDecision = expected;
+
+      setState(() {
+        currentRequest = updated;
+        _isDecidingBonus = false;
+      });
+
+      _queuePersistence(updated);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isDecidingBonus = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppTranslations.bonusDecisionFailed)),
+      );
     }
   }
 
@@ -252,7 +331,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   }
 
   Future<void> _cancelRide() async {
-    if (_isCancelling) {
+    if (_isCancelling || _isDecidingBonus) {
       return;
     }
 
@@ -483,13 +562,56 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   const SizedBox(height: 15),
                   Icon(Icons.person_search, size: 34, color: getStatusColor()),
                 ],
+                if (_showBonusOffer) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    AppTranslations.bonusOfferExplanation,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: City6PrimaryButton(
+                      text: _isDecidingBonus
+                          ? AppTranslations.processing
+                          : AppTranslations.acceptFiveEuroBonus,
+                      onPressed: (_isDecidingBonus || _isCancelling)
+                          ? null
+                          : () => _decideBonus(accept: true),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton(
+                      onPressed: (_isDecidingBonus || _isCancelling)
+                          ? null
+                          : () => _decideBonus(accept: false),
+                      child: Text(AppTranslations.declineFiveEuroBonus),
+                    ),
+                  ),
+                ],
+                if (currentRequest.bonusDecision ==
+                    RideBonusDecision.accepted) ...[
+                  const SizedBox(height: 15),
+                  Text(
+                    AppTranslations.bonusAcceptedNotice,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
                 buildDriverInfo(),
                 if (currentRequest.status.canBeCancelled) ...[
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton(
-                      onPressed: _isCancelling ? null : _cancelRide,
+                      onPressed: (_isCancelling || _isDecidingBonus)
+                          ? null
+                          : _cancelRide,
                       child: Text(
                         _isCancelling
                             ? AppTranslations.processing

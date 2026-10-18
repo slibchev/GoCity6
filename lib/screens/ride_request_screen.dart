@@ -1087,7 +1087,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           width: double.infinity,
           height: 55,
           child: City6PrimaryButton(
-            text: AppTranslations.confirmRide,
+            text: AppTranslations.placeOrder,
             onPressed: isCalculatingRoute ? null : submitRide,
           ),
         ),

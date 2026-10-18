@@ -5,9 +5,13 @@ import 'driver_info.dart';
 
 const Object _notProvided = Object();
 
+enum RideBonusDecision { notOffered, awaitingCustomer, accepted, declined }
+
 class RideRequestData {
   final String? requestId;
   final String? clientRequestId;
+  final RideBonusDecision bonusDecision;
+  final int driverBonusMinor;
 
   // Presentation information shown to the customer.
   final DriverInfo? driverInfo;
@@ -37,6 +41,8 @@ class RideRequestData {
   const RideRequestData({
     this.requestId,
     this.clientRequestId,
+    this.bonusDecision = RideBonusDecision.notOffered,
+    this.driverBonusMinor = 0,
     this.driverInfo,
     this.assignedDriverId,
     this.assignedVehicleId,
@@ -57,6 +63,8 @@ class RideRequestData {
   RideRequestData copyWith({
     Object? requestId = _notProvided,
     Object? clientRequestId = _notProvided,
+    RideBonusDecision? bonusDecision,
+    int? driverBonusMinor,
     Object? driverInfo = _notProvided,
     Object? assignedDriverId = _notProvided,
     Object? assignedVehicleId = _notProvided,
@@ -80,6 +88,8 @@ class RideRequestData {
       clientRequestId: identical(clientRequestId, _notProvided)
           ? this.clientRequestId
           : clientRequestId as String?,
+      bonusDecision: bonusDecision ?? this.bonusDecision,
+      driverBonusMinor: driverBonusMinor ?? this.driverBonusMinor,
       driverInfo: identical(driverInfo, _notProvided)
           ? this.driverInfo
           : driverInfo as DriverInfo?,

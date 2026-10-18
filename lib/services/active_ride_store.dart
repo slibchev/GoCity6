@@ -62,6 +62,8 @@ class ActiveRideStore {
     return {
       'requestId': request.requestId,
       'clientRequestId': request.clientRequestId,
+      'bonusDecision': request.bonusDecision.name,
+      'driverBonusMinor': request.driverBonusMinor,
       'driverInfo': _driverInfoToJson(request.driverInfo),
       'assignedDriverId': request.assignedDriverId,
       'assignedVehicleId': request.assignedVehicleId,
@@ -129,6 +131,10 @@ class ActiveRideStore {
     return RideRequestData(
       requestId: _nullableString(json['requestId']),
       clientRequestId: _nullableString(json['clientRequestId']),
+      bonusDecision: json['bonusDecision'] == null
+          ? RideBonusDecision.notOffered
+          : RideBonusDecision.values.byName(json['bonusDecision'] as String),
+      driverBonusMinor: json['driverBonusMinor'] as int? ?? 0,
       driverInfo: _driverInfoFromJson(json['driverInfo']),
       assignedDriverId: _nullableString(json['assignedDriverId']),
       assignedVehicleId: _nullableString(json['assignedVehicleId']),

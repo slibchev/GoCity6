@@ -21,6 +21,8 @@ void main() {
     final request = RideRequestData(
       requestId: 'ride-001',
       clientRequestId: '11111111-2222-4333-8444-555555555555',
+      bonusDecision: RideBonusDecision.awaitingCustomer,
+      driverBonusMinor: 0,
       driverInfo: const DriverInfo(
         name: 'Ivan Ivanov',
         vehicle: 'Toyota Prius',
@@ -60,6 +62,8 @@ void main() {
 
     expect(loaded!.requestId, request.requestId);
     expect(loaded.clientRequestId, request.clientRequestId);
+    expect(loaded.bonusDecision, RideBonusDecision.awaitingCustomer);
+    expect(loaded.driverBonusMinor, 0);
     expect(loaded.assignedDriverId, request.assignedDriverId);
     expect(loaded.assignedVehicleId, request.assignedVehicleId);
     expect(loaded.pickup, request.pickup);

@@ -140,6 +140,123 @@ void main() {
     expect(recovered.requestId, 'ride-001');
     expect(recovered.status, RideRequestStatus.pending);
   });
+  test('reads awaiting customer bonus decision from backend', () async {
+    final client = MockClient((request) async {
+      return http.Response(
+        jsonEncode({
+          ...backendRide(),
+          'bonusDecision': 'awaiting_customer',
+          'driverBonusMinor': 0,
+        }),
+        200,
+      );
+    });
+
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
+
+    final result = await service.getRequestStatus(
+      createRequest(requestId: 'ride-001'),
+    );
+
+    expect(result.bonusDecision, RideBonusDecision.awaitingCustomer);
+    expect(result.driverBonusMinor, 0);
+  });
+  test('acceptBonus starts the bonus dispatch round', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(
+        request.url.toString(),
+        'http://example.test/rides/ride-001/bonus/accept',
+      );
+
+      return http.Response(
+        jsonEncode({
+          ...backendRide(),
+          'bonusDecision': 'accepted',
+          'driverBonusMinor': 500,
+        }),
+        200,
+      );
+    });
+
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
+
+    final result = await service.acceptBonus(
+      createRequest(requestId: 'ride-001'),
+    );
+
+    expect(result.bonusDecision, RideBonusDecision.accepted);
+    expect(result.driverBonusMinor, 500);
+  });
+
+  test('declineBonus continues without a bonus', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(
+        request.url.toString(),
+        'http://example.test/rides/ride-001/bonus/decline',
+      );
+
+      return http.Response(
+        jsonEncode({
+          ...backendRide(status: 'waitingForVehicle'),
+          'bonusDecision': 'declined',
+          'driverBonusMinor': 0,
+        }),
+        200,
+      );
+    });
+
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
+
+    final result = await service.declineBonus(
+      createRequest(requestId: 'ride-001'),
+    );
+
+    expect(result.bonusDecision, RideBonusDecision.declined);
+    expect(result.status, RideRequestStatus.waitingForVehicle);
+    expect(result.driverBonusMinor, 0);
+  });
+
+  test('recovers an already accepted bonus after HTTP 409', () async {
+    final client = MockClient((request) async {
+      if (request.method == 'POST') {
+        return http.Response('{"error":"Conflict"}', 409);
+      }
+
+      expect(request.method, 'GET');
+
+      return http.Response(
+        jsonEncode({
+          ...backendRide(),
+          'bonusDecision': 'accepted',
+          'driverBonusMinor': 500,
+        }),
+        200,
+      );
+    });
+
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+    );
+
+    final result = await service.acceptBonus(
+      createRequest(requestId: 'ride-001'),
+    );
+
+    expect(result.bonusDecision, RideBonusDecision.accepted);
+    expect(result.driverBonusMinor, 500);
+  });
   test('getRequestStatus applies authoritative reservation state', () async {
     final client = MockClient((request) async {
       expect(request.method, 'GET');

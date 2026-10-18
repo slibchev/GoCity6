@@ -7,9 +7,11 @@ import '../config/backend_config.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import 'ride_request_service.dart';
+import 'ride_bonus_decision_service.dart';
 import '../models/driver_info.dart';
 
-class BackendRideRequestService implements RideRequestService {
+class BackendRideRequestService
+    implements RideRequestService, RideBonusDecisionService {
   final String? baseUrl;
   final http.Client client;
   final Duration pollInterval;
@@ -48,6 +50,56 @@ class BackendRideRequestService implements RideRequestService {
     }
 
     return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
+  }
+
+  @override
+  Future<RideRequestData> acceptBonus(RideRequestData request) {
+    return _decideBonus(request, accept: true);
+  }
+
+  @override
+  Future<RideRequestData> declineBonus(RideRequestData request) {
+    return _decideBonus(request, accept: false);
+  }
+
+  Future<RideRequestData> _decideBonus(
+    RideRequestData request, {
+    required bool accept,
+  }) async {
+    final requestId = _requireRequestId(request);
+    final action = accept ? 'accept' : 'decline';
+    final expectedDecision = accept
+        ? RideBonusDecision.accepted
+        : RideBonusDecision.declined;
+
+    http.Response? response;
+
+    try {
+      response = await client
+          .post(
+            Uri.parse('$_baseUrl/rides/$requestId/bonus/$action'),
+            headers: {'Content-Type': 'application/json; charset=utf-8'},
+          )
+          .timeout(submitTimeout);
+    } on TimeoutException {
+      // The backend may already have processed the decision.
+    } on http.ClientException {
+      // Check the authoritative backend state before reporting failure.
+    }
+
+    if (response?.statusCode == 200) {
+      return _mergeBackendRide(request, _decodeRide(response!.bodyBytes));
+    }
+
+    // A 409, timeout, or server error can happen after the
+    // backend has already committed the decision.
+    final refreshed = await getRequestStatus(request).timeout(submitTimeout);
+
+    if (refreshed.bonusDecision == expectedDecision) {
+      return refreshed;
+    }
+
+    throw StateError('Bonus decision was not confirmed: $action');
   }
 
   @override
@@ -134,6 +186,18 @@ class BackendRideRequestService implements RideRequestService {
     final hasLuggage = ride['hasLuggage'];
     final requestedAt = ride['requestedAt'];
     final status = ride['status'];
+    final parsedBonusDecision = switch (ride['bonusDecision']) {
+      null || 'not_offered' => RideBonusDecision.notOffered,
+      'awaiting_customer' => RideBonusDecision.awaitingCustomer,
+      'accepted' => RideBonusDecision.accepted,
+      'declined' => RideBonusDecision.declined,
+      _ => throw const FormatException('Invalid backend bonus decision.'),
+    };
+
+    final bonusAmount = ride['driverBonusMinor'];
+    if (bonusAmount != null && (bonusAmount is! int || bonusAmount < 0)) {
+      throw const FormatException('Invalid backend bonus amount.');
+    }
 
     if (id is! String ||
         id.isEmpty ||
@@ -199,6 +263,8 @@ class BackendRideRequestService implements RideRequestService {
 
     final mergedRequest = localRequest.copyWith(
       requestId: id,
+      bonusDecision: parsedBonusDecision,
+      driverBonusMinor: (bonusAmount ?? 0) as int,
       pickup: pickup,
       destination: destination,
       passengers: passengers,
