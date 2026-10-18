@@ -211,11 +211,30 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
     final service = rideRequestService;
 
     try {
+      final activeRideStore = widget.activeRideStore;
+
+      if (service != null) {
+        if (activeRideStore == null || request.clientRequestId == null) {
+          throw StateError(
+            'Cannot safely submit ride without local storage and client ID.',
+          );
+        }
+
+        final existing = activeRideStore.load();
+        if (existing != null &&
+            existing.clientRequestId != request.clientRequestId &&
+            existing.status.name != 'completed' &&
+            existing.status.name != 'cancelled') {
+          throw StateError('Another unresolved ride is stored.');
+        }
+
+        // Persist the stable ID before any network request.
+        await activeRideStore.save(request);
+      }
+
       final submittedRequest = service == null
           ? request
           : await service.submitRequest(request);
-
-      final activeRideStore = widget.activeRideStore;
 
       if (activeRideStore != null && submittedRequest.requestId != null) {
         try {

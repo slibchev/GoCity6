@@ -13,27 +13,33 @@ class BackendRideRequestService implements RideRequestService {
   final String? baseUrl;
   final http.Client client;
   final Duration pollInterval;
+  final Duration submitTimeout;
 
   BackendRideRequestService({
     this.baseUrl,
     http.Client? client,
     this.pollInterval = const Duration(seconds: 3),
+    this.submitTimeout = const Duration(seconds: 25),
   }) : client = client ?? http.Client();
 
   String get _baseUrl => baseUrl ?? BackendConfig.baseUrl;
 
   @override
   Future<RideRequestData> submitRequest(RideRequestData request) async {
-    final response = await client.post(
-      Uri.parse('$_baseUrl/rides'),
-      headers: {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode({
-        'pickup': request.pickup,
-        'destination': request.destination,
-        'passengers': request.passengers,
-        'hasLuggage': request.hasLuggage,
-      }),
-    );
+    final response = await client
+        .post(
+          Uri.parse('$_baseUrl/rides'),
+          headers: {'Content-Type': 'application/json; charset=utf-8'},
+          body: jsonEncode({
+            'pickup': request.pickup,
+            'destination': request.destination,
+            'passengers': request.passengers,
+            'hasLuggage': request.hasLuggage,
+            if (request.clientRequestId != null)
+              'clientRequestId': request.clientRequestId,
+          }),
+        )
+        .timeout(submitTimeout);
 
     if (response.statusCode != 201) {
       throw StateError(

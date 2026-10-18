@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -17,6 +18,7 @@ void main() {
   }) {
     return RideRequestData(
       requestId: requestId,
+      clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 2,
@@ -84,6 +86,7 @@ void main() {
         'destination': 'Destination',
         'passengers': 2,
         'hasLuggage': true,
+        'clientRequestId': '11111111-2222-4333-8444-555555555555',
       });
 
       expect(result.requestId, 'ride-001');
@@ -96,6 +99,47 @@ void main() {
     },
   );
 
+  test('retry after timeout preserves client request ID', () async {
+    final sentIds = <String?>[];
+    var callCount = 0;
+
+    final client = MockClient((request) async {
+      callCount++;
+
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      sentIds.add(body['clientRequestId'] as String?);
+
+      if (callCount == 1) {
+        // Simulate a request whose response never reaches the client.
+        return Completer<http.Response>().future;
+      }
+
+      return http.Response(jsonEncode(backendRide()), 201);
+    });
+
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+      submitTimeout: const Duration(milliseconds: 30),
+    );
+
+    final request = createRequest();
+
+    await expectLater(
+      service.submitRequest(request),
+      throwsA(isA<TimeoutException>()),
+    );
+
+    final recovered = await service.submitRequest(request);
+
+    expect(callCount, 2);
+    expect(sentIds, [
+      '11111111-2222-4333-8444-555555555555',
+      '11111111-2222-4333-8444-555555555555',
+    ]);
+    expect(recovered.requestId, 'ride-001');
+    expect(recovered.status, RideRequestStatus.pending);
+  });
   test('getRequestStatus applies authoritative reservation state', () async {
     final client = MockClient((request) async {
       expect(request.method, 'GET');

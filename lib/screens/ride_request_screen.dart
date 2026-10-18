@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../widgets/city6_app_bar_title.dart';
@@ -520,6 +521,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
     if (widget.routeService == null) {
       final request = RideRequestData(
+        clientRequestId: const Uuid().v4(),
         pickup: pickupController.text.trim(),
         destination: destinationController.text.trim(),
         passengers: passengers,
@@ -569,6 +571,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       );
 
       final request = RideRequestData(
+        clientRequestId: const Uuid().v4(),
         pickup: pickupController.text.trim(),
         destination: destinationController.text.trim(),
         passengers: passengers,

@@ -7,6 +7,7 @@ const Object _notProvided = Object();
 
 class RideRequestData {
   final String? requestId;
+  final String? clientRequestId;
 
   // Presentation information shown to the customer.
   final DriverInfo? driverInfo;
@@ -35,6 +36,7 @@ class RideRequestData {
 
   const RideRequestData({
     this.requestId,
+    this.clientRequestId,
     this.driverInfo,
     this.assignedDriverId,
     this.assignedVehicleId,
@@ -54,6 +56,7 @@ class RideRequestData {
 
   RideRequestData copyWith({
     Object? requestId = _notProvided,
+    Object? clientRequestId = _notProvided,
     Object? driverInfo = _notProvided,
     Object? assignedDriverId = _notProvided,
     Object? assignedVehicleId = _notProvided,
@@ -74,6 +77,9 @@ class RideRequestData {
       requestId: identical(requestId, _notProvided)
           ? this.requestId
           : requestId as String?,
+      clientRequestId: identical(clientRequestId, _notProvided)
+          ? this.clientRequestId
+          : clientRequestId as String?,
       driverInfo: identical(driverInfo, _notProvided)
           ? this.driverInfo
           : driverInfo as DriverInfo?,
@@ -97,10 +103,9 @@ class RideRequestData {
       estimatedPrice: identical(estimatedPrice, _notProvided)
           ? this.estimatedPrice
           : estimatedPrice as double?,
-      completedByDriverId:
-          identical(completedByDriverId, _notProvided)
-              ? this.completedByDriverId
-              : completedByDriverId as String?,
+      completedByDriverId: identical(completedByDriverId, _notProvided)
+          ? this.completedByDriverId
+          : completedByDriverId as String?,
       completedAt: identical(completedAt, _notProvided)
           ? this.completedAt
           : completedAt as DateTime?,

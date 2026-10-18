@@ -43,6 +43,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
   bool _isCheckingRide = true;
   bool _isOpeningOrder = false;
   bool _isCancelling = false;
+  bool _isRecoveringRide = false;
 
   RideRequestData? _recoverableRide;
 
@@ -131,7 +132,10 @@ class _City6IntroScreenState extends State<City6IntroScreen>
   }
 
   bool _isRecoverableStatus(RideRequestStatus status) {
-    return status == RideRequestStatus.accepted ||
+    return status == RideRequestStatus.pending ||
+        status == RideRequestStatus.waitingForVehicle ||
+        status == RideRequestStatus.reserved ||
+        status == RideRequestStatus.accepted ||
         status == RideRequestStatus.driverArriving ||
         status == RideRequestStatus.inProgress;
   }
@@ -190,6 +194,10 @@ class _City6IntroScreenState extends State<City6IntroScreen>
     final requestId = storedRequest.requestId;
 
     if (requestId == null || requestId.trim().isEmpty) {
+      final clientId = storedRequest.clientRequestId;
+      if (clientId != null && clientId.isNotEmpty) {
+        return storedRequest;
+      }
       await _clearStoreSafely();
       return null;
     }
@@ -239,6 +247,15 @@ class _City6IntroScreenState extends State<City6IntroScreen>
     final requestId = storedRequest.requestId;
 
     if (requestId == null || requestId.trim().isEmpty) {
+      final clientId = storedRequest.clientRequestId;
+      if (clientId != null && clientId.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _recoverableRide = storedRequest;
+          });
+        }
+        return false;
+      }
       await _clearStoreSafely();
       return true;
     }
@@ -361,9 +378,59 @@ class _City6IntroScreenState extends State<City6IntroScreen>
   }
 
   Future<void> _openRecoverableRide() async {
-    final ride = _recoverableRide;
+    var ride = _recoverableRide;
 
-    if (ride == null) {
+    if (ride == null || _isRecoveringRide) {
+      return;
+    }
+
+    if (ride.requestId == null || ride.requestId!.isEmpty) {
+      setState(() {
+        _isRecoveringRide = true;
+      });
+
+      try {
+        final submitted = await _rideRequestService
+            .submitRequest(ride)
+            .timeout(const Duration(seconds: 25));
+
+        if (submitted.requestId == null || submitted.requestId!.isEmpty) {
+          throw StateError('Backend did not return a ride ID.');
+        }
+
+        final store = widget.activeRideStore;
+        if (store == null) {
+          throw StateError('Active ride storage is unavailable.');
+        }
+
+        await store.save(submitted);
+
+        ride = submitted;
+
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _recoverableRide = submitted;
+        });
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppTranslations.submitRideFailed)),
+          );
+        }
+        return;
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isRecoveringRide = false;
+          });
+        }
+      }
+    }
+
+    if (!mounted) {
       return;
     }
 
@@ -371,7 +438,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
       MaterialPageRoute<void>(
         builder: (context) {
           return RideConfirmationScreen(
-            request: ride,
+            request: ride!,
             rideRequestService: _rideRequestService,
             activeRideStore: widget.activeRideStore,
           );
@@ -629,10 +696,14 @@ class _City6IntroScreenState extends State<City6IntroScreen>
           ),
           const SizedBox(height: 18),
           City6PrimaryButton(
-            text: AppTranslations.returnToActiveRide,
-            onPressed: _openRecoverableRide,
+            text: _isRecoveringRide
+                ? AppTranslations.processing
+                : AppTranslations.returnToActiveRide,
+            onPressed: _isRecoveringRide ? null : _openRecoverableRide,
           ),
-          if (recoverableRide.status.canBeCancelled) ...[
+          if (recoverableRide.requestId != null &&
+              recoverableRide.requestId!.isNotEmpty &&
+              recoverableRide.status.canBeCancelled) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

@@ -135,7 +135,7 @@ void main() {
     expect(service.getStatusCallCount, 1);
   });
 
-  testWidgets('does not show recovery actions for unaccepted stored ride', (
+  testWidgets('shows recovery actions for a waiting ride', (
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -153,14 +153,39 @@ void main() {
 
     await pumpIntro(tester, store: store, service: service);
 
-    expect(find.text(AppTranslations.orderTaxi), findsOneWidget);
-
-    expect(find.text(AppTranslations.activeRideNotice), findsNothing);
-
-    expect(find.text(AppTranslations.returnToActiveRide), findsNothing);
-
-    expect(find.text(AppTranslations.cancelActiveRide), findsNothing);
-
+    expect(find.text(AppTranslations.orderTaxi), findsNothing);
+    expect(find.text(AppTranslations.activeRideNotice), findsOneWidget);
+    expect(find.text(AppTranslations.returnToActiveRide), findsOneWidget);
+    expect(find.text(AppTranslations.cancelActiveRide), findsOneWidget);
     expect(service.getStatusCallCount, 1);
+  });
+
+  testWidgets('preserves a pending request without a backend ride ID', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+
+    final pendingRide = buildIntroTestRide(status: RideRequestStatus.pending)
+        .copyWith(
+          requestId: null,
+          clientRequestId: '11111111-2222-4333-8444-555555555555',
+        );
+
+    await store.save(pendingRide);
+
+    final service = IntroTestRideRequestService();
+
+    await pumpIntro(tester, store: store, service: service);
+
+    expect(store.load()?.clientRequestId, pendingRide.clientRequestId);
+    expect(store.load()?.requestId, isNull);
+    expect(find.text(AppTranslations.orderTaxi), findsNothing);
+    expect(find.text(AppTranslations.activeRideNotice), findsOneWidget);
+    expect(find.text(AppTranslations.returnToActiveRide), findsOneWidget);
+    expect(find.text(AppTranslations.cancelActiveRide), findsNothing);
+    expect(service.getStatusCallCount, 0);
   });
 }

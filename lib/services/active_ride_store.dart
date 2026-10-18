@@ -61,6 +61,7 @@ class ActiveRideStore {
   Map<String, dynamic> _toJson(RideRequestData request) {
     return {
       'requestId': request.requestId,
+      'clientRequestId': request.clientRequestId,
       'driverInfo': _driverInfoToJson(request.driverInfo),
       'assignedDriverId': request.assignedDriverId,
       'assignedVehicleId': request.assignedVehicleId,
@@ -127,6 +128,7 @@ class ActiveRideStore {
 
     return RideRequestData(
       requestId: _nullableString(json['requestId']),
+      clientRequestId: _nullableString(json['clientRequestId']),
       driverInfo: _driverInfoFromJson(json['driverInfo']),
       assignedDriverId: _nullableString(json['assignedDriverId']),
       assignedVehicleId: _nullableString(json['assignedVehicleId']),

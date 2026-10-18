@@ -92,6 +92,12 @@ class DelayedRideRequestService implements RideRequestService {
 }
 
 void main() {
+  Future<ActiveRideStore> createStore() async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    return ActiveRideStore(preferences);
+  }
+
   testWidgets('persists backend ride after successful submission', (
     WidgetTester tester,
   ) async {
@@ -102,6 +108,7 @@ void main() {
     final service = RecordingRideRequestService();
 
     final request = RideRequestData(
+      clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 1,
@@ -149,6 +156,7 @@ void main() {
     final service = RecordingRideRequestService();
 
     final request = RideRequestData(
+      clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 1,
@@ -164,6 +172,7 @@ void main() {
         home: RideSummaryScreen.fromRequest(
           request: request,
           rideRequestService: service,
+          activeRideStore: await createStore(),
         ),
       ),
     );
@@ -192,6 +201,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final request = RideRequestData(
+      clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 1,
@@ -207,6 +217,7 @@ void main() {
         home: RideSummaryScreen.fromRequest(
           request: request,
           rideRequestService: FailingRideRequestService(),
+          activeRideStore: await createStore(),
         ),
       ),
     );
@@ -228,6 +239,7 @@ void main() {
     final service = DelayedRideRequestService();
 
     final request = RideRequestData(
+      clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
       destination: 'Destination',
       passengers: 1,
@@ -243,6 +255,7 @@ void main() {
         home: RideSummaryScreen.fromRequest(
           request: request,
           rideRequestService: service,
+          activeRideStore: await createStore(),
         ),
       ),
     );

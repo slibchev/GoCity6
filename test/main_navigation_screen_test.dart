@@ -124,6 +124,40 @@ void main() {
     expect(persistedRequest.assignedVehicleId, 'vehicle-001');
   });
 
+  testWidgets('preserves unresolved submission with client request ID', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+
+    final pendingRequest = buildRequest(status: RideRequestStatus.pending)
+        .copyWith(
+          requestId: null,
+          clientRequestId: '11111111-2222-4333-8444-555555555555',
+        );
+
+    await store.save(pendingRequest);
+
+    final service = RestoreRideRequestService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MainNavigationScreen(
+          activeRideStore: store,
+          rideRequestService: service,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(service.getStatusCallCount, 0);
+    expect(find.byType(RideConfirmationScreen), findsNothing);
+    expect(store.load()?.requestId, isNull);
+    expect(store.load()?.clientRequestId, pendingRequest.clientRequestId);
+  });
   testWidgets('clears terminal stored ride without restoring confirmation', (
     WidgetTester tester,
   ) async {

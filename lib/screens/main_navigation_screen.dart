@@ -79,7 +79,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final requestId = storedRequest.requestId;
 
     if (requestId == null || requestId.trim().isEmpty) {
-      await _clearStoreSafely(store);
+      // The submission may have reached the backend even if its
+      // response was lost. Preserve the ID for safe recovery.
+      final clientId = storedRequest.clientRequestId;
+      if (clientId == null || clientId.trim().isEmpty) {
+        await _clearStoreSafely(store);
+      }
       return;
     }
 
