@@ -278,6 +278,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: GoogleMap(
+                    liteModeEnabled: true,
                     initialCameraPosition: _initialMapPosition,
                     markers: _routeMarkers,
                     polylines: _routePolylines,

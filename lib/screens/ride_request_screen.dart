@@ -634,39 +634,44 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 220,
-                  child: GoogleMap(
-                    initialCameraPosition: const CameraPosition(
-                      target: LatLng(42.6977, 23.3219),
-                      zoom: 12,
-                    ),
-                    onMapCreated: (GoogleMapController controller) {
-                      _requestMapController = controller;
+              if (const bool.fromEnvironment(
+                'CITY6_PASSENGER_MAP_ENABLED',
+                defaultValue: true,
+              ))
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 220,
+                    child: GoogleMap(
+                      liteModeEnabled: true,
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(42.6977, 23.3219),
+                        zoom: 12,
+                      ),
+                      onMapCreated: (GoogleMapController controller) {
+                        _requestMapController = controller;
 
-                      if (_currentClientPosition != null) {
-                        controller.animateCamera(
-                          CameraUpdate.newCameraPosition(
-                            CameraPosition(
-                              target: _currentClientPosition!,
-                              zoom: 17,
+                        if (_currentClientPosition != null) {
+                          controller.animateCamera(
+                            CameraUpdate.newCameraPosition(
+                              CameraPosition(
+                                target: _currentClientPosition!,
+                                zoom: 17,
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                    },
-                    mapType: MapType.normal,
-                    myLocationEnabled: _locationPermissionGranted,
-                    myLocationButtonEnabled: true,
-                    zoomControlsEnabled: false,
-                    compassEnabled: true,
-                    mapToolbarEnabled: false,
+                          );
+                        }
+                      },
+                      mapType: MapType.normal,
+                      myLocationEnabled: _locationPermissionGranted,
+                      myLocationButtonEnabled: true,
+                      zoomControlsEnabled: false,
+                      compassEnabled: true,
+                      mapToolbarEnabled: false,
+                    ),
                   ),
                 ),
-              ),
 
               const SizedBox(height: 20),
               TapRegion(
