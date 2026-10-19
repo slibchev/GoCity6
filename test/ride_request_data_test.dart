@@ -23,6 +23,7 @@ void main() {
       requestedAt: DateTime(2026, 1, 1, 10, 0),
       status: RideRequestStatus.pending,
       estimatedPrice: 10.50,
+      meterFareMinor: 520,
     );
 
     final acceptedRequest = request.copyWith(
@@ -38,8 +39,15 @@ void main() {
     expect(acceptedRequest.paymentMethod, request.paymentMethod);
 
     expect(acceptedRequest.estimatedPrice, request.estimatedPrice);
+    expect(acceptedRequest.meterFareMinor, request.meterFareMinor);
     expect(acceptedRequest.requestId, request.requestId);
     expect(acceptedRequest.driverInfo, request.driverInfo);
     expect(acceptedRequest.driverInfo?.phoneNumber, '+359888123456');
+
+    final updatedFare = request.copyWith(meterFareMinor: 600);
+    expect(updatedFare.meterFareMinor, 600);
+
+    final clearedFare = request.copyWith(meterFareMinor: null);
+    expect(clearedFare.meterFareMinor, isNull);
   });
 }

@@ -205,8 +205,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         return AppTranslations.rideRequestSent;
 
       case RideRequestStatus.reserved:
-      case RideRequestStatus.accepted:
         return AppTranslations.rideAccepted;
+
+      case RideRequestStatus.accepted:
+        return AppTranslations.acceptedRideTitle;
 
       case RideRequestStatus.driverArriving:
         return AppTranslations.driverArriving;
@@ -233,11 +235,13 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         return AppTranslations.waitingForDriverConfirmation;
 
       case RideRequestStatus.reserved:
-      case RideRequestStatus.accepted:
         return AppTranslations.rideAcceptedMessage;
 
+      case RideRequestStatus.accepted:
+        return AppTranslations.acceptedRideMessage;
+
       case RideRequestStatus.driverArriving:
-        return AppTranslations.driverArrivingMessage;
+        return '';
 
       case RideRequestStatus.inProgress:
         return AppTranslations.rideInProgressMessage;
@@ -421,6 +425,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   Widget buildDriverInfo() {
     final driverInfo = currentRequest.driverInfo;
+    final canCallDriver =
+        currentRequest.status == RideRequestStatus.reserved ||
+        currentRequest.status == RideRequestStatus.accepted ||
+        currentRequest.status == RideRequestStatus.driverArriving;
 
     final shouldShowDriverInfo =
         currentRequest.status == RideRequestStatus.reserved ||
@@ -513,7 +521,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
             ],
           ),
         ],
-        if (driverInfo.phoneNumber != null) ...[
+        if (canCallDriver && driverInfo.phoneNumber != null) ...[
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -533,6 +541,19 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isCompleted = currentRequest.status == RideRequestStatus.completed;
+    final meterFareMinor = currentRequest.meterFareMinor;
+    final fareLabel = isCompleted
+        ? AppTranslations.finalPriceLabel
+        : AppTranslations.priceLabel;
+    final fareValue = isCompleted
+        ? meterFareMinor == null || meterFareMinor <= 0
+              ? AppTranslations.finalPriceUnavailable
+              : _formatMeterFare(meterFareMinor)
+        : currentRequest.estimatedPrice == null
+        ? AppTranslations.calculating
+        : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} €';
+
     return PopScope(
       canPop: _canLeaveScreen,
       child: Scaffold(
@@ -566,18 +587,18 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                     const Icon(Icons.payments),
                     const SizedBox(width: 8),
                     Text(
-                      '${AppTranslations.priceLabel}: '
-                      '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} €'}',
+                      '$fareLabel: $fareValue',
                       style: const TextStyle(fontSize: 20),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  getStatusMessage(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18),
-                ),
+                if (currentRequest.status != RideRequestStatus.driverArriving)
+                  Text(
+                    getStatusMessage(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 18),
+                  ),
                 if (currentRequest.status == RideRequestStatus.pending) ...[
                   const SizedBox(height: 15),
                   Icon(Icons.person_search, size: 34, color: getStatusColor()),
@@ -662,5 +683,15 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
         ),
       ),
     );
+  }
+
+  String _formatMeterFare(int meterFareMinor) {
+    final euros = meterFareMinor ~/ 100;
+    final cents = (meterFareMinor % 100).toString().padLeft(2, '0');
+    final separator = AppTranslations.currentLanguage == AppLanguage.english
+        ? '.'
+        : ',';
+
+    return '$euros$separator$cents €';
   }
 }

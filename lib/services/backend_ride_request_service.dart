@@ -281,6 +281,12 @@ class BackendRideRequestService
       throw const FormatException('Invalid backend bonus amount.');
     }
 
+    final meterFareMinor = ride['meterFareMinor'];
+    if (meterFareMinor != null &&
+        (meterFareMinor is! int || meterFareMinor < 0)) {
+      throw const FormatException('Invalid backend meter fare amount.');
+    }
+
     if (id is! String ||
         id.isEmpty ||
         pickup is! String ||
@@ -353,6 +359,7 @@ class BackendRideRequestService
       hasLuggage: hasLuggage,
       requestedAt: parsedRequestedAt.toLocal(),
       status: parsedStatus,
+      meterFareMinor: meterFareMinor as int?,
       assignedDriverId: assignedDriverId,
       assignedVehicleId: assignedVehicleId,
       completedByDriverId: completedByDriverId,

@@ -178,6 +178,20 @@ class AppTranslations {
     return 'Шофьорът прие заявката ви';
   }
 
+  static String get acceptedRideTitle {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Your ride request was accepted successfully';
+    }
+    return 'Поръчката ви е приета успешно';
+  }
+
+  static String get acceptedRideMessage {
+    if (currentLanguage == AppLanguage.english) {
+      return 'The driver is on the way to you';
+    }
+    return 'Шофьорът пътува към вас';
+  }
+
   static String get rideRequestSent {
     if (currentLanguage == AppLanguage.english) {
       return 'Ride request sent';
@@ -238,10 +252,10 @@ class AppTranslations {
 
   static String get driverArriving {
     if (currentLanguage == AppLanguage.english) {
-      return 'Driver is on the way';
+      return 'Your taxi is at the pickup location';
     }
 
-    return 'Шофьорът пътува към вас';
+    return 'Таксито Ви е на адреса';
   }
 
   static String get driverArrivingMessage {
@@ -378,6 +392,20 @@ class AppTranslations {
       return 'Estimated price';
     }
     return 'Ориентировъчна цена';
+  }
+
+  static String get finalPriceLabel {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Final price';
+    }
+    return 'Крайна цена';
+  }
+
+  static String get finalPriceUnavailable {
+    if (currentLanguage == AppLanguage.english) {
+      return 'Not available';
+    }
+    return 'Не е налична';
   }
 
   static String get from {

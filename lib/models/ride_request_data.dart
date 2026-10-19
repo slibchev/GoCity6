@@ -33,6 +33,7 @@ class RideRequestData {
 
   final RouteResult? routeResult;
   final double? estimatedPrice;
+  final int? meterFareMinor;
 
   // Completion information.
   final String? completedByDriverId;
@@ -56,6 +57,7 @@ class RideRequestData {
     this.status = RideRequestStatus.pending,
     this.routeResult,
     this.estimatedPrice,
+    this.meterFareMinor,
     this.completedByDriverId,
     this.completedAt,
   });
@@ -78,6 +80,7 @@ class RideRequestData {
     RideRequestStatus? status,
     Object? routeResult = _notProvided,
     Object? estimatedPrice = _notProvided,
+    Object? meterFareMinor = _notProvided,
     Object? completedByDriverId = _notProvided,
     Object? completedAt = _notProvided,
   }) {
@@ -113,6 +116,9 @@ class RideRequestData {
       estimatedPrice: identical(estimatedPrice, _notProvided)
           ? this.estimatedPrice
           : estimatedPrice as double?,
+      meterFareMinor: identical(meterFareMinor, _notProvided)
+          ? this.meterFareMinor
+          : meterFareMinor as int?,
       completedByDriverId: identical(completedByDriverId, _notProvided)
           ? this.completedByDriverId
           : completedByDriverId as String?,

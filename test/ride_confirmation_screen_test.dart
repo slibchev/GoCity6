@@ -199,6 +199,91 @@ void main() {
     expect(find.textContaining('лв.'), findsNothing);
   });
 
+  testWidgets('completed ride displays meter fare separately from bonus', (
+    WidgetTester tester,
+  ) async {
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+
+    final request = RideRequestData(
+      requestId: 'ride-final-fare-001',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10),
+      status: RideRequestStatus.completed,
+      estimatedPrice: 4.95,
+      meterFareMinor: 520,
+      bonusDecision: RideBonusDecision.accepted,
+      driverBonusMinor: 500,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+
+    expect(find.text('Крайна цена: 5,20 €'), findsOneWidget);
+    expect(find.textContaining('4.95 €'), findsNothing);
+    expect(find.text(AppTranslations.bonusAcceptedNotice), findsOneWidget);
+  });
+
+  testWidgets(
+    'completed ride reports missing or zero meter fare as unavailable',
+    (WidgetTester tester) async {
+      for (final fare in <int?>[null, 0]) {
+        final request = RideRequestData(
+          pickup: 'Pickup',
+          destination: 'Destination',
+          passengers: 1,
+          paymentMethod: RidePaymentMethod.cash,
+          rideType: RideType.city,
+          requestedAt: DateTime(2026, 1, 1, 10),
+          status: RideRequestStatus.completed,
+          estimatedPrice: 4.95,
+          meterFareMinor: fare,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(home: RideConfirmationScreen(request: request)),
+        );
+
+        expect(find.text('Крайна цена: Не е налична'), findsOneWidget);
+        expect(find.textContaining('4.95 €'), findsNothing);
+      }
+    },
+  );
+
+  testWidgets('completed meter fare uses the English label and format', (
+    WidgetTester tester,
+  ) async {
+    AppTranslations.currentLanguage = AppLanguage.english;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10),
+      status: RideRequestStatus.completed,
+      estimatedPrice: 4.95,
+      meterFareMinor: 520,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+
+    expect(find.text('Final price: 5.20 €'), findsOneWidget);
+  });
+
   testWidgets('persists active ride status update', (
     WidgetTester tester,
   ) async {
@@ -336,7 +421,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(AppTranslations.rideAccepted), findsWidgets);
+      expect(find.text(AppTranslations.acceptedRideTitle), findsOneWidget);
       expect(store.load()?.status, RideRequestStatus.accepted);
       expect(store.load()?.assignedDriverId, 'driver-001');
       expect(service.watchCallCount, 1);
@@ -526,8 +611,8 @@ void main() {
       MaterialApp(home: RideConfirmationScreen(request: request)),
     );
 
-    expect(find.text(AppTranslations.rideAccepted), findsWidgets);
-    expect(find.text(AppTranslations.rideAcceptedMessage), findsOneWidget);
+    expect(find.text(AppTranslations.acceptedRideTitle), findsOneWidget);
+    expect(find.text(AppTranslations.acceptedRideMessage), findsOneWidget);
   });
   testWidgets('RideConfirmationScreen shows driver info when accepted', (
     WidgetTester tester,
@@ -546,6 +631,7 @@ void main() {
         vehicle: 'Toyota Prius',
         licensePlate: 'CB1234AB',
         etaMinutes: 5,
+        phoneNumber: '+359888123456',
       ),
     );
 
@@ -556,6 +642,7 @@ void main() {
     expect(find.text('Ivan Ivanov'), findsOneWidget);
     expect(find.text('Toyota Prius'), findsOneWidget);
     expect(find.text('CB1234AB'), findsOneWidget);
+    expect(find.text(AppTranslations.callDriver), findsOneWidget);
     expect(
       find.text('${AppTranslations.arrivalTime}: 5 ${AppTranslations.minutes}'),
       findsOneWidget,
@@ -609,7 +696,7 @@ void main() {
     );
 
     expect(find.text(AppTranslations.driverArriving), findsWidgets);
-    expect(find.text(AppTranslations.driverArrivingMessage), findsOneWidget);
+    expect(find.text(AppTranslations.driverArrivingMessage), findsNothing);
   });
 
   testWidgets('RideConfirmationScreen shows ride in progress status', (
@@ -624,6 +711,13 @@ void main() {
       requestedAt: DateTime(2026, 1, 1, 10, 0),
       status: RideRequestStatus.inProgress,
       estimatedPrice: 10.50,
+      driverInfo: const DriverInfo(
+        name: 'Test Driver',
+        vehicle: 'Dacia Jogger',
+        licensePlate: 'CB 1234 AB',
+        etaMinutes: 4,
+        phoneNumber: '+359888123456',
+      ),
     );
 
     await tester.pumpWidget(
@@ -631,6 +725,9 @@ void main() {
     );
 
     expect(find.text(AppTranslations.rideInProgress), findsWidgets);
+    expect(find.text(AppTranslations.callDriver), findsNothing);
+    expect(find.text('Test Driver'), findsOneWidget);
+    expect(find.text('CB 1234 AB'), findsOneWidget);
   });
 
   testWidgets('RideConfirmationScreen shows completed status', (

@@ -77,6 +77,7 @@ class ActiveRideStore {
       'status': request.status.name,
       'routeResult': _routeResultToJson(request.routeResult),
       'estimatedPrice': request.estimatedPrice,
+      'meterFareMinor': request.meterFareMinor,
       'completedByDriverId': request.completedByDriverId,
       'completedAt': request.completedAt?.toIso8601String(),
     };
@@ -111,6 +112,14 @@ class ActiveRideStore {
 
     final completedAt = json['completedAt'];
     DateTime? parsedCompletedAt;
+
+    final meterFareMinor = json['meterFareMinor'];
+    if (meterFareMinor != null &&
+        (meterFareMinor is! int || meterFareMinor < 0)) {
+      throw const FormatException(
+        'Stored active ride meterFareMinor is invalid.',
+      );
+    }
 
     if (completedAt != null) {
       if (completedAt is! String) {
@@ -148,6 +157,7 @@ class ActiveRideStore {
       status: RideRequestStatus.values.byName(status),
       routeResult: _routeResultFromJson(json['routeResult']),
       estimatedPrice: _nullableDouble(json['estimatedPrice']),
+      meterFareMinor: meterFareMinor as int?,
       completedByDriverId: _nullableString(json['completedByDriverId']),
       completedAt: parsedCompletedAt,
     );

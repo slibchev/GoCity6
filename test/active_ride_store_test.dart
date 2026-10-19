@@ -50,6 +50,7 @@ void main() {
         encodedPolyline: 'encoded-polyline',
       ),
       estimatedPrice: 12.80,
+      meterFareMinor: 520,
       completedByDriverId: 'driver-001',
       completedAt: DateTime(2026, 10, 2, 15, 50),
     );
@@ -75,6 +76,7 @@ void main() {
     expect(loaded.requestedAt, request.requestedAt);
     expect(loaded.status, request.status);
     expect(loaded.estimatedPrice, request.estimatedPrice);
+    expect(loaded.meterFareMinor, request.meterFareMinor);
     expect(loaded.completedByDriverId, request.completedByDriverId);
     expect(loaded.completedAt, request.completedAt);
 
@@ -112,6 +114,25 @@ void main() {
       request.routeResult!.encodedPolyline,
     );
   });
+
+  test(
+    'loads a legacy active ride without meter fare as unavailable',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'activeRide':
+            '{"requestId":"ride-legacy","pickup":"Pickup",'
+            '"destination":"Destination","passengers":1,'
+            '"hasLuggage":false,"paymentMethod":"cash",'
+            '"rideType":"city","requestedAt":"2026-10-02T16:00:00.000",'
+            '"status":"pending"}',
+      });
+
+      final preferences = await SharedPreferences.getInstance();
+      final store = ActiveRideStore(preferences);
+
+      expect(store.load()?.meterFareMinor, isNull);
+    },
+  );
 
   test('clear removes stored active ride', () async {
     final preferences = await SharedPreferences.getInstance();

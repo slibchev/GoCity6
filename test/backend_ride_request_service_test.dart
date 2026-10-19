@@ -38,6 +38,9 @@ void main() {
     String? assignedVehicleId,
     String? completedByDriverId,
     String? completedAt,
+    Object? meterFareMinor,
+    String bonusDecision = 'not_offered',
+    Object? driverBonusMinor,
   }) {
     return {
       'id': 'ride-001',
@@ -50,7 +53,9 @@ void main() {
       'assignedDriverId': assignedDriverId,
       'assignedVehicleId': assignedVehicleId,
       'currency': 'EUR',
-      'meterFareMinor': null,
+      'bonusDecision': bonusDecision,
+      'driverBonusMinor': driverBonusMinor,
+      'meterFareMinor': meterFareMinor,
       'commissionRateBps': null,
       'commissionAmountMinor': null,
       'completedByDriverId': completedByDriverId,
@@ -321,6 +326,83 @@ void main() {
     expect(result.driverInfo!.licensePlate, 'CA1234AB');
     expect(result.driverInfo!.phoneNumber, '+359888123456');
     expect(result.driverInfo!.etaMinutes, isNull);
+  });
+
+  test(
+    'getRequestStatus parses meter fare independently from estimate and bonus',
+    () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode(
+            backendRide(
+              status: 'completed',
+              meterFareMinor: 520,
+              bonusDecision: 'accepted',
+              driverBonusMinor: 500,
+            ),
+          ),
+          200,
+        );
+      });
+
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: client,
+      );
+      final result = await service.getRequestStatus(
+        createRequest(
+          requestId: 'ride-001',
+          status: RideRequestStatus.inProgress,
+        ),
+      );
+
+      expect(result.status, RideRequestStatus.completed);
+      expect(result.meterFareMinor, 520);
+      expect(result.estimatedPrice, 12.50);
+      expect(result.driverBonusMinor, 500);
+    },
+  );
+
+  test(
+    'getRequestStatus accepts zero meter fare as a non-displayable amount',
+    () async {
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode(backendRide(status: 'completed', meterFareMinor: 0)),
+            200,
+          ),
+        ),
+      );
+
+      final result = await service.getRequestStatus(
+        createRequest(requestId: 'ride-001'),
+      );
+
+      expect(result.meterFareMinor, 0);
+    },
+  );
+
+  test('getRequestStatus rejects malformed meter fare values', () async {
+    for (final invalidFare in [-1, 520.0, '520']) {
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode(
+              backendRide(status: 'completed', meterFareMinor: invalidFare),
+            ),
+            200,
+          ),
+        ),
+      );
+
+      await expectLater(
+        service.getRequestStatus(createRequest(requestId: 'ride-001')),
+        throwsA(isA<FormatException>()),
+      );
+    }
   });
 
   test('cancelRequest applies backend cancelled state', () async {
