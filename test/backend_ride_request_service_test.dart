@@ -396,6 +396,218 @@ void main() {
     },
   );
 
+  test(
+    'watchRequestStatus retries transient failures with bounded backoff and resets after success',
+    () async {
+      var statusReadCount = 0;
+      var activeStatusRequests = 0;
+      var maxActiveStatusRequests = 0;
+      final pollDelays = <Duration>[];
+
+      final client = MockClient((request) async {
+        activeStatusRequests++;
+        if (activeStatusRequests > maxActiveStatusRequests) {
+          maxActiveStatusRequests = activeStatusRequests;
+        }
+
+        try {
+          statusReadCount++;
+          await Future<void>.delayed(Duration.zero);
+
+          if (statusReadCount <= 6 || statusReadCount == 8) {
+            throw http.ClientException(
+              'Temporary network failure',
+              request.url,
+            );
+          }
+
+          final status = statusReadCount == 7
+              ? 'waitingForVehicle'
+              : 'completed';
+
+          return http.Response(jsonEncode(backendRide(status: status)), 200);
+        } finally {
+          activeStatusRequests--;
+        }
+      });
+
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: client,
+        pollInterval: const Duration(seconds: 3),
+        retryBaseInterval: const Duration(seconds: 3),
+        maxRetryInterval: const Duration(seconds: 30),
+        pollDelay: (duration) async {
+          pollDelays.add(duration);
+        },
+      );
+
+      final statuses = await service
+          .watchRequestStatus(createRequest(requestId: 'ride-001'))
+          .map((request) => request.status)
+          .toList();
+
+      expect(statuses, [
+        RideRequestStatus.pending,
+        RideRequestStatus.waitingForVehicle,
+        RideRequestStatus.completed,
+      ]);
+      expect(statusReadCount, 9);
+      expect(maxActiveStatusRequests, 1);
+      expect(pollDelays, [
+        const Duration(seconds: 3),
+        const Duration(seconds: 3),
+        const Duration(seconds: 6),
+        const Duration(seconds: 12),
+        const Duration(seconds: 24),
+        const Duration(seconds: 30),
+        const Duration(seconds: 30),
+        const Duration(seconds: 3),
+        const Duration(seconds: 3),
+      ]);
+    },
+  );
+
+  test('watchRequestStatus aborts a timed out GET before retrying', () async {
+    var statusReadCount = 0;
+    var activeStatusRequests = 0;
+    var maxActiveStatusRequests = 0;
+    var firstRequestAborted = false;
+    var delayCallCount = 0;
+    final firstRequestFinished = Completer<void>();
+
+    final client = MockClient.streaming((request, bodyStream) async {
+      statusReadCount++;
+      activeStatusRequests++;
+      if (activeStatusRequests > maxActiveStatusRequests) {
+        maxActiveStatusRequests = activeStatusRequests;
+      }
+
+      try {
+        if (statusReadCount == 1) {
+          final abortTrigger = (request as http.AbortableRequest).abortTrigger!;
+          await abortTrigger;
+          firstRequestAborted = true;
+          throw http.RequestAbortedException(request.url);
+        }
+
+        return http.StreamedResponse(
+          Stream<List<int>>.value(
+            utf8.encode(jsonEncode(backendRide(status: 'completed'))),
+          ),
+          200,
+        );
+      } finally {
+        activeStatusRequests--;
+        if (statusReadCount == 1 && !firstRequestFinished.isCompleted) {
+          firstRequestFinished.complete();
+        }
+      }
+    });
+
+    final service = BackendRideRequestService(
+      baseUrl: 'http://example.test',
+      client: client,
+      pollInterval: Duration.zero,
+      statusTimeout: const Duration(milliseconds: 10),
+      retryBaseInterval: Duration.zero,
+      maxRetryInterval: Duration.zero,
+      pollDelay: (_) async {
+        delayCallCount++;
+        if (delayCallCount == 2) {
+          await firstRequestFinished.future;
+        }
+      },
+    );
+
+    final statuses = await service
+        .watchRequestStatus(createRequest(requestId: 'ride-001'))
+        .map((request) => request.status)
+        .toList();
+
+    expect(statuses, [RideRequestStatus.pending, RideRequestStatus.completed]);
+    expect(statusReadCount, 2);
+    expect(firstRequestAborted, isTrue);
+    expect(maxActiveStatusRequests, 1);
+  });
+
+  test('watchRequestStatus retries transient HTTP status codes', () async {
+    for (final statusCode in [408, 429, 503]) {
+      var statusReadCount = 0;
+      final client = MockClient((request) async {
+        statusReadCount++;
+
+        if (statusReadCount == 1) {
+          return http.Response('{}', statusCode);
+        }
+
+        return http.Response(jsonEncode(backendRide(status: 'completed')), 200);
+      });
+
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: client,
+        pollInterval: Duration.zero,
+        retryBaseInterval: Duration.zero,
+        maxRetryInterval: Duration.zero,
+        pollDelay: (_) async {},
+      );
+
+      final statuses = await service
+          .watchRequestStatus(createRequest(requestId: 'ride-001'))
+          .map((request) => request.status)
+          .toList();
+
+      expect(statusReadCount, 2, reason: 'HTTP $statusCode should be retried');
+      expect(statuses.last, RideRequestStatus.completed);
+    }
+  });
+
+  test(
+    'watchRequestStatus surfaces permanent HTTP and malformed JSON errors',
+    () async {
+      for (final statusCode in [400, 401, 403, 404]) {
+        var statusReadCount = 0;
+        final service = BackendRideRequestService(
+          baseUrl: 'http://example.test',
+          client: MockClient((request) async {
+            statusReadCount++;
+            return http.Response('{}', statusCode);
+          }),
+          pollInterval: Duration.zero,
+          pollDelay: (_) async {},
+        );
+
+        await expectLater(
+          service
+              .watchRequestStatus(createRequest(requestId: 'ride-001'))
+              .toList(),
+          throwsA(isA<StateError>()),
+        );
+        expect(statusReadCount, 1, reason: 'HTTP $statusCode must not retry');
+      }
+
+      var malformedResponseCount = 0;
+      final malformedService = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          malformedResponseCount++;
+          return http.Response('{not-json', 200);
+        }),
+        pollInterval: Duration.zero,
+        pollDelay: (_) async {},
+      );
+
+      await expectLater(
+        malformedService
+            .watchRequestStatus(createRequest(requestId: 'ride-001'))
+            .toList(),
+        throwsA(isA<FormatException>()),
+      );
+      expect(malformedResponseCount, 1);
+    },
+  );
+
   test('status and cancellation require backend request id', () async {
     final service = BackendRideRequestService(
       baseUrl: 'http://example.test',

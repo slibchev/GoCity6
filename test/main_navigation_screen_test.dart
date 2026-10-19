@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:taxi_app/models/ride.dart';
@@ -8,6 +12,7 @@ import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/main_navigation_screen.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'package:taxi_app/services/active_ride_store.dart';
+import 'package:taxi_app/services/backend_ride_request_service.dart';
 import 'package:taxi_app/services/ride_request_service.dart';
 
 class RestoreRideRequestService implements RideRequestService {
@@ -226,6 +231,59 @@ void main() {
 
       expect(persistedRequest, isNotNull);
       expect(persistedRequest!.status, RideRequestStatus.waitingForVehicle);
+    },
+  );
+
+  testWidgets(
+    'restores stored ride when the initial Backend status request times out',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      final preferences = await SharedPreferences.getInstance();
+      final store = ActiveRideStore(preferences);
+      final storedRequest = buildRequest(
+        status: RideRequestStatus.waitingForVehicle,
+      );
+      await store.save(storedRequest);
+
+      var statusRequestCount = 0;
+      var requestAborted = false;
+      final pollDelayGate = Completer<void>();
+      final client = MockClient.streaming((request, bodyStream) async {
+        statusRequestCount++;
+        final abortTrigger = (request as http.AbortableRequest).abortTrigger!;
+        await abortTrigger;
+        requestAborted = true;
+        throw http.RequestAbortedException(request.url);
+      });
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: client,
+        statusTimeout: const Duration(milliseconds: 10),
+        pollInterval: const Duration(days: 1),
+        pollDelay: (_) => pollDelayGate.future,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MainNavigationScreen(
+            activeRideStore: store,
+            rideRequestService: service,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pumpAndSettle();
+
+      expect(statusRequestCount, 1);
+      expect(requestAborted, isTrue);
+      expect(find.byType(RideConfirmationScreen), findsOneWidget);
+
+      final confirmation = tester.widget<RideConfirmationScreen>(
+        find.byType(RideConfirmationScreen),
+      );
+      expect(confirmation.request.status, RideRequestStatus.waitingForVehicle);
+      expect(store.load()?.status, RideRequestStatus.waitingForVehicle);
     },
   );
 }

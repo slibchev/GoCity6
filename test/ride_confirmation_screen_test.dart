@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taxi_app/localization/translations.dart';
@@ -11,6 +13,7 @@ import 'package:taxi_app/models/driver_info.dart';
 import 'package:taxi_app/services/ride_request_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_app/services/active_ride_store.dart';
+import 'package:taxi_app/services/ride_bonus_decision_service.dart';
 
 class CancelTestRideRequestService implements RideRequestService {
   bool cancelCalled = false;
@@ -84,6 +87,93 @@ class StatusStreamRideRequestService implements RideRequestService {
   Stream<RideRequestData> watchRequestStatus(RideRequestData request) {
     return Stream<RideRequestData>.value(updatedRequest);
   }
+}
+
+class ControlledRideRequestService
+    implements RideRequestService, RideBonusDecisionService {
+  ControlledRideRequestService({this.bonusResult});
+
+  final Completer<RideRequestData>? bonusResult;
+  int watchCallCount = 0;
+  int cancelCallCount = 0;
+  int acceptBonusCallCount = 0;
+  int declineBonusCallCount = 0;
+  bool statusStreamHasNoListeners = false;
+
+  late final StreamController<RideRequestData> _updates =
+      StreamController<RideRequestData>.broadcast(
+        onCancel: () {
+          statusStreamHasNoListeners = true;
+        },
+      );
+
+  void publish(RideRequestData request) {
+    _updates.add(request);
+  }
+
+  void publishError(Object error) {
+    _updates.addError(error);
+  }
+
+  @override
+  Future<RideRequestData> submitRequest(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async {
+    return request;
+  }
+
+  @override
+  Future<RideRequestData> cancelRequest(RideRequestData request) async {
+    cancelCallCount++;
+    return request.copyWith(status: RideRequestStatus.cancelled);
+  }
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) {
+    watchCallCount++;
+
+    return Stream<RideRequestData>.multi((sink) {
+      sink.add(request);
+      final subscription = _updates.stream.listen(
+        sink.add,
+        onError: (Object error, StackTrace stackTrace) {
+          sink.addError(error, stackTrace);
+        },
+        onDone: sink.close,
+      );
+      sink.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Future<RideRequestData> acceptBonus(RideRequestData request) async {
+    acceptBonusCallCount++;
+    final result = bonusResult;
+    if (result != null) {
+      return result.future;
+    }
+
+    return request.copyWith(
+      bonusDecision: RideBonusDecision.accepted,
+      driverBonusMinor: 500,
+    );
+  }
+
+  @override
+  Future<RideRequestData> declineBonus(RideRequestData request) async {
+    declineBonusCallCount++;
+    return request.copyWith(bonusDecision: RideBonusDecision.declined);
+  }
+}
+
+void useWideTestSurface(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1600, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
 }
 
 void main() {
@@ -196,6 +286,202 @@ void main() {
 
     expect(store.load(), isNull);
   });
+
+  testWidgets(
+    'keeps the last stored status during a retry gap and applies recovery on one subscription',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      SharedPreferences.setMockInitialValues({});
+
+      final preferences = await SharedPreferences.getInstance();
+      final store = ActiveRideStore(preferences);
+      final request = RideRequestData(
+        requestId: 'ride-recovery-001',
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 10, 2, 16),
+        status: RideRequestStatus.waitingForVehicle,
+      );
+      await store.save(request);
+
+      final service = ControlledRideRequestService();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+            rideRequestService: service,
+            activeRideStore: store,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(service.watchCallCount, 1);
+      expect(store.load()?.status, RideRequestStatus.waitingForVehicle);
+
+      // A resilient backend stream emits no error while an individual GET is
+      // being retried. The saved status remains until the recovery response.
+      await tester.pump();
+      expect(store.load()?.status, RideRequestStatus.waitingForVehicle);
+
+      service.publish(
+        request.copyWith(
+          status: RideRequestStatus.accepted,
+          assignedDriverId: 'driver-001',
+          assignedVehicleId: 'vehicle-001',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppTranslations.rideAccepted), findsWidgets);
+      expect(store.load()?.status, RideRequestStatus.accepted);
+      expect(store.load()?.assignedDriverId, 'driver-001');
+      expect(service.watchCallCount, 1);
+    },
+  );
+
+  testWidgets('surfaces a permanent status polling error to the customer', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+    final request = RideRequestData(
+      requestId: 'ride-status-error-001',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 10, 2, 16),
+      status: RideRequestStatus.pending,
+    );
+    final service = ControlledRideRequestService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: service,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    service.publishError(StateError('Backend rejected the status request.'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Неуспешно обновяване на статуса на поръчката.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'bonus decision remains authoritative while status updates race',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      final bonusResult = Completer<RideRequestData>();
+      final request = RideRequestData(
+        requestId: 'ride-bonus-poll-001',
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 10, 2, 16),
+        status: RideRequestStatus.pending,
+        bonusDecision: RideBonusDecision.awaitingCustomer,
+      );
+      final acceptedRequest = request.copyWith(
+        bonusDecision: RideBonusDecision.accepted,
+        driverBonusMinor: 500,
+      );
+      final service = ControlledRideRequestService(bonusResult: bonusResult);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+            rideRequestService: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final acceptBonusButton = find.text(AppTranslations.acceptFiveEuroBonus);
+      await tester.ensureVisible(acceptBonusButton);
+      await tester.tap(acceptBonusButton);
+      await tester.pump();
+      service.publish(request);
+      await tester.pump();
+
+      bonusResult.complete(acceptedRequest);
+      await tester.pumpAndSettle();
+      service.publish(request);
+      await tester.pumpAndSettle();
+
+      expect(service.watchCallCount, 1);
+      expect(service.acceptBonusCallCount, 1);
+      expect(service.declineBonusCallCount, 0);
+      expect(find.text(AppTranslations.bonusAcceptedNotice), findsOneWidget);
+      expect(find.text(AppTranslations.acceptFiveEuroBonus), findsNothing);
+    },
+  );
+
+  testWidgets('successful cancellation stops status observation', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final request = RideRequestData(
+      requestId: 'ride-cancel-poll-001',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 10, 2, 16),
+      status: RideRequestStatus.pending,
+    );
+    await store.save(request);
+    final service = ControlledRideRequestService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: service,
+          activeRideStore: store,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final cancelButton = find.widgetWithText(
+      OutlinedButton,
+      AppTranslations.cancelRide,
+    );
+    await tester.ensureVisible(cancelButton);
+    await tester.tap(cancelButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.cancelRide).last);
+    await tester.pumpAndSettle();
+
+    expect(service.cancelCallCount, 1);
+    expect(service.statusStreamHasNoListeners, isTrue);
+    expect(find.text(AppTranslations.rideCancelled), findsWidgets);
+    expect(store.load(), isNull);
+  });
+
   testWidgets('RideConfirmationScreen shows pending status', (
     WidgetTester tester,
   ) async {

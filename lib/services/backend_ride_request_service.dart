@@ -10,19 +10,39 @@ import 'ride_request_service.dart';
 import 'ride_bonus_decision_service.dart';
 import '../models/driver_info.dart';
 
+class _RideStatusHttpException extends StateError {
+  _RideStatusHttpException(this.statusCode)
+    : super('Ride status request failed with status $statusCode.');
+
+  final int statusCode;
+}
+
 class BackendRideRequestService
     implements RideRequestService, RideBonusDecisionService {
   final String? baseUrl;
   final http.Client client;
   final Duration pollInterval;
+  final Duration statusTimeout;
+  final Duration retryBaseInterval;
+  final Duration maxRetryInterval;
+  final Future<void> Function(Duration duration) _pollDelay;
   final Duration submitTimeout;
 
   BackendRideRequestService({
     this.baseUrl,
     http.Client? client,
     this.pollInterval = const Duration(seconds: 3),
+    this.statusTimeout = const Duration(seconds: 10),
+    this.retryBaseInterval = const Duration(seconds: 3),
+    this.maxRetryInterval = const Duration(seconds: 30),
+    Future<void> Function(Duration duration)? pollDelay,
     this.submitTimeout = const Duration(seconds: 25),
-  }) : client = client ?? http.Client();
+  }) : client = client ?? http.Client(),
+       _pollDelay = pollDelay ?? _defaultPollDelay;
+
+  static Future<void> _defaultPollDelay(Duration duration) {
+    return Future<void>.delayed(duration);
+  }
 
   String get _baseUrl => baseUrl ?? BackendConfig.baseUrl;
 
@@ -106,15 +126,37 @@ class BackendRideRequestService
   Future<RideRequestData> getRequestStatus(RideRequestData request) async {
     final requestId = _requireRequestId(request);
 
-    final response = await client.get(
-      Uri.parse('$_baseUrl/rides/$requestId'),
-      headers: {'Accept': 'application/json'},
-    );
+    final uri = Uri.parse('$_baseUrl/rides/$requestId');
+    final abortCompleter = Completer<void>();
+    final statusRequest = http.AbortableRequest(
+      'GET',
+      uri,
+      abortTrigger: abortCompleter.future,
+    )..headers['Accept'] = 'application/json';
+
+    late final http.Response response;
+
+    try {
+      response = await client
+          .send(statusRequest)
+          .then(http.Response.fromStream)
+          .timeout(statusTimeout);
+    } on TimeoutException {
+      if (!abortCompleter.isCompleted) {
+        abortCompleter.complete();
+      }
+      rethrow;
+    } finally {
+      // AbortableRequest is supported by the app's default IOClient. Custom
+      // Client implementations may ignore abortTrigger, as allowed by
+      // package:http; the timeout still bounds this method's wait in that case.
+      if (!abortCompleter.isCompleted) {
+        abortCompleter.complete();
+      }
+    }
 
     if (response.statusCode != 200) {
-      throw StateError(
-        'Ride status request failed with status ${response.statusCode}.',
-      );
+      throw _RideStatusHttpException(response.statusCode);
     }
 
     return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
@@ -141,16 +183,56 @@ class BackendRideRequestService
   @override
   Stream<RideRequestData> watchRequestStatus(RideRequestData request) async* {
     var currentRequest = request;
+    var delayBeforeNextPoll = pollInterval;
+    var retryDelay = retryBaseInterval;
 
     yield currentRequest;
 
     while (!_isTerminal(currentRequest.status)) {
-      await Future<void>.delayed(pollInterval);
+      await _pollDelay(delayBeforeNextPoll);
 
-      currentRequest = await getRequestStatus(currentRequest);
+      try {
+        currentRequest = await getRequestStatus(currentRequest);
+        delayBeforeNextPoll = pollInterval;
+        retryDelay = retryBaseInterval;
 
-      yield currentRequest;
+        yield currentRequest;
+      } catch (error, stackTrace) {
+        if (!_isRetryableStatusError(error)) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+
+        delayBeforeNextPoll = retryDelay;
+        retryDelay = _nextRetryDelay(retryDelay);
+      }
     }
+  }
+
+  bool _isRetryableStatusError(Object error) {
+    if (error is TimeoutException || error is http.ClientException) {
+      return true;
+    }
+
+    if (error is _RideStatusHttpException) {
+      return error.statusCode == 408 ||
+          error.statusCode == 429 ||
+          error.statusCode >= 500;
+    }
+
+    return false;
+  }
+
+  Duration _nextRetryDelay(Duration currentDelay) {
+    if (currentDelay >= maxRetryInterval) {
+      return maxRetryInterval;
+    }
+
+    final doubledMicroseconds = currentDelay.inMicroseconds * 2;
+    if (doubledMicroseconds >= maxRetryInterval.inMicroseconds) {
+      return maxRetryInterval;
+    }
+
+    return Duration(microseconds: doubledMicroseconds);
   }
 
   String _requireRequestId(RideRequestData request) {

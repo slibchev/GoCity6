@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/city6_app_bar_title.dart';
 import '../config/colors.dart';
+import '../localization/app_language.dart';
 import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
@@ -83,7 +84,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
   void _watchStatus() {
     final service = widget.rideRequestService;
 
-    if (service == null) {
+    if (service == null || _statusSubscription != null || _canLeaveScreen) {
       return;
     }
 
@@ -109,12 +110,38 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
               currentRequest = updatedRequest;
             });
             _queuePersistence(updatedRequest);
+
+            if (updatedRequest.status == RideRequestStatus.completed ||
+                updatedRequest.status == RideRequestStatus.cancelled) {
+              _stopStatusWatch();
+            }
           },
-          onError: (error) {
-            // Ð—Ð°ÑÐµÐ³Ð° Ð·Ð°Ð¿Ð°Ð·Ð²Ð°Ð¼Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ Ð¸Ð·Ð²ÐµÑÑ‚ÐµÐ½ ÑÑ‚Ð°Ñ‚ÑƒÑ.
-            // ÐŸÐ¾-ÐºÑŠÑÐ½Ð¾ Ñ‰Ðµ Ð¿Ð¾ÐºÐ°Ð¶ÐµÐ¼ Ð¿Ñ€Ð¾Ð±Ð»ÐµÐ¼ Ñ Ð²Ñ€ÑŠÐ·ÐºÐ°Ñ‚Ð° Ð² UI.
+          onError: (Object error, StackTrace stackTrace) {
+            if (!mounted || _ignoreStatusUpdates) {
+              return;
+            }
+
+            final message =
+                AppTranslations.currentLanguage == AppLanguage.english
+                ? 'Could not refresh the ride status.'
+                : 'Неуспешно обновяване на статуса на поръчката.';
+
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
           },
         );
+  }
+
+  void _stopStatusWatch() {
+    _ignoreStatusUpdates = true;
+
+    final subscription = _statusSubscription;
+    _statusSubscription = null;
+
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
   }
 
   @override
@@ -370,14 +397,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
       }
 
       if (cancelledRequest.status == RideRequestStatus.cancelled) {
-        _ignoreStatusUpdates = true;
-
-        final subscription = _statusSubscription;
-        _statusSubscription = null;
-
-        if (subscription != null) {
-          unawaited(subscription.cancel());
-        }
+        _stopStatusWatch();
       }
 
       setState(() {
