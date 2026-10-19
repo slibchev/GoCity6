@@ -380,7 +380,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
               const SizedBox(height: 15),
               Text(
                 '💰 ${AppTranslations.priceLabel}: '
-                '${estimatedPrice == null ? AppTranslations.calculating : '${estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                '${estimatedPrice == null ? AppTranslations.calculating : '${estimatedPrice!.toStringAsFixed(2)} €'}',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

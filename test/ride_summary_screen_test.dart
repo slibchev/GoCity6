@@ -98,6 +98,27 @@ void main() {
     return ActiveRideStore(preferences);
   }
 
+  testWidgets('RideSummaryScreen displays estimated price in euros', (
+    WidgetTester tester,
+  ) async {
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10),
+      estimatedPrice: 10.50,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideSummaryScreen.fromRequest(request: request)),
+    );
+
+    expect(find.textContaining('10.50 €'), findsOneWidget);
+    expect(find.textContaining('лв.'), findsNothing);
+  });
+
   testWidgets('persists backend ride after successful submission', (
     WidgetTester tester,
   ) async {

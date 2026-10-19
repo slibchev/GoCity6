@@ -547,7 +547,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                     const SizedBox(width: 8),
                     Text(
                       '${AppTranslations.priceLabel}: '
-                      '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} лв.'}',
+                      '${currentRequest.estimatedPrice == null ? AppTranslations.calculating : '${currentRequest.estimatedPrice!.toStringAsFixed(2)} €'}',
                       style: const TextStyle(fontSize: 20),
                     ),
                   ],
