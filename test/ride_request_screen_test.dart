@@ -1,5 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
+// ignore: depend_on_referenced_packages
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:taxi_app/models/place_suggestion.dart';
 import 'package:taxi_app/services/backend_places_service.dart';
 import 'package:taxi_app/localization/translations.dart';
@@ -9,6 +17,252 @@ import 'package:taxi_app/services/route_service.dart';
 import 'package:taxi_app/screens/ride_summary_screen.dart';
 import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
+import 'package:taxi_app/screens/main_navigation_screen.dart';
+
+class FakeGeolocatorPlatform extends GeolocatorPlatform {
+  bool serviceEnabled = true;
+  LocationPermission permission = LocationPermission.whileInUse;
+  LocationPermission requestedPermission = LocationPermission.whileInUse;
+  Position currentPosition = _position(42.70, 23.32);
+  int positionStreamRequestCount = 0;
+  int currentPositionRequestCount = 0;
+  int permissionRequestCount = 0;
+  int activeStreamCount = 0;
+  LocationSettings? lastLocationSettings;
+
+  final List<StreamController<Position>> _positionControllers = [];
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => serviceEnabled;
+
+  @override
+  Future<LocationPermission> checkPermission() async => permission;
+
+  @override
+  Future<LocationPermission> requestPermission() async {
+    permissionRequestCount++;
+    permission = requestedPermission;
+    return permission;
+  }
+
+  @override
+  Future<Position> getCurrentPosition({
+    LocationSettings? locationSettings,
+  }) async {
+    currentPositionRequestCount++;
+    return currentPosition;
+  }
+
+  @override
+  Stream<Position> getPositionStream({LocationSettings? locationSettings}) {
+    positionStreamRequestCount++;
+    lastLocationSettings = locationSettings;
+
+    late final StreamController<Position> controller;
+    controller = StreamController<Position>(
+      sync: true,
+      onListen: () => activeStreamCount++,
+      onCancel: () {
+        activeStreamCount--;
+      },
+    );
+    _positionControllers.add(controller);
+    return controller.stream;
+  }
+
+  void emitPosition(Position position) {
+    for (final controller in _positionControllers) {
+      if (!controller.isClosed && controller.hasListener) {
+        controller.add(position);
+      }
+    }
+  }
+
+  Future<void> close() async {
+    for (final controller in _positionControllers) {
+      if (!controller.isClosed) {
+        await controller.close();
+      }
+    }
+  }
+}
+
+class RecordingGoogleMapsPlatform extends GoogleMapsFlutterPlatform {
+  final StreamController<MapEvent<dynamic>> _mapEvents =
+      StreamController<MapEvent<dynamic>>.broadcast(sync: true);
+  final List<CameraUpdate> cameraUpdates = [];
+  final Set<int> _createdMapIds = {};
+  int? mapId;
+  MapWidgetConfiguration? widgetConfiguration;
+
+  @override
+  Future<void> init(int mapId) async {}
+
+  @override
+  Future<void> updateMapConfiguration(
+    MapConfiguration configuration, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updateClusterManagers(
+    ClusterManagerUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updateGroundOverlays(
+    GroundOverlayUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updateMarkers(
+    MarkerUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updatePolygons(
+    PolygonUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updatePolylines(
+    PolylineUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updateCircles(
+    CircleUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updateHeatmaps(
+    HeatmapUpdates updates, {
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> updateTileOverlays({
+    required Set<TileOverlay> newTileOverlays,
+    required int mapId,
+  }) async {}
+
+  @override
+  Future<void> animateCamera(
+    CameraUpdate cameraUpdate, {
+    required int mapId,
+  }) async {
+    cameraUpdates.add(cameraUpdate);
+  }
+
+  @override
+  Widget buildViewWithConfiguration(
+    int creationId,
+    PlatformViewCreatedCallback onPlatformViewCreated, {
+    required MapWidgetConfiguration widgetConfiguration,
+    MapConfiguration mapConfiguration = const MapConfiguration(),
+    MapObjects mapObjects = const MapObjects(),
+  }) {
+    mapId = creationId;
+    this.widgetConfiguration = widgetConfiguration;
+    if (_createdMapIds.add(creationId)) {
+      onPlatformViewCreated(creationId);
+    }
+    return const ColoredBox(color: Colors.transparent);
+  }
+
+  @override
+  Stream<CameraMoveStartedEvent> onCameraMoveStarted({required int mapId}) =>
+      _mapEvents.stream
+          .where((event) => event is CameraMoveStartedEvent)
+          .cast();
+
+  @override
+  Stream<CameraMoveEvent> onCameraMove({required int mapId}) =>
+      _mapEvents.stream.where((event) => event is CameraMoveEvent).cast();
+
+  @override
+  Stream<CameraIdleEvent> onCameraIdle({required int mapId}) =>
+      _mapEvents.stream.where((event) => event is CameraIdleEvent).cast();
+
+  @override
+  Stream<MarkerTapEvent> onMarkerTap({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<MarkerDragStartEvent> onMarkerDragStart({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<MarkerDragEvent> onMarkerDrag({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<MarkerDragEndEvent> onMarkerDragEnd({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<InfoWindowTapEvent> onInfoWindowTap({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<PolylineTapEvent> onPolylineTap({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<PolygonTapEvent> onPolygonTap({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<CircleTapEvent> onCircleTap({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<MapTapEvent> onTap({required int mapId}) => const Stream.empty();
+
+  @override
+  Stream<MapLongPressEvent> onLongPress({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<ClusterTapEvent> onClusterTap({required int mapId}) =>
+      const Stream.empty();
+
+  @override
+  void dispose({required int mapId}) {}
+
+  void emitCameraMoveStarted() {
+    _mapEvents.add(CameraMoveStartedEvent(mapId!));
+  }
+
+  void emitCameraMove(CameraPosition position) {
+    _mapEvents.add(CameraMoveEvent(mapId!, position));
+  }
+
+  void emitCameraIdle() {
+    _mapEvents.add(CameraIdleEvent(mapId!));
+  }
+
+  Future<void> close() => _mapEvents.close();
+}
+
+Position _position(double latitude, double longitude) => Position(
+  latitude: latitude,
+  longitude: longitude,
+  timestamp: DateTime(2026, 10, 20),
+  accuracy: 5,
+  altitude: 0,
+  altitudeAccuracy: 0,
+  heading: 0,
+  headingAccuracy: 0,
+  speed: 0,
+  speedAccuracy: 0,
+);
 
 class FailingRouteService implements RouteService {
   @override
@@ -107,7 +361,261 @@ Future<void> enableManualPickup(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> pumpLocationUpdates(WidgetTester tester) async {
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 1)),
+  );
+  for (var i = 0; i < 5; i++) {
+    await tester.pump(const Duration(milliseconds: 10));
+  }
+}
+
 void main() {
+  late FakeGeolocatorPlatform geolocatorPlatform;
+  late GeolocatorPlatform originalGeolocatorPlatform;
+  late RecordingGoogleMapsPlatform mapsPlatform;
+  late GoogleMapsFlutterPlatform originalMapsPlatform;
+
+  setUp(() {
+    originalGeolocatorPlatform = GeolocatorPlatform.instance;
+    originalMapsPlatform = GoogleMapsFlutterPlatform.instance;
+    geolocatorPlatform = FakeGeolocatorPlatform();
+    mapsPlatform = RecordingGoogleMapsPlatform();
+    GeolocatorPlatform.instance = geolocatorPlatform;
+    GoogleMapsFlutterPlatform.instance = mapsPlatform;
+  });
+
+  tearDown(() async {
+    await geolocatorPlatform.close();
+    await mapsPlatform.close();
+    GeolocatorPlatform.instance = originalGeolocatorPlatform;
+    GoogleMapsFlutterPlatform.instance = originalMapsPlatform;
+  });
+
+  testWidgets('request map is interactive and exposes a follow control', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    expect(map.liteModeEnabled, isFalse);
+    expect(map.scrollGesturesEnabled, isTrue);
+    expect(map.zoomGesturesEnabled, isTrue);
+    expect(map.zoomControlsEnabled, isTrue);
+    expect(map.myLocationButtonEnabled, isFalse);
+    expect(
+      map.gestureRecognizers.single.constructor(),
+      isA<EagerGestureRecognizer>(),
+    );
+    expect(find.byTooltip(AppTranslations.myLocation), findsOneWidget);
+    expect(geolocatorPlatform.positionStreamRequestCount, 1);
+    expect(geolocatorPlatform.currentPositionRequestCount, 0);
+    expect(geolocatorPlatform.lastLocationSettings?.distanceFilter, 10);
+    expect(
+      (geolocatorPlatform.lastLocationSettings as AndroidSettings)
+          .useMSLAltitude,
+      isFalse,
+    );
+  });
+
+  testWidgets(
+    'GPS follow pauses on manual camera movement and resumes at current zoom',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+      await tester.pumpAndSettle();
+
+      geolocatorPlatform.emitPosition(_position(42.701, 23.321));
+      await tester.pump();
+      expect(mapsPlatform.cameraUpdates, isNotEmpty);
+      expect(
+        (mapsPlatform.cameraUpdates.last.toJson() as List<Object?>)[1],
+        contains('target'),
+      );
+      mapsPlatform.emitCameraIdle();
+
+      mapsPlatform.emitCameraMove(
+        const CameraPosition(target: LatLng(42.701, 23.321), zoom: 14),
+      );
+      mapsPlatform.emitCameraIdle();
+      mapsPlatform.emitCameraMoveStarted();
+      await tester.pump();
+
+      final cameraUpdatesBeforePause = mapsPlatform.cameraUpdates.length;
+      geolocatorPlatform.emitPosition(_position(42.702, 23.322));
+      await tester.pump();
+      expect(mapsPlatform.cameraUpdates, hasLength(cameraUpdatesBeforePause));
+      expect(geolocatorPlatform.activeStreamCount, 1);
+
+      await tester.tap(find.byTooltip(AppTranslations.myLocation));
+      await tester.pumpAndSettle();
+      expect(
+        mapsPlatform.cameraUpdates,
+        hasLength(cameraUpdatesBeforePause + 1),
+      );
+      final recenterUpdate = mapsPlatform.cameraUpdates.last.toJson() as List;
+      final recenterCameraPosition = recenterUpdate[1] as Map;
+      expect(recenterCameraPosition['zoom'], 14);
+      expect(geolocatorPlatform.positionStreamRequestCount, 1);
+
+      mapsPlatform.emitCameraIdle();
+      geolocatorPlatform.emitPosition(_position(42.703, 23.323));
+      await tester.pump();
+      expect(
+        mapsPlatform.cameraUpdates,
+        hasLength(cameraUpdatesBeforePause + 2),
+      );
+      expect(
+        ((mapsPlatform.cameraUpdates.last.toJson() as List)[1] as Map)['zoom'],
+        14,
+      );
+    },
+  );
+
+  testWidgets('GPS stream stops while map is inactive and resumes only once', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: RideRequestScreen(mapIsActive: false)),
+    );
+    await tester.pumpAndSettle();
+    expect(geolocatorPlatform.positionStreamRequestCount, 0);
+    expect(geolocatorPlatform.activeStreamCount, 0);
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideRequestScreen(mapIsActive: true)),
+    );
+    await tester.pumpAndSettle();
+    expect(geolocatorPlatform.positionStreamRequestCount, 1);
+    expect(geolocatorPlatform.activeStreamCount, 1);
+
+    await tester.tap(find.byTooltip(AppTranslations.myLocation));
+    await tester.pumpAndSettle();
+    expect(geolocatorPlatform.positionStreamRequestCount, 1);
+    expect(geolocatorPlatform.activeStreamCount, 1);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(geolocatorPlatform.activeStreamCount, 0);
+  });
+
+  testWidgets('navigation tabs stop and resume exactly one GPS subscription', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: MainNavigationScreen(restoreActiveRide: false)),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(geolocatorPlatform.activeStreamCount, 1);
+    expect(geolocatorPlatform.positionStreamRequestCount, 1);
+
+    await tester.tap(find.text('Любими'));
+    await tester.pump();
+    await tester.pump();
+    expect(geolocatorPlatform.activeStreamCount, 0);
+
+    await tester.tap(find.text('Поръчай'));
+    await pumpLocationUpdates(tester);
+    expect(geolocatorPlatform.positionStreamRequestCount, 2);
+    expect(geolocatorPlatform.activeStreamCount, 1);
+  });
+
+  testWidgets('GPS subscription stops while the ride summary covers the map', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(routeService: SuccessfulRouteService()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(geolocatorPlatform.activeStreamCount, 1);
+
+    final textFields = find.byType(TextField);
+    await enableManualPickup(tester);
+    await tester.enterText(textFields.at(0), 'Pickup address');
+    await tester.enterText(textFields.at(1), 'Destination address');
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RideSummaryScreen), findsOneWidget);
+    expect(geolocatorPlatform.activeStreamCount, 0);
+
+    Navigator.of(tester.element(find.byType(RideSummaryScreen))).pop();
+    await tester.pumpAndSettle();
+    await pumpLocationUpdates(tester);
+    expect(geolocatorPlatform.activeStreamCount, 1);
+    expect(geolocatorPlatform.positionStreamRequestCount, 2);
+  });
+
+  testWidgets(
+    'GPS subscription pauses in background and resumes on foreground',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+      await tester.pumpAndSettle();
+      expect(geolocatorPlatform.activeStreamCount, 1);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pumpAndSettle();
+      expect(geolocatorPlatform.activeStreamCount, 0);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      await pumpLocationUpdates(tester);
+      expect(geolocatorPlatform.activeStreamCount, 1);
+      expect(geolocatorPlatform.positionStreamRequestCount, 2);
+    },
+  );
+
+  testWidgets('denied location permission does not start a GPS stream', (
+    WidgetTester tester,
+  ) async {
+    geolocatorPlatform.permission = LocationPermission.deniedForever;
+    await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    expect(map.myLocationEnabled, isFalse);
+    expect(geolocatorPlatform.permissionRequestCount, 0);
+    expect(geolocatorPlatform.positionStreamRequestCount, 0);
+    expect(geolocatorPlatform.activeStreamCount, 0);
+  });
+
+  testWidgets('passive GPS updates do not replace the selected pickup', (
+    WidgetTester tester,
+  ) async {
+    geolocatorPlatform.currentPosition = _position(42.70, 23.32);
+    await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+    final pickupField = tester.widget<TextField>(find.byType(TextField).first);
+    final selectedPickup = pickupField.controller!.text;
+    expect(selectedPickup, AppTranslations.myLocation);
+
+    geolocatorPlatform.emitPosition(_position(42.75, 23.40));
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      selectedPickup,
+    );
+  });
+
   testWidgets('RideRequestScreen handles route calculation error', (
     WidgetTester tester,
   ) async {

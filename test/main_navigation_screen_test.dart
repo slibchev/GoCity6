@@ -10,6 +10,7 @@ import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/screens/main_navigation_screen.dart';
+import 'package:taxi_app/screens/ride_request_screen.dart';
 import 'package:taxi_app/screens/ride_confirmation_screen.dart';
 import 'package:taxi_app/services/active_ride_store.dart';
 import 'package:taxi_app/services/backend_ride_request_service.dart';
@@ -75,6 +76,34 @@ RideRequestData buildRequest({
 }
 
 void main() {
+  testWidgets('RideRequestScreen GPS map is active only on the order tab', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: MainNavigationScreen(restoreActiveRide: false)),
+    );
+    await tester.pump();
+
+    RideRequestScreen requestScreen = tester.widget<RideRequestScreen>(
+      find.byType(RideRequestScreen, skipOffstage: false),
+    );
+    expect(requestScreen.mapIsActive, isTrue);
+
+    await tester.tap(find.text('Любими'));
+    await tester.pump();
+    requestScreen = tester.widget<RideRequestScreen>(
+      find.byType(RideRequestScreen, skipOffstage: false),
+    );
+    expect(requestScreen.mapIsActive, isFalse);
+
+    await tester.tap(find.text('Поръчай'));
+    await tester.pump();
+    requestScreen = tester.widget<RideRequestScreen>(
+      find.byType(RideRequestScreen, skipOffstage: false),
+    );
+    expect(requestScreen.mapIsActive, isTrue);
+  });
+
   testWidgets('restores active ride using refreshed backend status', (
     WidgetTester tester,
   ) async {

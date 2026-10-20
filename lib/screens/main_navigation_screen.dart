@@ -31,9 +31,9 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  bool _restoredRideRouteVisible = false;
 
   late final RideRequestService _rideRequestService;
-  late final List<Widget> _screens;
 
   @override
   void initState() {
@@ -41,15 +41,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     _rideRequestService =
         widget.rideRequestService ?? BackendRideRequestService();
-
-    _screens = [
-      RideRequestScreen(
-        routeService: const BackendRouteService(),
-        rideRequestService: _rideRequestService,
-        activeRideStore: widget.activeRideStore,
-      ),
-      const FavoritesScreen(),
-    ];
 
     if (widget.restoreActiveRide) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -118,15 +109,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => RideConfirmationScreen(
-          request: requestToRestore,
-          rideRequestService: _rideRequestService,
-          activeRideStore: store,
+    setState(() {
+      _restoredRideRouteVisible = true;
+    });
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => RideConfirmationScreen(
+            request: requestToRestore,
+            rideRequestService: _rideRequestService,
+            activeRideStore: store,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _restoredRideRouteVisible = false;
+        });
+      }
+    }
   }
 
   Future<void> _clearStoreSafely(ActiveRideStore store) async {
@@ -145,7 +147,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          RideRequestScreen(
+            routeService: const BackendRouteService(),
+            rideRequestService: _rideRequestService,
+            activeRideStore: widget.activeRideStore,
+            mapIsActive: _currentIndex == 0 && !_restoredRideRouteVisible,
+          ),
+          const FavoritesScreen(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: AppColors.primary,

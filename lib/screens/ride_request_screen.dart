@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../config/colors.dart';
 import '../widgets/city6_app_bar_title.dart';
@@ -27,6 +29,7 @@ class RideRequestScreen extends StatefulWidget {
   final RideRequestService rideRequestService;
   final ActiveRideStore? activeRideStore;
   final DateTime Function() now;
+  final bool mapIsActive;
 
   RideRequestScreen({
     super.key,
@@ -35,6 +38,7 @@ class RideRequestScreen extends StatefulWidget {
     RideRequestService? rideRequestService,
     this.activeRideStore,
     DateTime Function()? now,
+    this.mapIsActive = true,
   }) : routeService = routeService ?? const BackendRouteService(),
        placesService = placesService ?? const BackendPlacesService(),
        rideRequestService = rideRequestService ?? BackendRideRequestService(),
@@ -44,7 +48,8 @@ class RideRequestScreen extends StatefulWidget {
   State<RideRequestScreen> createState() => _RideRequestScreenState();
 }
 
-class _RideRequestScreenState extends State<RideRequestScreen> {
+class _RideRequestScreenState extends State<RideRequestScreen>
+    with WidgetsBindingObserver {
   int passengers = 1;
   bool hasLuggage = false;
   bool _isManualPickupEntry = false;
@@ -72,6 +77,16 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   double? selectedPickupLongitude;
   bool isGettingCurrentLocation = false;
   GoogleMapController? _requestMapController;
+  StreamSubscription<Position>? _locationSubscription;
+  Future<void>? _locationStopFuture;
+  bool _isStartingLocationStream = false;
+  bool _isAppInForeground = true;
+  bool _isRouteVisible = true;
+  bool _isFollowingLocation = true;
+  bool _hasCenteredOnFirstLocation = false;
+  int _locationGeneration = 0;
+  int _programmaticCameraMoveCount = 0;
+  double _currentMapZoom = 12;
 
   LatLng? _currentClientPosition;
 
@@ -81,12 +96,277 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _isAppInForeground =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
     _loadFavoritePlaces();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadCurrentLocationForMap();
+      _syncLocationTracking();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RideRequestScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mapIsActive != widget.mapIsActive) {
+      _syncLocationTracking();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isForeground = state == AppLifecycleState.resumed;
+    if (_isAppInForeground == isForeground) {
+      return;
+    }
+
+    _isAppInForeground = isForeground;
+    if (mounted) {
+      setState(() {});
+    }
+    _syncLocationTracking();
+  }
+
+  bool get _shouldTrackLocation =>
+      widget.mapIsActive && _isAppInForeground && _isRouteVisible;
+
+  void _syncLocationTracking() {
+    final generation = ++_locationGeneration;
+    if (_shouldTrackLocation) {
+      unawaited(_startLocationTracking(generation));
+    } else {
+      unawaited(_stopLocationTracking());
+    }
+  }
+
+  Future<void> _startLocationTracking(int generation) async {
+    final pendingStop = _locationStopFuture;
+    if (pendingStop != null) {
+      await pendingStop;
+    }
+
+    if (!mounted ||
+        !_shouldTrackLocation ||
+        generation != _locationGeneration ||
+        _locationSubscription != null ||
+        _isStartingLocationStream) {
+      return;
+    }
+
+    _isStartingLocationStream = true;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!_canStartLocationTracking(generation)) {
+        return;
+      }
+
+      if (!serviceEnabled) {
+        _setLocationPermissionGranted(false);
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (!_canStartLocationTracking(generation)) {
+        return;
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _setLocationPermissionGranted(false);
+        return;
+      }
+
+      _setLocationPermissionGranted(true);
+      final settings = defaultTargetPlatform == TargetPlatform.android
+          ? AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10,
+              intervalDuration: const Duration(seconds: 5),
+            )
+          : const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10,
+            );
+
+      final subscription =
+          Geolocator.getPositionStream(locationSettings: settings).listen(
+            (position) => _onLocationUpdate(position, generation),
+            onError: (Object _) => _onLocationStreamError(generation),
+            onDone: () => _onLocationStreamError(generation),
+          );
+
+      if (!_canStartLocationTracking(generation)) {
+        await subscription.cancel();
+        return;
+      }
+      _locationSubscription = subscription;
+    } catch (_) {
+      if (generation == _locationGeneration) {
+        _setLocationPermissionGranted(false);
+      }
+    } finally {
+      _isStartingLocationStream = false;
+      if (mounted &&
+          _shouldTrackLocation &&
+          generation != _locationGeneration &&
+          _locationSubscription == null) {
+        _syncLocationTracking();
+      }
+    }
+  }
+
+  bool _canStartLocationTracking(int generation) =>
+      mounted && _shouldTrackLocation && generation == _locationGeneration;
+
+  void _setLocationPermissionGranted(bool granted) {
+    if (!mounted || _locationPermissionGranted == granted) {
+      return;
+    }
+
+    setState(() {
+      _locationPermissionGranted = granted;
+    });
+  }
+
+  void _onLocationUpdate(Position position, int generation) {
+    if (!_canStartLocationTracking(generation)) {
+      return;
+    }
+
+    final currentPosition = LatLng(position.latitude, position.longitude);
+    setState(() {
+      _currentClientPosition = currentPosition;
+    });
+
+    if (!_isFollowingLocation) {
+      return;
+    }
+
+    final controller = _requestMapController;
+    if (controller == null) {
+      return;
+    }
+
+    final zoom = _hasCenteredOnFirstLocation ? _currentMapZoom : 17.0;
+    _currentMapZoom = zoom;
+    _hasCenteredOnFirstLocation = true;
+    unawaited(_animateCameraToPosition(currentPosition, zoom: zoom));
+  }
+
+  void _onLocationStreamError(int generation) {
+    if (generation != _locationGeneration) {
+      return;
+    }
+
+    _locationGeneration++;
+    unawaited(_stopLocationTracking());
+  }
+
+  Future<void> _stopLocationTracking() {
+    final subscription = _locationSubscription;
+    if (subscription == null) {
+      return _locationStopFuture ?? Future<void>.value();
+    }
+
+    _locationSubscription = null;
+    final stopFuture = subscription.cancel();
+    _locationStopFuture = stopFuture;
+    return stopFuture.whenComplete(() {
+      if (identical(_locationStopFuture, stopFuture)) {
+        _locationStopFuture = null;
+      }
+    });
+  }
+
+  Future<void> _animateCameraToPosition(
+    LatLng position, {
+    required double zoom,
+  }) async {
+    final controller = _requestMapController;
+    if (controller == null) {
+      return;
+    }
+
+    _programmaticCameraMoveCount++;
+    try {
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: position, zoom: zoom),
+        ),
+      );
+    } catch (_) {
+      _programmaticCameraMoveCount = 0;
+      // A temporary map platform error must not disable GPS tracking.
+    }
+  }
+
+  void _onCameraMoveStarted() {
+    if (_programmaticCameraMoveCount > 0 || !_isFollowingLocation) {
+      return;
+    }
+
+    _pauseLocationFollowing();
+  }
+
+  void _onCameraMove(CameraPosition position) {
+    _currentMapZoom = position.zoom;
+  }
+
+  void _onCameraIdle() {
+    _programmaticCameraMoveCount = 0;
+  }
+
+  void _pauseLocationFollowing() {
+    if (!_isFollowingLocation || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isFollowingLocation = false;
+    });
+  }
+
+  void _resumeLocationFollowing() {
+    if (!_isFollowingLocation) {
+      setState(() {
+        _isFollowingLocation = true;
+      });
+    }
+
+    if (!_shouldTrackLocation) {
+      return;
+    }
+
+    final currentPosition = _currentClientPosition;
+    if (currentPosition != null) {
+      unawaited(
+        _animateCameraToPosition(currentPosition, zoom: _currentMapZoom),
+      );
+    }
+    if (_locationSubscription == null) {
+      _syncLocationTracking();
+    }
+  }
+
+  Future<void> _setRouteVisible(bool visible) async {
+    if (_isRouteVisible == visible) {
+      return;
+    }
+
+    setState(() {
+      _isRouteVisible = visible;
+    });
+    _syncLocationTracking();
+
+    if (!visible) {
+      await _locationStopFuture;
+    }
   }
 
   Future<void> _loadFavoritePlaces() async {
@@ -178,100 +458,65 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       return;
     }
 
-    final favorite = await showModalBottomSheet<FavoritePlace>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Изберете любим адрес',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _favoritePlaces.length,
-                  itemBuilder: (context, index) {
-                    final favorite = _favoritePlaces[index];
+    await _setRouteVisible(false);
+    if (!mounted) {
+      return;
+    }
 
-                    return ListTile(
-                      leading: Icon(Icons.star, color: AppColors.primary),
-                      title: Text(
-                        favorite.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(favorite.address),
-                      onTap: () {
-                        Navigator.pop(context, favorite);
-                      },
-                    );
-                  },
+    FavoritePlace? favorite;
+    try {
+      favorite = await showModalBottomSheet<FavoritePlace>(
+        context: context,
+        builder: (context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Изберете любим адрес',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _favoritePlaces.length,
+                    itemBuilder: (context, index) {
+                      final favorite = _favoritePlaces[index];
+
+                      return ListTile(
+                        leading: Icon(Icons.star, color: AppColors.primary),
+                        title: Text(
+                          favorite.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(favorite.address),
+                        onTap: () {
+                          Navigator.pop(context, favorite);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } finally {
+      if (mounted) {
+        await _setRouteVisible(true);
+      }
+    }
 
     if (favorite == null || !mounted) {
       return;
     }
 
     _selectFavoriteAsDestination(favorite);
-  }
-
-  Future<void> _loadCurrentLocationForMap() async {
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-      if (!serviceEnabled) {
-        return;
-      }
-
-      var permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition();
-
-      if (!mounted) {
-        return;
-      }
-
-      final currentPosition = LatLng(position.latitude, position.longitude);
-
-      setState(() {
-        _currentClientPosition = currentPosition;
-        _locationPermissionGranted = true;
-      });
-
-      final controller = _requestMapController;
-
-      if (controller != null) {
-        await controller.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(target: currentPosition, zoom: 17),
-          ),
-        );
-      }
-    } catch (_) {
-      // ÐÐµ Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð°Ð¼Ðµ ÐµÐºÑ€Ð°Ð½Ð°, Ð°ÐºÐ¾ Ñ‚ÐµÐºÑƒÑ‰Ð°Ñ‚Ð° Ð¿Ð¾Ð·Ð¸Ñ†Ð¸Ñ
-      // Ð²Ñ€ÐµÐ¼ÐµÐ½Ð½Ð¾ Ð½Ðµ Ð¼Ð¾Ð¶Ðµ Ð´Ð° Ð±ÑŠÐ´Ðµ Ð·Ð°Ñ€ÐµÐ´ÐµÐ½Ð°.
-    }
   }
 
   Future<void> _useCurrentLocation() async {
@@ -341,17 +586,18 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
         _setPickupToCurrentLocation(currentPosition);
       });
+      _resumeLocationFollowing();
       final controller = _requestMapController;
 
       if (controller != null) {
-        await controller.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(target: currentPosition, zoom: 17),
-          ),
-        );
+        _currentMapZoom = 17;
+        _hasCenteredOnFirstLocation = true;
+        await _animateCameraToPosition(currentPosition, zoom: 17);
       }
 
-      FocusScope.of(context).unfocus();
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -531,16 +777,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         requestedAt: widget.now(),
       );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RideSummaryScreen.fromRequest(
-            request: request,
-            rideRequestService: widget.rideRequestService,
-            activeRideStore: widget.activeRideStore,
-          ),
-        ),
-      );
+      await _pushRideSummary(request);
 
       return;
     }
@@ -583,16 +820,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
         estimatedPrice: estimatedPrice,
       );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RideSummaryScreen.fromRequest(
-            request: request,
-            rideRequestService: widget.rideRequestService,
-            activeRideStore: widget.activeRideStore,
-          ),
-        ),
-      );
+      await _pushRideSummary(request);
     } catch (error) {
       if (!mounted) {
         return;
@@ -610,8 +838,32 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
     }
   }
 
+  Future<void> _pushRideSummary(RideRequestData request) async {
+    final visibilityChange = _setRouteVisible(false);
+    try {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => RideSummaryScreen.fromRequest(
+            request: request,
+            rideRequestService: widget.rideRequestService,
+            activeRideStore: widget.activeRideStore,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        await visibilityChange;
+        await _setRouteVisible(true);
+      }
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _locationGeneration++;
+    unawaited(_stopLocationTracking());
     _pickupDebounce?.cancel();
     _destinationDebounce?.cancel();
 
@@ -624,6 +876,9 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locationLayerEnabled =
+        _locationPermissionGranted && _shouldTrackLocation;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -646,32 +901,74 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                   child: SizedBox(
                     width: double.infinity,
                     height: 220,
-                    child: GoogleMap(
-                      liteModeEnabled: true,
-                      initialCameraPosition: const CameraPosition(
-                        target: LatLng(42.6977, 23.3219),
-                        zoom: 12,
-                      ),
-                      onMapCreated: (GoogleMapController controller) {
-                        _requestMapController = controller;
-
-                        if (_currentClientPosition != null) {
-                          controller.animateCamera(
-                            CameraUpdate.newCameraPosition(
-                              CameraPosition(
-                                target: _currentClientPosition!,
-                                zoom: 17,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Listener(
+                            onPointerMove: (_) => _pauseLocationFollowing(),
+                            child: GoogleMap(
+                              liteModeEnabled: false,
+                              initialCameraPosition: const CameraPosition(
+                                target: LatLng(42.6977, 23.3219),
+                                zoom: 12,
+                              ),
+                              gestureRecognizers:
+                                  <Factory<OneSequenceGestureRecognizer>>{
+                                    Factory<EagerGestureRecognizer>(
+                                      () => EagerGestureRecognizer(),
+                                    ),
+                                  },
+                              onMapCreated: (GoogleMapController controller) {
+                                _requestMapController = controller;
+                                final currentPosition = _currentClientPosition;
+                                if (_shouldTrackLocation &&
+                                    _isFollowingLocation &&
+                                    currentPosition != null &&
+                                    !_hasCenteredOnFirstLocation) {
+                                  _currentMapZoom = 17;
+                                  _hasCenteredOnFirstLocation = true;
+                                  unawaited(
+                                    _animateCameraToPosition(
+                                      currentPosition,
+                                      zoom: 17,
+                                    ),
+                                  );
+                                }
+                              },
+                              onCameraMoveStarted: _onCameraMoveStarted,
+                              onCameraMove: _onCameraMove,
+                              onCameraIdle: _onCameraIdle,
+                              mapType: MapType.normal,
+                              myLocationEnabled: locationLayerEnabled,
+                              myLocationButtonEnabled: false,
+                              scrollGesturesEnabled: true,
+                              zoomGesturesEnabled: true,
+                              zoomControlsEnabled: true,
+                              compassEnabled: true,
+                              mapToolbarEnabled: false,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Material(
+                            color: Colors.white,
+                            shape: const CircleBorder(),
+                            elevation: 3,
+                            child: IconButton(
+                              tooltip: AppTranslations.myLocation,
+                              onPressed: _resumeLocationFollowing,
+                              icon: Icon(
+                                _isFollowingLocation
+                                    ? Icons.my_location
+                                    : Icons.location_searching,
+                                color: AppColors.primary,
                               ),
                             ),
-                          );
-                        }
-                      },
-                      mapType: MapType.normal,
-                      myLocationEnabled: _locationPermissionGranted,
-                      myLocationButtonEnabled: true,
-                      zoomControlsEnabled: false,
-                      compassEnabled: true,
-                      mapToolbarEnabled: false,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
