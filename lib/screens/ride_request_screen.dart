@@ -85,7 +85,9 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   bool _isFollowingLocation = true;
   bool _hasCenteredOnFirstLocation = false;
   int _locationGeneration = 0;
-  int _programmaticCameraMoveCount = 0;
+  int _programmaticCameraMoveGeneration = 0;
+  int? _activeProgrammaticCameraMoveId;
+  LatLng? _pendingProgrammaticCameraPosition;
   double _currentMapZoom = 12;
 
   LatLng? _currentClientPosition;
@@ -138,6 +140,7 @@ class _RideRequestScreenState extends State<RideRequestScreen>
     if (_shouldTrackLocation) {
       unawaited(_startLocationTracking(generation));
     } else {
+      _invalidateProgrammaticCameraMove();
       unawaited(_stopLocationTracking());
     }
   }
@@ -256,6 +259,10 @@ class _RideRequestScreenState extends State<RideRequestScreen>
     final zoom = _hasCenteredOnFirstLocation ? _currentMapZoom : 17.0;
     _currentMapZoom = zoom;
     _hasCenteredOnFirstLocation = true;
+    if (_activeProgrammaticCameraMoveId != null) {
+      _pendingProgrammaticCameraPosition = currentPosition;
+      return;
+    }
     unawaited(_animateCameraToPosition(currentPosition, zoom: zoom));
   }
 
@@ -293,7 +300,13 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       return;
     }
 
-    _programmaticCameraMoveCount++;
+    if (_activeProgrammaticCameraMoveId != null) {
+      _pendingProgrammaticCameraPosition = position;
+      return;
+    }
+
+    final moveId = ++_programmaticCameraMoveGeneration;
+    _activeProgrammaticCameraMoveId = moveId;
     try {
       await controller.animateCamera(
         CameraUpdate.newCameraPosition(
@@ -301,13 +314,13 @@ class _RideRequestScreenState extends State<RideRequestScreen>
         ),
       );
     } catch (_) {
-      _programmaticCameraMoveCount = 0;
+      _finishProgrammaticCameraMove(moveId, followPendingPosition: false);
       // A temporary map platform error must not disable GPS tracking.
     }
   }
 
   void _onCameraMoveStarted() {
-    if (_programmaticCameraMoveCount > 0 || !_isFollowingLocation) {
+    if (_activeProgrammaticCameraMoveId != null || !_isFollowingLocation) {
       return;
     }
 
@@ -319,10 +332,42 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   }
 
   void _onCameraIdle() {
-    _programmaticCameraMoveCount = 0;
+    final moveId = _activeProgrammaticCameraMoveId;
+    if (moveId != null) {
+      _finishProgrammaticCameraMove(moveId);
+    }
+  }
+
+  void _finishProgrammaticCameraMove(
+    int moveId, {
+    bool followPendingPosition = true,
+  }) {
+    if (_activeProgrammaticCameraMoveId != moveId) {
+      return;
+    }
+
+    _activeProgrammaticCameraMoveId = null;
+    final pendingPosition = _pendingProgrammaticCameraPosition;
+    _pendingProgrammaticCameraPosition = null;
+
+    if (followPendingPosition &&
+        pendingPosition != null &&
+        _isFollowingLocation &&
+        _shouldTrackLocation) {
+      unawaited(
+        _animateCameraToPosition(pendingPosition, zoom: _currentMapZoom),
+      );
+    }
+  }
+
+  void _invalidateProgrammaticCameraMove() {
+    _programmaticCameraMoveGeneration++;
+    _activeProgrammaticCameraMoveId = null;
+    _pendingProgrammaticCameraPosition = null;
   }
 
   void _pauseLocationFollowing() {
+    _invalidateProgrammaticCameraMove();
     if (!_isFollowingLocation || !mounted) {
       return;
     }
@@ -586,14 +631,9 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
         _setPickupToCurrentLocation(currentPosition);
       });
+      _currentMapZoom = 17;
+      _hasCenteredOnFirstLocation = true;
       _resumeLocationFollowing();
-      final controller = _requestMapController;
-
-      if (controller != null) {
-        _currentMapZoom = 17;
-        _hasCenteredOnFirstLocation = true;
-        await _animateCameraToPosition(currentPosition, zoom: 17);
-      }
 
       if (mounted) {
         FocusScope.of(context).unfocus();
@@ -863,6 +903,7 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _locationGeneration++;
+    _invalidateProgrammaticCameraMove();
     unawaited(_stopLocationTracking());
     _pickupDebounce?.cancel();
     _destinationDebounce?.cancel();

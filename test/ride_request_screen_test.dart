@@ -92,6 +92,7 @@ class RecordingGoogleMapsPlatform extends GoogleMapsFlutterPlatform {
       StreamController<MapEvent<dynamic>>.broadcast(sync: true);
   final List<CameraUpdate> cameraUpdates = [];
   final Set<int> _createdMapIds = {};
+  Completer<void>? nextCameraAnimationCompleter;
   int? mapId;
   MapWidgetConfiguration? widgetConfiguration;
 
@@ -158,6 +159,11 @@ class RecordingGoogleMapsPlatform extends GoogleMapsFlutterPlatform {
     required int mapId,
   }) async {
     cameraUpdates.add(cameraUpdate);
+    final completer = nextCameraAnimationCompleter;
+    nextCameraAnimationCompleter = null;
+    if (completer != null) {
+      await completer.future;
+    }
   }
 
   @override
@@ -418,6 +424,77 @@ void main() {
       isFalse,
     );
   });
+
+  testWidgets('choosing current pickup location centers the map once', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    expect(geolocatorPlatform.currentPositionRequestCount, 1);
+    expect(mapsPlatform.cameraUpdates, hasLength(1));
+    final update = mapsPlatform.cameraUpdates.single.toJson() as List;
+    expect((update[1] as Map)['zoom'], 17);
+  });
+
+  testWidgets(
+    'manual pan interrupts queued GPS camera updates during animation',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+      await tester.pumpAndSettle();
+
+      final firstAnimation = Completer<void>();
+      mapsPlatform.nextCameraAnimationCompleter = firstAnimation;
+      geolocatorPlatform.emitPosition(_position(42.701, 23.321));
+      await tester.pump();
+      expect(mapsPlatform.cameraUpdates, hasLength(1));
+
+      mapsPlatform.emitCameraMoveStarted();
+      await tester.pump();
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+
+      geolocatorPlatform.emitPosition(_position(42.702, 23.322));
+      await tester.pump();
+      expect(mapsPlatform.cameraUpdates, hasLength(1));
+
+      mapsPlatform.emitCameraIdle();
+      await tester.pump();
+      expect(mapsPlatform.cameraUpdates, hasLength(2));
+      mapsPlatform.emitCameraMoveStarted();
+      await tester.pump();
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+
+      final map = find.byType(GoogleMap);
+      final gesture = await tester.startGesture(tester.getCenter(map));
+      await gesture.moveBy(const Offset(36, 0));
+      await tester.pump();
+      expect(find.byIcon(Icons.location_searching), findsOneWidget);
+
+      mapsPlatform.emitCameraMoveStarted();
+      await tester.pump();
+      expect(find.byIcon(Icons.location_searching), findsOneWidget);
+      await gesture.up();
+      await tester.pump();
+
+      firstAnimation.complete();
+      await tester.pumpAndSettle();
+      mapsPlatform.emitCameraIdle();
+      await tester.pump();
+      expect(mapsPlatform.cameraUpdates, hasLength(2));
+
+      await tester.tap(find.byTooltip(AppTranslations.myLocation));
+      await tester.pumpAndSettle();
+      expect(mapsPlatform.cameraUpdates, hasLength(3));
+      mapsPlatform.emitCameraIdle();
+      await tester.pump();
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'GPS follow pauses on manual camera movement and resumes at current zoom',
