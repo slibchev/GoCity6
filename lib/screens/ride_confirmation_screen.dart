@@ -581,6 +581,14 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                if (currentRequest.status == RideRequestStatus.accepted) ...[
+                  Text(
+                    getStatusMessage(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -593,7 +601,9 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                if (currentRequest.status != RideRequestStatus.driverArriving)
+                if (currentRequest.status != RideRequestStatus.driverArriving &&
+                    currentRequest.status != RideRequestStatus.inProgress &&
+                    currentRequest.status != RideRequestStatus.accepted)
                   Text(
                     getStatusMessage(),
                     textAlign: TextAlign.center,

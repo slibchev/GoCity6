@@ -182,14 +182,14 @@ class AppTranslations {
     if (currentLanguage == AppLanguage.english) {
       return 'Your ride request was accepted successfully';
     }
-    return 'Поръчката ви е приета успешно';
+    return 'Поръчката Ви е приета успешно';
   }
 
   static String get acceptedRideMessage {
     if (currentLanguage == AppLanguage.english) {
       return 'The driver is on the way to you';
     }
-    return 'Шофьорът пътува към вас';
+    return 'Шофьорът пътува към Вас';
   }
 
   static String get rideRequestSent {
