@@ -33,6 +33,8 @@ void main() {
       assignedDriverId: 'driver-001',
       assignedVehicleId: 'vehicle-001',
       pickup: 'Pickup',
+      pickupLatitude: 42.6977,
+      pickupLongitude: 23.3219,
       destination: 'Destination',
       passengers: 2,
       hasLuggage: true,
@@ -68,6 +70,8 @@ void main() {
     expect(loaded.assignedDriverId, request.assignedDriverId);
     expect(loaded.assignedVehicleId, request.assignedVehicleId);
     expect(loaded.pickup, request.pickup);
+    expect(loaded.pickupLatitude, request.pickupLatitude);
+    expect(loaded.pickupLongitude, request.pickupLongitude);
     expect(loaded.destination, request.destination);
     expect(loaded.passengers, request.passengers);
     expect(loaded.hasLuggage, request.hasLuggage);
@@ -130,9 +134,33 @@ void main() {
       final preferences = await SharedPreferences.getInstance();
       final store = ActiveRideStore(preferences);
 
-      expect(store.load()?.meterFareMinor, isNull);
+      final loaded = store.load();
+      expect(loaded?.meterFareMinor, isNull);
+      expect(loaded?.pickupLatitude, isNull);
+      expect(loaded?.pickupLongitude, isNull);
     },
   );
+
+  test('ignores an incomplete stored pickup coordinate pair', () async {
+    SharedPreferences.setMockInitialValues({
+      'activeRide':
+          '{"requestId":"ride-coordinates",'
+          '"pickup":"Моето местоположение","pickupLatitude":42.6977,'
+          '"destination":"Destination","passengers":1,'
+          '"hasLuggage":false,"paymentMethod":"cash",'
+          '"rideType":"city","requestedAt":"2026-10-02T16:00:00.000",'
+          '"status":"pending"}',
+    });
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final loaded = store.load();
+
+    expect(loaded, isNotNull);
+    expect(loaded!.requestId, 'ride-coordinates');
+    expect(loaded.pickupLatitude, isNull);
+    expect(loaded.pickupLongitude, isNull);
+  });
 
   test('clear removes stored active ride', () async {
     final preferences = await SharedPreferences.getInstance();

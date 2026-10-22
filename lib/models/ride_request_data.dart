@@ -21,6 +21,8 @@ class RideRequestData {
   final String? assignedVehicleId;
 
   final String pickup;
+  final double? pickupLatitude;
+  final double? pickupLongitude;
   final String destination;
   final int passengers;
   final bool hasLuggage;
@@ -48,6 +50,8 @@ class RideRequestData {
     this.assignedDriverId,
     this.assignedVehicleId,
     required this.pickup,
+    this.pickupLatitude,
+    this.pickupLongitude,
     required this.destination,
     required this.passengers,
     this.hasLuggage = false,
@@ -62,6 +66,22 @@ class RideRequestData {
     this.completedAt,
   });
 
+  static bool isValidPickupCoordinatePair(
+    double? latitude,
+    double? longitude,
+  ) =>
+      latitude != null &&
+      longitude != null &&
+      latitude.isFinite &&
+      longitude.isFinite &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180;
+
+  bool get hasValidPickupCoordinatePair =>
+      isValidPickupCoordinatePair(pickupLatitude, pickupLongitude);
+
   RideRequestData copyWith({
     Object? requestId = _notProvided,
     Object? clientRequestId = _notProvided,
@@ -71,6 +91,8 @@ class RideRequestData {
     Object? assignedDriverId = _notProvided,
     Object? assignedVehicleId = _notProvided,
     String? pickup,
+    Object? pickupLatitude = _notProvided,
+    Object? pickupLongitude = _notProvided,
     String? destination,
     int? passengers,
     bool? hasLuggage,
@@ -103,6 +125,12 @@ class RideRequestData {
           ? this.assignedVehicleId
           : assignedVehicleId as String?,
       pickup: pickup ?? this.pickup,
+      pickupLatitude: identical(pickupLatitude, _notProvided)
+          ? this.pickupLatitude
+          : pickupLatitude as double?,
+      pickupLongitude: identical(pickupLongitude, _notProvided)
+          ? this.pickupLongitude
+          : pickupLongitude as double?,
       destination: destination ?? this.destination,
       passengers: passengers ?? this.passengers,
       hasLuggage: hasLuggage ?? this.hasLuggage,

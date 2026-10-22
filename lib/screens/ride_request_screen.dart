@@ -622,6 +622,16 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       if (!mounted) {
         return;
       }
+      if (!RideRequestData.isValidPickupCoordinatePair(
+        position.latitude,
+        position.longitude,
+      )) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
+        );
+        return;
+      }
+
       final currentPosition = LatLng(position.latitude, position.longitude);
 
       setState(() {
@@ -791,25 +801,55 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   }
 
   Future<void> submitRide() async {
-    if (pickupController.text.trim().isEmpty) {
+    final pickup = pickupController.text.trim();
+    final destination = destinationController.text.trim();
+
+    if (pickup.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(AppTranslations.pickupRequired)));
       return;
     }
 
-    if (destinationController.text.trim().isEmpty) {
+    if (destination.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppTranslations.destinationRequired)),
       );
       return;
     }
 
+    final isCurrentLocationPickup = _isCurrentLocationPickupLabel(pickup);
+    final pickupLatitude = selectedPickupLatitude;
+    final pickupLongitude = selectedPickupLongitude;
+    final hasValidPickupCoordinates =
+        RideRequestData.isValidPickupCoordinatePair(
+          pickupLatitude,
+          pickupLongitude,
+        );
+
+    if (isCurrentLocationPickup && !hasValidPickupCoordinates) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
+      );
+      return;
+    }
+
+    final requestPickupLatitude = isCurrentLocationPickup
+        ? pickupLatitude
+        : null;
+    final requestPickupLongitude = isCurrentLocationPickup
+        ? pickupLongitude
+        : null;
+    final pickupPlaceId = selectedPickupPlaceId;
+    final destinationPlaceId = selectedDestinationPlaceId;
+
     if (widget.routeService == null) {
       final request = RideRequestData(
         clientRequestId: const Uuid().v4(),
-        pickup: pickupController.text.trim(),
-        destination: destinationController.text.trim(),
+        pickup: pickup,
+        pickupLatitude: requestPickupLatitude,
+        pickupLongitude: requestPickupLongitude,
+        destination: destination,
         passengers: passengers,
         hasLuggage: hasLuggage,
         paymentMethod: paymentMethod,
@@ -828,12 +868,12 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
     try {
       final routeResult = await widget.routeService!.calculateRoute(
-        pickup: pickupController.text.trim(),
-        destination: destinationController.text.trim(),
-        pickupPlaceId: selectedPickupPlaceId,
-        destinationPlaceId: selectedDestinationPlaceId,
-        pickupLatitude: selectedPickupLatitude,
-        pickupLongitude: selectedPickupLongitude,
+        pickup: pickup,
+        destination: destination,
+        pickupPlaceId: pickupPlaceId,
+        destinationPlaceId: destinationPlaceId,
+        pickupLatitude: requestPickupLatitude,
+        pickupLongitude: requestPickupLongitude,
       );
 
       if (!mounted) {
@@ -849,8 +889,10 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
       final request = RideRequestData(
         clientRequestId: const Uuid().v4(),
-        pickup: pickupController.text.trim(),
-        destination: destinationController.text.trim(),
+        pickup: pickup,
+        pickupLatitude: requestPickupLatitude,
+        pickupLongitude: requestPickupLongitude,
+        destination: destination,
         passengers: passengers,
         hasLuggage: hasLuggage,
         paymentMethod: paymentMethod,
@@ -877,6 +919,11 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       }
     }
   }
+
+  bool _isCurrentLocationPickupLabel(String pickup) =>
+      pickup == AppTranslations.myLocation ||
+      pickup == 'Моето местоположение' ||
+      pickup == 'My location';
 
   Future<void> _pushRideSummary(RideRequestData request) async {
     final visibilityChange = _setRouteVisible(false);
@@ -1160,6 +1207,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
                                 setState(() {
                                   pickupController.text = suggestion.text;
                                   selectedPickupPlaceId = suggestion.placeId;
+                                  selectedPickupLatitude = null;
+                                  selectedPickupLongitude = null;
                                   pickupSuggestions = [];
                                   isLoadingPickupSuggestions = false;
                                 });

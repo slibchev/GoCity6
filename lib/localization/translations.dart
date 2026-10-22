@@ -65,6 +65,11 @@ class AppTranslations {
       ? 'Location permission is permanently denied. Enable it in the device settings.'
       : 'Достъпът до местоположението е забранен. Разрешете го от настройките на устройството.';
 
+  static String get pickupCoordinatesUnavailable =>
+      currentLanguage == AppLanguage.english
+      ? 'Could not determine a valid pickup location. Please select it again.'
+      : 'Не успяхме да определим валидна начална точка. Изберете я отново.';
+
   static String get destinationLocation {
     if (currentLanguage == AppLanguage.english) {
       return 'Destination';

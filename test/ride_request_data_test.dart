@@ -16,6 +16,8 @@ void main() {
         phoneNumber: '+359888123456',
       ),
       pickup: 'Pickup',
+      pickupLatitude: 42.6977,
+      pickupLongitude: 23.3219,
       destination: 'Destination',
       passengers: 2,
       paymentMethod: RidePaymentMethod.card,
@@ -33,6 +35,9 @@ void main() {
     expect(acceptedRequest.status, RideRequestStatus.accepted);
 
     expect(acceptedRequest.pickup, request.pickup);
+    expect(acceptedRequest.pickupLatitude, request.pickupLatitude);
+    expect(acceptedRequest.pickupLongitude, request.pickupLongitude);
+    expect(acceptedRequest.hasValidPickupCoordinatePair, isTrue);
 
     expect(acceptedRequest.destination, request.destination);
 
@@ -49,5 +54,13 @@ void main() {
 
     final clearedFare = request.copyWith(meterFareMinor: null);
     expect(clearedFare.meterFareMinor, isNull);
+
+    final clearedPickupCoordinates = request.copyWith(
+      pickupLatitude: null,
+      pickupLongitude: null,
+    );
+    expect(clearedPickupCoordinates.pickupLatitude, isNull);
+    expect(clearedPickupCoordinates.pickupLongitude, isNull);
+    expect(clearedPickupCoordinates.hasValidPickupCoordinatePair, isFalse);
   });
 }

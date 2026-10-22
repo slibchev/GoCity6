@@ -68,6 +68,8 @@ class ActiveRideStore {
       'assignedDriverId': request.assignedDriverId,
       'assignedVehicleId': request.assignedVehicleId,
       'pickup': request.pickup,
+      'pickupLatitude': request.pickupLatitude,
+      'pickupLongitude': request.pickupLongitude,
       'destination': request.destination,
       'passengers': request.passengers,
       'hasLuggage': request.hasLuggage,
@@ -92,6 +94,10 @@ class ActiveRideStore {
     final rideType = json['rideType'];
     final requestedAt = json['requestedAt'];
     final status = json['status'];
+    final pickupLatitude = _validLatitude(json['pickupLatitude']);
+    final pickupLongitude = _validLongitude(json['pickupLongitude']);
+    final hasValidPickupCoordinates =
+        pickupLatitude != null && pickupLongitude != null;
 
     if (pickup is! String ||
         destination is! String ||
@@ -148,6 +154,8 @@ class ActiveRideStore {
       assignedDriverId: _nullableString(json['assignedDriverId']),
       assignedVehicleId: _nullableString(json['assignedVehicleId']),
       pickup: pickup,
+      pickupLatitude: hasValidPickupCoordinates ? pickupLatitude : null,
+      pickupLongitude: hasValidPickupCoordinates ? pickupLongitude : null,
       destination: destination,
       passengers: passengers,
       hasLuggage: hasLuggage,
@@ -272,5 +280,27 @@ class ActiveRideStore {
     }
 
     return _requiredDouble(value);
+  }
+
+  double? _validLatitude(Object? value) {
+    if (value is! num) {
+      return null;
+    }
+
+    final latitude = value.toDouble();
+    return latitude.isFinite && latitude >= -90 && latitude <= 90
+        ? latitude
+        : null;
+  }
+
+  double? _validLongitude(Object? value) {
+    if (value is! num) {
+      return null;
+    }
+
+    final longitude = value.toDouble();
+    return longitude.isFinite && longitude >= -180 && longitude <= 180
+        ? longitude
+        : null;
   }
 }

@@ -48,12 +48,27 @@ class BackendRideRequestService
 
   @override
   Future<RideRequestData> submitRequest(RideRequestData request) async {
+    final isCurrentLocationPickup = _isCurrentLocationPickupLabel(
+      request.pickup,
+    );
+    if (isCurrentLocationPickup && !request.hasValidPickupCoordinatePair) {
+      throw ArgumentError.value(
+        request,
+        'request',
+        'Current location pickup requires a valid coordinate pair.',
+      );
+    }
+
     final response = await client
         .post(
           Uri.parse('$_baseUrl/rides'),
           headers: {'Content-Type': 'application/json; charset=utf-8'},
           body: jsonEncode({
             'pickup': request.pickup,
+            if (isCurrentLocationPickup) ...{
+              'pickupLatitude': request.pickupLatitude,
+              'pickupLongitude': request.pickupLongitude,
+            },
             'destination': request.destination,
             'passengers': request.passengers,
             'hasLuggage': request.hasLuggage,
@@ -71,6 +86,9 @@ class BackendRideRequestService
 
     return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
   }
+
+  bool _isCurrentLocationPickupLabel(String pickup) =>
+      pickup == 'Моето местоположение' || pickup == 'My location';
 
   @override
   Future<RideRequestData> acceptBonus(RideRequestData request) {

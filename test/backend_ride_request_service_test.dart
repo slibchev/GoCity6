@@ -15,11 +15,16 @@ void main() {
   RideRequestData createRequest({
     String? requestId,
     RideRequestStatus status = RideRequestStatus.pending,
+    String pickup = 'Pickup',
+    double? pickupLatitude,
+    double? pickupLongitude,
   }) {
     return RideRequestData(
       requestId: requestId,
       clientRequestId: '11111111-2222-4333-8444-555555555555',
-      pickup: 'Pickup',
+      pickup: pickup,
+      pickupLatitude: pickupLatitude,
+      pickupLongitude: pickupLongitude,
       destination: 'Destination',
       passengers: 2,
       hasLuggage: true,
@@ -104,15 +109,106 @@ void main() {
     },
   );
 
+  test(
+    'submitRequest sends valid GPS coordinates for current location pickup',
+    () async {
+      late Map<String, dynamic> sentBody;
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          sentBody = jsonDecode(request.body) as Map<String, dynamic>;
+          return http.Response(jsonEncode(backendRide()), 201);
+        }),
+      );
+
+      await service.submitRequest(
+        createRequest(
+          pickup: 'Моето местоположение',
+          pickupLatitude: 42.6977,
+          pickupLongitude: 23.3219,
+        ),
+      );
+
+      expect(sentBody, {
+        'pickup': 'Моето местоположение',
+        'pickupLatitude': 42.6977,
+        'pickupLongitude': 23.3219,
+        'destination': 'Destination',
+        'passengers': 2,
+        'hasLuggage': true,
+        'clientRequestId': '11111111-2222-4333-8444-555555555555',
+      });
+    },
+  );
+
+  test(
+    'submitRequest sends coordinates for English My location pickup',
+    () async {
+      late Map<String, dynamic> sentBody;
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          sentBody = jsonDecode(request.body) as Map<String, dynamic>;
+          return http.Response(jsonEncode(backendRide()), 201);
+        }),
+      );
+
+      await service.submitRequest(
+        createRequest(
+          pickup: 'My location',
+          pickupLatitude: 42.6977,
+          pickupLongitude: 23.3219,
+        ),
+      );
+
+      expect(sentBody['pickup'], 'My location');
+      expect(sentBody['pickupLatitude'], 42.6977);
+      expect(sentBody['pickupLongitude'], 23.3219);
+    },
+  );
+
+  test(
+    'submitRequest rejects current location without valid coordinate pair',
+    () async {
+      var requestCount = 0;
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          requestCount++;
+          return http.Response(jsonEncode(backendRide()), 201);
+        }),
+      );
+
+      final invalidRequests = [
+        createRequest(pickup: 'Моето местоположение'),
+        createRequest(
+          pickup: 'Моето местоположение',
+          pickupLatitude: 91,
+          pickupLongitude: 23.3219,
+        ),
+        createRequest(pickup: 'Моето местоположение', pickupLatitude: 42.6977),
+      ];
+
+      for (final request in invalidRequests) {
+        await expectLater(
+          service.submitRequest(request),
+          throwsA(isA<ArgumentError>()),
+        );
+      }
+
+      expect(requestCount, 0);
+    },
+  );
+
   test('retry after timeout preserves client request ID', () async {
-    final sentIds = <String?>[];
+    final sentBodies = <Map<String, dynamic>>[];
     var callCount = 0;
 
     final client = MockClient((request) async {
       callCount++;
 
       final body = jsonDecode(request.body) as Map<String, dynamic>;
-      sentIds.add(body['clientRequestId'] as String?);
+      sentBodies.add(body);
 
       if (callCount == 1) {
         // Simulate a request whose response never reaches the client.
@@ -128,7 +224,11 @@ void main() {
       submitTimeout: const Duration(milliseconds: 30),
     );
 
-    final request = createRequest();
+    final request = createRequest(
+      pickup: 'Моето местоположение',
+      pickupLatitude: 42.6977,
+      pickupLongitude: 23.3219,
+    );
 
     await expectLater(
       service.submitRequest(request),
@@ -138,10 +238,19 @@ void main() {
     final recovered = await service.submitRequest(request);
 
     expect(callCount, 2);
-    expect(sentIds, [
+    expect(sentBodies.map((body) => body['clientRequestId']), [
       '11111111-2222-4333-8444-555555555555',
       '11111111-2222-4333-8444-555555555555',
     ]);
+    expect(
+      sentBodies.map(
+        (body) => [body['pickupLatitude'], body['pickupLongitude']],
+      ),
+      [
+        [42.6977, 23.3219],
+        [42.6977, 23.3219],
+      ],
+    );
     expect(recovered.requestId, 'ride-001');
     expect(recovered.status, RideRequestStatus.pending);
   });

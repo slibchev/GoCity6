@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 // ignore: depend_on_referenced_packages
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:taxi_app/models/place_suggestion.dart';
 import 'package:taxi_app/services/backend_places_service.dart';
 import 'package:taxi_app/localization/translations.dart';
+import 'package:taxi_app/localization/app_language.dart';
 import 'package:taxi_app/models/route_result.dart';
 import 'package:taxi_app/screens/ride_request_screen.dart';
 import 'package:taxi_app/services/route_service.dart';
@@ -298,6 +300,30 @@ class SuccessfulRouteService implements RouteService {
   }
 }
 
+class RecordingCoordinateRouteService implements RouteService {
+  double? pickupLatitude;
+  double? pickupLongitude;
+
+  @override
+  Future<RouteResult> calculateRoute({
+    required String pickup,
+    required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
+  }) async {
+    this.pickupLatitude = pickupLatitude;
+    this.pickupLongitude = pickupLongitude;
+    return const RouteResult(
+      distanceKm: 12.5,
+      durationMinutes: 25,
+      pickupLatitude: 42.75,
+      pickupLongitude: 23.40,
+    );
+  }
+}
+
 class NightIntercityRouteService implements RouteService {
   @override
   Future<RouteResult> calculateRoute({
@@ -383,6 +409,7 @@ void main() {
   late GoogleMapsFlutterPlatform originalMapsPlatform;
 
   setUp(() {
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
     originalGeolocatorPlatform = GeolocatorPlatform.instance;
     originalMapsPlatform = GoogleMapsFlutterPlatform.instance;
     geolocatorPlatform = FakeGeolocatorPlatform();
@@ -603,7 +630,10 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: RideRequestScreen(routeService: SuccessfulRouteService()),
+        home: RideRequestScreen(
+          routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -693,11 +723,342 @@ void main() {
     );
   });
 
+  testWidgets('selected GPS pickup coordinates reach the ride request', (
+    WidgetTester tester,
+  ) async {
+    const latitude = 42.6977;
+    const longitude = 23.3219;
+    geolocatorPlatform.currentPosition = _position(latitude, longitude);
+    final routeService = RecordingCoordinateRouteService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    // A later passive GPS fix must not replace the pickup the customer chose.
+    geolocatorPlatform.emitPosition(_position(42.75, 23.40));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.pickup, AppTranslations.myLocation);
+    expect(summary.request.pickupLatitude, latitude);
+    expect(summary.request.pickupLongitude, longitude);
+    expect(routeService.pickupLatitude, latitude);
+    expect(routeService.pickupLongitude, longitude);
+    expect(summary.routeResult?.pickupLatitude, 42.75);
+    expect(
+      summary.request.pickupLatitude,
+      isNot(summary.routeResult?.pickupLatitude),
+    );
+    expect(
+      summary.request.pickupLongitude,
+      isNot(summary.routeResult?.pickupLongitude),
+    );
+  });
+
+  testWidgets(
+    'English My location label retains the selected GPS coordinates',
+    (WidgetTester tester) async {
+      AppTranslations.currentLanguage = AppLanguage.english;
+      addTearDown(() {
+        AppTranslations.currentLanguage = AppLanguage.bulgarian;
+      });
+      geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+      final routeService = RecordingCoordinateRouteService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.myLocation).last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+      final confirmButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      confirmButton.onPressed!();
+      await tester.pumpAndSettle();
+
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(summary.request.pickup, 'My location');
+      expect(summary.request.pickupLatitude, 42.6977);
+      expect(summary.request.pickupLongitude, 23.3219);
+    },
+  );
+
+  testWidgets('changing language after GPS selection preserves coordinates', (
+    WidgetTester tester,
+  ) async {
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+    final routeService = RecordingCoordinateRouteService();
+    final placesService = const FakePlacesService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: placesService,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    AppTranslations.currentLanguage = AppLanguage.english;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: placesService,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.pickup, 'Моето местоположение');
+    expect(summary.request.pickupLatitude, 42.6977);
+    expect(summary.request.pickupLongitude, 23.3219);
+    expect(routeService.pickupLatitude, 42.6977);
+    expect(routeService.pickupLongitude, 23.3219);
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+  });
+
+  testWidgets('changing GPS pickup to a manual address clears coordinates', (
+    WidgetTester tester,
+  ) async {
+    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Въведи адрес'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.pickup, 'Manual pickup');
+    expect(summary.request.pickupLatitude, isNull);
+    expect(summary.request.pickupLongitude, isNull);
+  });
+
+  testWidgets('choosing autocomplete pickup after GPS clears coordinates', (
+    WidgetTester tester,
+  ) async {
+    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    await enableManualPickup(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'бул. Вит');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('бул. „Витоша“, София, България'));
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.pickup, 'бул. „Витоша“, София, България');
+    expect(summary.request.pickupLatitude, isNull);
+    expect(summary.request.pickupLongitude, isNull);
+  });
+
+  testWidgets('choosing a favorite pickup clears previous GPS coordinates', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'favoritePlaces': [
+        '{"id":"home","name":"Home","address":"Home address",'
+            '"placeId":"home-place"}',
+      ],
+    });
+    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Home').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.pickup, 'Home address');
+    expect(summary.request.pickupLatitude, isNull);
+    expect(summary.request.pickupLongitude, isNull);
+  });
+
+  testWidgets('GPS pickup with missing coordinates is blocked', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await enableManualPickup(tester);
+    await tester.enterText(
+      find.byType(TextField).at(0),
+      AppTranslations.myLocation,
+    );
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RideSummaryScreen), findsNothing);
+    expect(
+      find.text(AppTranslations.pickupCoordinatesUnavailable),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('invalid GPS coordinates are not selected as a pickup', (
+    WidgetTester tester,
+  ) async {
+    geolocatorPlatform.currentPosition = _position(91, 23.3219);
+    await tester.pumpWidget(MaterialApp(home: RideRequestScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.myLocation).last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppTranslations.pickupCoordinatesUnavailable),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      isEmpty,
+    );
+    expect(find.byType(RideSummaryScreen), findsNothing);
+  });
+
   testWidgets('RideRequestScreen handles route calculation error', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: RideRequestScreen(routeService: FailingRouteService())),
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: FailingRouteService(),
+          placesService: const FakePlacesService(),
+        ),
+      ),
     );
 
     final textFields = find.byType(TextField);
@@ -728,6 +1089,7 @@ void main() {
       MaterialApp(
         home: RideRequestScreen(
           routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
           now: () => DateTime(2026, 1, 1, 10, 0),
         ),
       ),
@@ -777,6 +1139,7 @@ void main() {
       MaterialApp(
         home: RideRequestScreen(
           routeService: NightIntercityRouteService(),
+          placesService: const FakePlacesService(),
           now: () => DateTime(2026, 1, 1, 23, 0),
         ),
       ),
@@ -823,6 +1186,7 @@ void main() {
         MaterialApp(
           home: RideRequestScreen(
             routeService: SuccessfulRouteService(),
+            placesService: const FakePlacesService(),
             now: () => DateTime(2026, 1, 1, 10, 0),
           ),
         ),
@@ -864,6 +1228,7 @@ void main() {
         MaterialApp(
           home: RideRequestScreen(
             routeService: SuccessfulRouteService(),
+            placesService: const FakePlacesService(),
             now: () => DateTime(2026, 1, 1, 10, 0),
           ),
         ),
@@ -904,6 +1269,7 @@ void main() {
       MaterialApp(
         home: RideRequestScreen(
           routeService: SuccessfulRouteService(),
+          placesService: const FakePlacesService(),
           now: () => DateTime(2026, 1, 1, 10, 0),
         ),
       ),
