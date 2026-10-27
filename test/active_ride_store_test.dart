@@ -5,6 +5,7 @@ import 'package:taxi_app/models/ride.dart';
 import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/models/route_result.dart';
+import 'package:taxi_app/models/ride_pickup_district.dart';
 import 'package:taxi_app/services/active_ride_store.dart';
 
 void main() {
@@ -33,6 +34,13 @@ void main() {
       assignedDriverId: 'driver-001',
       assignedVehicleId: 'vehicle-001',
       pickup: 'Pickup',
+      pickupDistrict: const RidePickupDistrict(
+        status: 'matched',
+        objectId: 321,
+        name: 'ЦЕНТЪР 3',
+        resolution: 'interior',
+        candidateObjectIds: [321],
+      ),
       pickupLatitude: 42.6977,
       pickupLongitude: 23.3219,
       destination: 'Destination',
@@ -70,6 +78,16 @@ void main() {
     expect(loaded.assignedDriverId, request.assignedDriverId);
     expect(loaded.assignedVehicleId, request.assignedVehicleId);
     expect(loaded.pickup, request.pickup);
+    expect(loaded.pickupDistrict?.objectId, request.pickupDistrict?.objectId);
+    expect(loaded.pickupDistrict?.name, request.pickupDistrict?.name);
+    expect(
+      loaded.pickupDistrict?.resolution,
+      request.pickupDistrict?.resolution,
+    );
+    expect(
+      loaded.pickupDistrict?.candidateObjectIds,
+      request.pickupDistrict?.candidateObjectIds,
+    );
     expect(loaded.pickupLatitude, request.pickupLatitude);
     expect(loaded.pickupLongitude, request.pickupLongitude);
     expect(loaded.destination, request.destination);

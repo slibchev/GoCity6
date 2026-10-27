@@ -844,11 +844,18 @@ class _RideRequestScreenState extends State<RideRequestScreen>
     final destinationPlaceId = selectedDestinationPlaceId;
 
     if (widget.routeService == null) {
+      if (!hasValidPickupCoordinates) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
+        );
+        return;
+      }
+
       final request = RideRequestData(
         clientRequestId: const Uuid().v4(),
         pickup: pickup,
-        pickupLatitude: requestPickupLatitude,
-        pickupLongitude: requestPickupLongitude,
+        pickupLatitude: pickupLatitude,
+        pickupLongitude: pickupLongitude,
         destination: destination,
         passengers: passengers,
         hasLuggage: hasLuggage,
@@ -879,6 +886,39 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       if (!mounted) {
         return;
       }
+
+      if (pickupController.text.trim() != pickup ||
+          selectedPickupPlaceId != pickupPlaceId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
+        );
+        return;
+      }
+
+      final resolvedPickupLatitude = isCurrentLocationPickup
+          ? requestPickupLatitude
+          : routeResult.pickupLatitude;
+      final resolvedPickupLongitude = isCurrentLocationPickup
+          ? requestPickupLongitude
+          : routeResult.pickupLongitude;
+
+      if (!RideRequestData.isValidPickupCoordinatePair(
+        resolvedPickupLatitude,
+        resolvedPickupLongitude,
+      )) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
+        );
+        return;
+      }
+
+      if (!isCurrentLocationPickup) {
+        setState(() {
+          selectedPickupLatitude = resolvedPickupLatitude;
+          selectedPickupLongitude = resolvedPickupLongitude;
+        });
+      }
+
       final requestedAt = widget.now();
 
       final estimatedPrice = PricingCalculator.calculateEstimatedPrice(
@@ -890,8 +930,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       final request = RideRequestData(
         clientRequestId: const Uuid().v4(),
         pickup: pickup,
-        pickupLatitude: requestPickupLatitude,
-        pickupLongitude: requestPickupLongitude,
+        pickupLatitude: resolvedPickupLatitude,
+        pickupLongitude: resolvedPickupLongitude,
         destination: destination,
         passengers: passengers,
         hasLuggage: hasLuggage,
@@ -909,7 +949,13 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppTranslations.routeCalculationFailed)),
+        SnackBar(
+          content: Text(
+            isCurrentLocationPickup
+                ? AppTranslations.routeCalculationFailed
+                : AppTranslations.pickupCoordinatesUnavailable,
+          ),
+        ),
       );
     } finally {
       if (mounted) {

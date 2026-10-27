@@ -7,6 +7,7 @@ import '../models/ride.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import '../models/route_result.dart';
+import '../models/ride_pickup_district.dart';
 
 class ActiveRideStore {
   static const String _storageKey = 'activeRide';
@@ -68,6 +69,7 @@ class ActiveRideStore {
       'assignedDriverId': request.assignedDriverId,
       'assignedVehicleId': request.assignedVehicleId,
       'pickup': request.pickup,
+      'pickupDistrict': request.pickupDistrict?.toJson(),
       'pickupLatitude': request.pickupLatitude,
       'pickupLongitude': request.pickupLongitude,
       'destination': request.destination,
@@ -154,6 +156,7 @@ class ActiveRideStore {
       assignedDriverId: _nullableString(json['assignedDriverId']),
       assignedVehicleId: _nullableString(json['assignedVehicleId']),
       pickup: pickup,
+      pickupDistrict: RidePickupDistrict.fromJson(json['pickupDistrict']),
       pickupLatitude: hasValidPickupCoordinates ? pickupLatitude : null,
       pickupLongitude: hasValidPickupCoordinates ? pickupLongitude : null,
       destination: destination,

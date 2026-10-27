@@ -9,6 +9,7 @@ import '../models/ride_request_status.dart';
 import 'ride_request_service.dart';
 import 'ride_bonus_decision_service.dart';
 import '../models/driver_info.dart';
+import '../models/ride_pickup_district.dart';
 
 class _RideStatusHttpException extends StateError {
   _RideStatusHttpException(this.statusCode)
@@ -48,14 +49,11 @@ class BackendRideRequestService
 
   @override
   Future<RideRequestData> submitRequest(RideRequestData request) async {
-    final isCurrentLocationPickup = _isCurrentLocationPickupLabel(
-      request.pickup,
-    );
-    if (isCurrentLocationPickup && !request.hasValidPickupCoordinatePair) {
+    if (!request.hasValidPickupCoordinatePair) {
       throw ArgumentError.value(
         request,
         'request',
-        'Current location pickup requires a valid coordinate pair.',
+        'Ride pickup requires a valid WGS84 coordinate pair.',
       );
     }
 
@@ -65,10 +63,8 @@ class BackendRideRequestService
           headers: {'Content-Type': 'application/json; charset=utf-8'},
           body: jsonEncode({
             'pickup': request.pickup,
-            if (isCurrentLocationPickup) ...{
-              'pickupLatitude': request.pickupLatitude,
-              'pickupLongitude': request.pickupLongitude,
-            },
+            'pickupLatitude': request.pickupLatitude,
+            'pickupLongitude': request.pickupLongitude,
             'destination': request.destination,
             'passengers': request.passengers,
             'hasLuggage': request.hasLuggage,
@@ -86,9 +82,6 @@ class BackendRideRequestService
 
     return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
   }
-
-  bool _isCurrentLocationPickupLabel(String pickup) =>
-      pickup == 'Моето местоположение' || pickup == 'My location';
 
   @override
   Future<RideRequestData> acceptBonus(RideRequestData request) {
@@ -383,12 +376,17 @@ class BackendRideRequestService
       completedByDriverId: completedByDriverId,
       completedAt: parsedCompletedAt?.toLocal(),
     );
+    final mergedWithPickupDistrict = ride.containsKey('pickupDistrict')
+        ? mergedRequest.copyWith(
+            pickupDistrict: RidePickupDistrict.fromJson(ride['pickupDistrict']),
+          )
+        : mergedRequest;
 
     if (!hasDriverInfo) {
-      return mergedRequest;
+      return mergedWithPickupDistrict;
     }
 
-    return mergedRequest.copyWith(driverInfo: parsedDriverInfo);
+    return mergedWithPickupDistrict.copyWith(driverInfo: parsedDriverInfo);
   }
 
   DriverInfo? _parseDriverInfo(Object? value) {

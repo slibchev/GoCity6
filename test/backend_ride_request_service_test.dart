@@ -16,8 +16,8 @@ void main() {
     String? requestId,
     RideRequestStatus status = RideRequestStatus.pending,
     String pickup = 'Pickup',
-    double? pickupLatitude,
-    double? pickupLongitude,
+    double? pickupLatitude = 42.6977,
+    double? pickupLongitude = 23.3219,
   }) {
     return RideRequestData(
       requestId: requestId,
@@ -58,6 +58,13 @@ void main() {
       'assignedDriverId': assignedDriverId,
       'assignedVehicleId': assignedVehicleId,
       'currency': 'EUR',
+      'pickupDistrict': {
+        'status': 'matched',
+        'objectId': 321,
+        'name': 'ЦЕНТЪР 3',
+        'resolution': 'interior',
+        'candidateObjectIds': [321],
+      },
       'bonusDecision': bonusDecision,
       'driverBonusMinor': driverBonusMinor,
       'meterFareMinor': meterFareMinor,
@@ -79,7 +86,11 @@ void main() {
 
         sentBody = jsonDecode(request.body) as Map<String, dynamic>;
 
-        return http.Response(jsonEncode(backendRide(status: 'pending')), 201);
+        return http.Response.bytes(
+          utf8.encode(jsonEncode(backendRide(status: 'pending'))),
+          201,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
       });
 
       final service = BackendRideRequestService(
@@ -87,12 +98,18 @@ void main() {
         client: client,
       );
 
-      final local = createRequest();
+      final local = createRequest(
+        pickup: 'Selected Places address',
+        pickupLatitude: 42.75,
+        pickupLongitude: 23.40,
+      );
 
       final result = await service.submitRequest(local);
 
       expect(sentBody, {
-        'pickup': 'Pickup',
+        'pickup': 'Selected Places address',
+        'pickupLatitude': 42.75,
+        'pickupLongitude': 23.40,
         'destination': 'Destination',
         'passengers': 2,
         'hasLuggage': true,
@@ -101,6 +118,10 @@ void main() {
 
       expect(result.requestId, 'ride-001');
       expect(result.status, RideRequestStatus.pending);
+      expect(result.pickupDistrict?.objectId, 321);
+      expect(result.pickupDistrict?.name, 'ЦЕНТЪР 3');
+      expect(result.pickupDistrict?.resolution, 'interior');
+      expect(result.pickupDistrict?.candidateObjectIds, [321]);
 
       expect(result.paymentMethod, RidePaymentMethod.card);
       expect(result.rideType, RideType.city);
@@ -168,7 +189,7 @@ void main() {
   );
 
   test(
-    'submitRequest rejects current location without valid coordinate pair',
+    'submitRequest rejects any pickup without a valid coordinate pair',
     () async {
       var requestCount = 0;
       final service = BackendRideRequestService(
@@ -180,13 +201,21 @@ void main() {
       );
 
       final invalidRequests = [
-        createRequest(pickup: 'Моето местоположение'),
+        createRequest(
+          pickup: 'Моето местоположение',
+          pickupLatitude: null,
+          pickupLongitude: null,
+        ),
         createRequest(
           pickup: 'Моето местоположение',
           pickupLatitude: 91,
           pickupLongitude: 23.3219,
         ),
-        createRequest(pickup: 'Моето местоположение', pickupLatitude: 42.6977),
+        createRequest(
+          pickup: 'Моето местоположение',
+          pickupLatitude: 42.6977,
+          pickupLongitude: null,
+        ),
       ];
 
       for (final request in invalidRequests) {
@@ -195,6 +224,17 @@ void main() {
           throwsA(isA<ArgumentError>()),
         );
       }
+
+      await expectLater(
+        service.submitRequest(
+          createRequest(
+            pickup: 'Selected manual address',
+            pickupLatitude: null,
+            pickupLongitude: null,
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
 
       expect(requestCount, 0);
     },

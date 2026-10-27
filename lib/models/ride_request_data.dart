@@ -2,6 +2,7 @@ import 'ride.dart';
 import 'route_result.dart';
 import 'ride_request_status.dart';
 import 'driver_info.dart';
+import 'ride_pickup_district.dart';
 
 const Object _notProvided = Object();
 
@@ -21,6 +22,7 @@ class RideRequestData {
   final String? assignedVehicleId;
 
   final String pickup;
+  final RidePickupDistrict? pickupDistrict;
   final double? pickupLatitude;
   final double? pickupLongitude;
   final String destination;
@@ -50,6 +52,7 @@ class RideRequestData {
     this.assignedDriverId,
     this.assignedVehicleId,
     required this.pickup,
+    this.pickupDistrict,
     this.pickupLatitude,
     this.pickupLongitude,
     required this.destination,
@@ -91,6 +94,7 @@ class RideRequestData {
     Object? assignedDriverId = _notProvided,
     Object? assignedVehicleId = _notProvided,
     String? pickup,
+    Object? pickupDistrict = _notProvided,
     Object? pickupLatitude = _notProvided,
     Object? pickupLongitude = _notProvided,
     String? destination,
@@ -125,6 +129,9 @@ class RideRequestData {
           ? this.assignedVehicleId
           : assignedVehicleId as String?,
       pickup: pickup ?? this.pickup,
+      pickupDistrict: identical(pickupDistrict, _notProvided)
+          ? this.pickupDistrict
+          : pickupDistrict as RidePickupDistrict?,
       pickupLatitude: identical(pickupLatitude, _notProvided)
           ? this.pickupLatitude
           : pickupLatitude as double?,

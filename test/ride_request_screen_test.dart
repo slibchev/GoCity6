@@ -296,11 +296,17 @@ class SuccessfulRouteService implements RouteService {
     double? pickupLatitude,
     double? pickupLongitude,
   }) async {
-    return const RouteResult(distanceKm: 12.5, durationMinutes: 25);
+    return const RouteResult(
+      distanceKm: 12.5,
+      durationMinutes: 25,
+      pickupLatitude: 42.70,
+      pickupLongitude: 23.32,
+    );
   }
 }
 
 class RecordingCoordinateRouteService implements RouteService {
+  String? selectedPickupPlaceId;
   double? pickupLatitude;
   double? pickupLongitude;
 
@@ -313,6 +319,7 @@ class RecordingCoordinateRouteService implements RouteService {
     double? pickupLatitude,
     double? pickupLongitude,
   }) async {
+    selectedPickupPlaceId = pickupPlaceId;
     this.pickupLatitude = pickupLatitude;
     this.pickupLongitude = pickupLongitude;
     return const RouteResult(
@@ -334,7 +341,12 @@ class NightIntercityRouteService implements RouteService {
     double? pickupLatitude,
     double? pickupLongitude,
   }) async {
-    return const RouteResult(distanceKm: 10, durationMinutes: 20);
+    return const RouteResult(
+      distanceKm: 10,
+      durationMinutes: 20,
+      pickupLatitude: 42.70,
+      pickupLongitude: 23.32,
+    );
   }
 }
 
@@ -354,7 +366,12 @@ class RecordingPlaceIdRouteService implements RouteService {
     this.pickupPlaceId = pickupPlaceId;
     this.destinationPlaceId = destinationPlaceId;
 
-    return const RouteResult(distanceKm: 10, durationMinutes: 20);
+    return const RouteResult(
+      distanceKm: 10,
+      durationMinutes: 20,
+      pickupLatitude: 42.70,
+      pickupLongitude: 23.32,
+    );
   }
 }
 
@@ -905,48 +922,55 @@ void main() {
       find.byType(RideSummaryScreen),
     );
     expect(summary.request.pickup, 'Manual pickup');
-    expect(summary.request.pickupLatitude, isNull);
-    expect(summary.request.pickupLongitude, isNull);
+    expect(summary.request.pickupLatitude, 42.70);
+    expect(summary.request.pickupLongitude, 23.32);
   });
 
-  testWidgets('choosing autocomplete pickup after GPS clears coordinates', (
-    WidgetTester tester,
-  ) async {
-    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RideRequestScreen(
-          routeService: SuccessfulRouteService(),
-          placesService: const FakePlacesService(),
+  testWidgets(
+    'autocomplete pickup uses resolved coordinates instead of previous GPS',
+    (WidgetTester tester) async {
+      final routeService = RecordingCoordinateRouteService();
+      geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Избери начална точка'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(AppTranslations.myLocation).last);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.myLocation).last);
+      await tester.pumpAndSettle();
 
-    await enableManualPickup(tester);
-    await tester.enterText(find.byType(TextField).at(0), 'бул. Вит');
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.text('бул. „Витоша“, София, България'));
-    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+      await enableManualPickup(tester);
+      await tester.enterText(find.byType(TextField).at(0), 'бул. Вит');
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('бул. „Витоша“, София, България'));
+      await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
 
-    final confirmButton = tester.widget<ElevatedButton>(
-      find.byType(ElevatedButton),
-    );
-    confirmButton.onPressed!();
-    await tester.pumpAndSettle();
+      final confirmButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      confirmButton.onPressed!();
+      await tester.pumpAndSettle();
 
-    final summary = tester.widget<RideSummaryScreen>(
-      find.byType(RideSummaryScreen),
-    );
-    expect(summary.request.pickup, 'бул. „Витоша“, София, България');
-    expect(summary.request.pickupLatitude, isNull);
-    expect(summary.request.pickupLongitude, isNull);
-  });
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(summary.request.pickup, 'бул. „Витоша“, София, България');
+      expect(summary.request.pickupLatitude, 42.75);
+      expect(summary.request.pickupLongitude, 23.40);
+      expect(summary.request.pickupLatitude, isNot(42.6977));
+      expect(summary.request.pickupLongitude, isNot(23.3219));
+      expect(routeService.selectedPickupPlaceId, 'pickup-place-001');
+      expect(routeService.pickupLatitude, isNull);
+      expect(routeService.pickupLongitude, isNull);
+    },
+  );
 
   testWidgets('choosing a favorite pickup clears previous GPS coordinates', (
     WidgetTester tester,
@@ -989,8 +1013,8 @@ void main() {
       find.byType(RideSummaryScreen),
     );
     expect(summary.request.pickup, 'Home address');
-    expect(summary.request.pickupLatitude, isNull);
-    expect(summary.request.pickupLongitude, isNull);
+    expect(summary.request.pickupLatitude, 42.70);
+    expect(summary.request.pickupLongitude, 23.32);
   });
 
   testWidgets('GPS pickup with missing coordinates is blocked', (
