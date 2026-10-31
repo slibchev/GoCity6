@@ -28,6 +28,7 @@ class BackendRideRequestService
   final Duration maxRetryInterval;
   final Future<void> Function(Duration duration) _pollDelay;
   final Duration submitTimeout;
+  final Future<String?> Function()? authorizationHeaderProvider;
 
   BackendRideRequestService({
     this.baseUrl,
@@ -38,6 +39,7 @@ class BackendRideRequestService
     this.maxRetryInterval = const Duration(seconds: 30),
     Future<void> Function(Duration duration)? pollDelay,
     this.submitTimeout = const Duration(seconds: 25),
+    this.authorizationHeaderProvider,
   }) : client = client ?? http.Client(),
        _pollDelay = pollDelay ?? _defaultPollDelay;
 
@@ -60,7 +62,7 @@ class BackendRideRequestService
     final response = await client
         .post(
           Uri.parse('$_baseUrl/rides'),
-          headers: {'Content-Type': 'application/json; charset=utf-8'},
+          headers: await _jsonHeaders(),
           body: jsonEncode({
             'pickup': request.pickup,
             'pickupLatitude': request.pickupLatitude,
@@ -109,7 +111,7 @@ class BackendRideRequestService
       response = await client
           .post(
             Uri.parse('$_baseUrl/rides/$requestId/bonus/$action'),
-            headers: {'Content-Type': 'application/json; charset=utf-8'},
+            headers: await _jsonHeaders(),
           )
           .timeout(submitTimeout);
     } on TimeoutException {
@@ -145,6 +147,11 @@ class BackendRideRequestService
       abortTrigger: abortCompleter.future,
     )..headers['Accept'] = 'application/json';
 
+    final authorizationHeader = await authorizationHeaderProvider?.call();
+    if (authorizationHeader != null && authorizationHeader.isNotEmpty) {
+      statusRequest.headers['Authorization'] = authorizationHeader;
+    }
+
     late final http.Response response;
 
     try {
@@ -179,7 +186,7 @@ class BackendRideRequestService
 
     final response = await client.post(
       Uri.parse('$_baseUrl/rides/$requestId/cancel'),
-      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      headers: await _jsonHeaders(),
     );
 
     if (response.statusCode != 200) {
@@ -254,6 +261,18 @@ class BackendRideRequestService
     }
 
     return requestId;
+  }
+
+  Future<Map<String, String>> _jsonHeaders() async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json; charset=utf-8',
+      'Accept': 'application/json',
+    };
+    final authorizationHeader = await authorizationHeaderProvider?.call();
+    if (authorizationHeader != null && authorizationHeader.isNotEmpty) {
+      headers['Authorization'] = authorizationHeader;
+    }
+    return headers;
   }
 
   Map<String, dynamic> _decodeRide(List<int> bodyBytes) {

@@ -8,6 +8,7 @@ import '../models/ride_request_status.dart';
 import '../services/active_ride_store.dart';
 import '../services/backend_ride_request_service.dart';
 import '../services/backend_route_service.dart';
+import '../services/favorites_service.dart';
 import '../services/ride_request_service.dart';
 import 'favorites_screen.dart';
 import 'ride_confirmation_screen.dart';
@@ -17,12 +18,14 @@ class MainNavigationScreen extends StatefulWidget {
   final ActiveRideStore? activeRideStore;
   final RideRequestService? rideRequestService;
   final bool restoreActiveRide;
+  final String? passengerId;
 
   const MainNavigationScreen({
     super.key,
     this.activeRideStore,
     this.rideRequestService,
     this.restoreActiveRide = true,
+    this.passengerId,
   });
 
   @override
@@ -154,9 +157,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             routeService: const BackendRouteService(),
             rideRequestService: _rideRequestService,
             activeRideStore: widget.activeRideStore,
+            passengerId: widget.passengerId,
+            favoritesService: FavoritesService(passengerId: widget.passengerId),
             mapIsActive: _currentIndex == 0 && !_restoredRideRouteVisible,
           ),
-          const FavoritesScreen(),
+          FavoritesScreen(
+            favoritesService: FavoritesService(passengerId: widget.passengerId),
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(

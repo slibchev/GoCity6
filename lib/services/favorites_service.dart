@@ -5,9 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/favorite_place.dart';
 
 class FavoritesService {
-  static const String _favoritesKey = 'favoritePlaces';
+  static const String _defaultFavoritesKey = 'favoritePlaces';
+  final String? passengerId;
 
-  const FavoritesService();
+  const FavoritesService({this.passengerId});
+
+  String get _favoritesKey => passengerId == null || passengerId!.trim().isEmpty
+      ? _defaultFavoritesKey
+      : 'favoritePlaces:${Uri.encodeComponent(passengerId!.trim())}';
 
   Future<List<FavoritePlace>> getFavorites() async {
     final preferences = await SharedPreferences.getInstance();
@@ -43,9 +48,7 @@ class FavoritesService {
   Future<void> updateFavorite(FavoritePlace favorite) async {
     final favorites = await getFavorites();
 
-    final index = favorites.indexWhere(
-      (item) => item.id == favorite.id,
-    );
+    final index = favorites.indexWhere((item) => item.id == favorite.id);
 
     if (index == -1) {
       return;
@@ -59,27 +62,18 @@ class FavoritesService {
   Future<void> deleteFavorite(String id) async {
     final favorites = await getFavorites();
 
-    favorites.removeWhere(
-      (favorite) => favorite.id == id,
-    );
+    favorites.removeWhere((favorite) => favorite.id == id);
 
     await _saveFavorites(favorites);
   }
 
-  Future<void> _saveFavorites(
-    List<FavoritePlace> favorites,
-  ) async {
+  Future<void> _saveFavorites(List<FavoritePlace> favorites) async {
     final preferences = await SharedPreferences.getInstance();
 
     final encodedFavorites = favorites
-        .map(
-          (favorite) => jsonEncode(favorite.toJson()),
-        )
+        .map((favorite) => jsonEncode(favorite.toJson()))
         .toList();
 
-    await preferences.setStringList(
-      _favoritesKey,
-      encodedFavorites,
-    );
+    await preferences.setStringList(_favoritesKey, encodedFavorites);
   }
 }

@@ -18,6 +18,8 @@ class City6IntroScreen extends StatefulWidget {
   final String logoAsset;
   final ActiveRideStore? activeRideStore;
   final RideRequestService? rideRequestService;
+  final String? passengerId;
+  final Future<void> Function()? onLogout;
   final bool skipIntroAnimation;
 
   const City6IntroScreen({
@@ -26,6 +28,8 @@ class City6IntroScreen extends StatefulWidget {
     required this.logoAsset,
     this.activeRideStore,
     this.rideRequestService,
+    this.passengerId,
+    this.onLogout,
     this.skipIntroAnimation = false,
   });
 
@@ -44,6 +48,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
   bool _isOpeningOrder = false;
   bool _isCancelling = false;
   bool _isRecoveringRide = false;
+  bool _isLoggingOut = false;
 
   RideRequestData? _recoverableRide;
 
@@ -355,6 +360,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
           return MainNavigationScreen(
             activeRideStore: widget.activeRideStore,
             rideRequestService: _rideRequestService,
+            passengerId: widget.passengerId,
             restoreActiveRide: false,
           );
         },
@@ -549,6 +555,43 @@ class _City6IntroScreenState extends State<City6IntroScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(AppTranslations.cancelRideFailed)));
+    }
+  }
+
+  Future<void> _confirmLogout() async {
+    final logout = widget.onLogout;
+    if (logout == null || _isLoggingOut) return;
+
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppTranslations.logoutConfirmationTitle),
+        content: Text(AppTranslations.logoutConfirmationMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(AppTranslations.keepRide),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(AppTranslations.logout),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true || !mounted) return;
+    setState(() => _isLoggingOut = true);
+    try {
+      await logout();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.passengerLoginStorageError)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoggingOut = false);
     }
   }
 
@@ -787,6 +830,26 @@ class _City6IntroScreenState extends State<City6IntroScreen>
                     alignment: const Alignment(0, 0.18),
                     child: _buildLogo(value),
                   ),
+                  if (widget.onLogout != null && _introFinished)
+                    SafeArea(
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4, right: 12),
+                          child: TextButton.icon(
+                            onPressed: _isLoggingOut ? null : _confirmLogout,
+                            icon: const Icon(Icons.logout),
+                            label: Text(AppTranslations.logout),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.black.withValues(
+                                alpha: 0.28,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   SafeArea(
                     child: Align(
                       alignment: Alignment.bottomCenter,

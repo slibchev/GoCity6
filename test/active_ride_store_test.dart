@@ -214,4 +214,27 @@ void main() {
 
     expect(store.load(), isNull);
   });
+
+  test('active rides are isolated by Passenger ID', () async {
+    final preferences = await SharedPreferences.getInstance();
+    final passengerOne = ActiveRideStore(preferences, passengerId: '101');
+    final passengerTwo = ActiveRideStore(preferences, passengerId: '202');
+    final request = RideRequestData(
+      requestId: 'passenger-one-ride',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 2,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 10, 31, 12),
+      status: RideRequestStatus.accepted,
+    );
+
+    await passengerOne.save(request);
+
+    expect(passengerOne.load()?.requestId, 'passenger-one-ride');
+    expect(passengerTwo.load(), isNull);
+    expect(preferences.containsKey('activeRide:101'), isTrue);
+    expect(preferences.containsKey('activeRide:202'), isFalse);
+  });
 }

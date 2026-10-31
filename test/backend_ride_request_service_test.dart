@@ -131,6 +131,73 @@ void main() {
   );
 
   test(
+    'authenticated ride operations attach the Passenger Bearer token',
+    () async {
+      final observedRequests = <http.Request>[];
+      final client = MockClient((request) async {
+        observedRequests.add(request);
+        if (request.url.path.endsWith('/bonus/accept')) {
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode(
+                backendRide(bonusDecision: 'accepted', driverBonusMinor: 500),
+              ),
+            ),
+            200,
+          );
+        }
+        if (request.url.path.endsWith('/bonus/decline')) {
+          return http.Response.bytes(
+            utf8.encode(jsonEncode(backendRide(bonusDecision: 'declined'))),
+            200,
+          );
+        }
+        if (request.method == 'GET') {
+          return http.Response.bytes(
+            utf8.encode(jsonEncode(backendRide())),
+            200,
+          );
+        }
+        if (request.url.path.endsWith('/cancel')) {
+          return http.Response.bytes(
+            utf8.encode(jsonEncode(backendRide(status: 'cancelled'))),
+            200,
+          );
+        }
+        return http.Response.bytes(utf8.encode(jsonEncode(backendRide())), 201);
+      });
+      final service = BackendRideRequestService(
+        baseUrl: 'https://unit.test',
+        client: client,
+        authorizationHeaderProvider: () async => 'Bearer passenger-test-token',
+      );
+
+      final ride = createRequest();
+      final submitted = await service.submitRequest(ride);
+      final identifiedRide = submitted.copyWith(requestId: 'ride-001');
+      await service.getRequestStatus(identifiedRide);
+      await service.cancelRequest(identifiedRide);
+      await service.acceptBonus(identifiedRide);
+      await service.declineBonus(identifiedRide);
+
+      expect(observedRequests, hasLength(5));
+      for (final request in observedRequests) {
+        expect(request.headers['authorization'], 'Bearer passenger-test-token');
+      }
+      expect(
+        observedRequests.map((request) => request.url.path),
+        containsAll([
+          '/rides',
+          '/rides/ride-001',
+          '/rides/ride-001/cancel',
+          '/rides/ride-001/bonus/accept',
+          '/rides/ride-001/bonus/decline',
+        ]),
+      );
+    },
+  );
+
+  test(
     'submitRequest sends valid GPS coordinates for current location pickup',
     () async {
       late Map<String, dynamic> sentBody;

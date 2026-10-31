@@ -28,6 +28,8 @@ class RideRequestScreen extends StatefulWidget {
   final BackendPlacesService placesService;
   final RideRequestService rideRequestService;
   final ActiveRideStore? activeRideStore;
+  final FavoritesService? favoritesService;
+  final String? passengerId;
   final DateTime Function() now;
   final bool mapIsActive;
 
@@ -37,6 +39,8 @@ class RideRequestScreen extends StatefulWidget {
     BackendPlacesService? placesService,
     RideRequestService? rideRequestService,
     this.activeRideStore,
+    this.favoritesService,
+    this.passengerId,
     DateTime Function()? now,
     this.mapIsActive = true,
   }) : routeService = routeService ?? const BackendRouteService(),
@@ -61,7 +65,9 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   final TextEditingController destinationController = TextEditingController();
   final FocusNode _pickupFocusNode = FocusNode();
   final MenuController _pickupMenuController = MenuController();
-  final FavoritesService _favoritesService = const FavoritesService();
+  FavoritesService get _favoritesService =>
+      widget.favoritesService ??
+      FavoritesService(passengerId: widget.passengerId);
 
   List<FavoritePlace> _favoritePlaces = [];
 

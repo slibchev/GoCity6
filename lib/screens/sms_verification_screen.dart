@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../services/active_ride_store.dart';
-import 'city6_intro_screen.dart';
+import '../localization/translations.dart';
 
 class SmsVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -17,33 +15,8 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
   final TextEditingController _codeController = TextEditingController();
 
   Future<void> _verifyCode() async {
-    final code = _codeController.text.trim();
-
-    if (code == '123456') {
-      final prefs = await SharedPreferences.getInstance();
-      final activeRideStore = ActiveRideStore(prefs);
-
-      await prefs.setBool('isRegistered', true);
-
-      if (!mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => City6IntroScreen(
-            backgroundAsset: 'assets/images/city6_intro_background.png',
-            logoAsset: 'assets/images/city6_intro_logo.png',
-            activeRideStore: activeRideStore,
-          ),
-        ),
-        (route) => false,
-      );
-
-      return;
-    }
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Невалиден код. За тест използвай 123456.')),
+      SnackBar(content: Text(AppTranslations.smsRegistrationNotAvailable)),
     );
   }
 
@@ -145,7 +118,7 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
               const SizedBox(height: 20),
 
               const Text(
-                'Тестов код: 123456',
+                'SMS регистрацията ще бъде активирана за публичната версия.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black45, fontSize: 13),
               ),

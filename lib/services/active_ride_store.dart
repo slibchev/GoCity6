@@ -10,11 +10,15 @@ import '../models/route_result.dart';
 import '../models/ride_pickup_district.dart';
 
 class ActiveRideStore {
-  static const String _storageKey = 'activeRide';
+  static const String _defaultStorageKey = 'activeRide';
 
   final SharedPreferences preferences;
+  final String _storageKey;
 
-  const ActiveRideStore(this.preferences);
+  ActiveRideStore(this.preferences, {String? passengerId})
+    : _storageKey = passengerId == null || passengerId.trim().isEmpty
+          ? _defaultStorageKey
+          : 'activeRide:${Uri.encodeComponent(passengerId.trim())}';
 
   Future<void> save(RideRequestData request) async {
     final saved = await preferences.setString(

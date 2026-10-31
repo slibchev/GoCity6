@@ -18,6 +18,72 @@ class AppTranslations {
     return 'Български';
   }
 
+  static String get passengerLoginTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Sign in to City6'
+      : 'Вход в City6';
+
+  static String get passengerUsername =>
+      currentLanguage == AppLanguage.english ? 'Username' : 'Потребителско име';
+
+  static String get passengerPassword =>
+      currentLanguage == AppLanguage.english ? 'Password' : 'Парола';
+
+  static String get passengerLoginButton =>
+      currentLanguage == AppLanguage.english ? 'SIGN IN' : 'ВХОД';
+
+  static String get passengerLoginInvalidCredentials =>
+      currentLanguage == AppLanguage.english
+      ? 'The username or password is incorrect.'
+      : 'Потребителското име или паролата са грешни.';
+
+  static String get passengerLoginNetworkError =>
+      currentLanguage == AppLanguage.english
+      ? 'Could not connect. Check your internet connection and try again.'
+      : 'Няма връзка с интернет. Проверете връзката и опитайте отново.';
+
+  static String get passengerLoginBackendError =>
+      currentLanguage == AppLanguage.english
+      ? 'City6 service is temporarily unavailable. Try again shortly.'
+      : 'Услугата City6 временно не е достъпна. Опитайте отново след малко.';
+
+  static String get passengerLoginStorageError =>
+      currentLanguage == AppLanguage.english
+      ? 'Secure sign-in storage is unavailable. Please try again.'
+      : 'Защитеното съхранение на входа не е достъпно. Опитайте отново.';
+
+  static String get passengerLoginUnexpectedError =>
+      currentLanguage == AppLanguage.english
+      ? 'Could not sign in. Please try again.'
+      : 'Входът не бе успешен. Опитайте отново.';
+
+  static String get passengerSessionCheckError =>
+      currentLanguage == AppLanguage.english
+      ? 'We could not verify your saved session. Your account is still saved.'
+      : 'Не успяхме да проверим запазената сесия. Профилът Ви е запазен.';
+
+  static String get retrySessionCheck => currentLanguage == AppLanguage.english
+      ? 'Retry session check'
+      : 'Провери отново';
+
+  static String get logout =>
+      currentLanguage == AppLanguage.english ? 'Sign out' : 'Изход';
+
+  static String get logoutConfirmationTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Sign out?'
+      : 'Изход от профила?';
+
+  static String get logoutConfirmationMessage =>
+      currentLanguage == AppLanguage.english
+      ? 'Any active ride will remain saved for this account.'
+      : 'Активната поръчка ще остане запазена за този профил.';
+
+  static String get smsRegistrationNotAvailable =>
+      currentLanguage == AppLanguage.english
+      ? 'SMS registration is not available yet. Sign in with your City6 account.'
+      : 'Регистрацията със SMS още не е достъпна. Влезте с Вашия City6 профил.';
+
   static String get orderButton {
     if (currentLanguage == AppLanguage.english) {
       return 'Book a ride';
