@@ -82,6 +82,11 @@ class RideRequestData {
       longitude >= -180 &&
       longitude <= 180;
 
+  static bool isCurrentLocationPickupLabel(String pickup) {
+    final normalized = pickup.trim().toLowerCase();
+    return normalized == 'моето местоположение' || normalized == 'my location';
+  }
+
   bool get hasValidPickupCoordinatePair =>
       isValidPickupCoordinatePair(pickupLatitude, pickupLongitude);
 

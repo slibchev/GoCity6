@@ -306,6 +306,13 @@ class SuccessfulRouteService implements RouteService {
 }
 
 class RecordingCoordinateRouteService implements RouteService {
+  RecordingCoordinateRouteService({
+    this.routeResultPickupLatitude = 42.75,
+    this.routeResultPickupLongitude = 23.40,
+  });
+
+  final double? routeResultPickupLatitude;
+  final double? routeResultPickupLongitude;
   String? selectedPickupPlaceId;
   double? pickupLatitude;
   double? pickupLongitude;
@@ -322,11 +329,11 @@ class RecordingCoordinateRouteService implements RouteService {
     selectedPickupPlaceId = pickupPlaceId;
     this.pickupLatitude = pickupLatitude;
     this.pickupLongitude = pickupLongitude;
-    return const RouteResult(
+    return RouteResult(
       distanceKm: 12.5,
       durationMinutes: 25,
-      pickupLatitude: 42.75,
-      pickupLongitude: 23.40,
+      pickupLatitude: routeResultPickupLatitude,
+      pickupLongitude: routeResultPickupLongitude,
     );
   }
 }
@@ -886,45 +893,46 @@ void main() {
     AppTranslations.currentLanguage = AppLanguage.bulgarian;
   });
 
-  testWidgets('changing GPS pickup to a manual address clears coordinates', (
-    WidgetTester tester,
-  ) async {
-    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RideRequestScreen(
-          routeService: SuccessfulRouteService(),
-          placesService: const FakePlacesService(),
+  testWidgets(
+    'manual text pickup uses route coordinates instead of stale GPS',
+    (WidgetTester tester) async {
+      geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: SuccessfulRouteService(),
+            placesService: const FakePlacesService(),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Избери начална точка'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(AppTranslations.myLocation).last);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.myLocation).last);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Избери начална точка'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Въведи адрес'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
-    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Въведи адрес'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+      await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
 
-    final confirmButton = tester.widget<ElevatedButton>(
-      find.byType(ElevatedButton),
-    );
-    confirmButton.onPressed!();
-    await tester.pumpAndSettle();
+      final confirmButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      confirmButton.onPressed!();
+      await tester.pumpAndSettle();
 
-    final summary = tester.widget<RideSummaryScreen>(
-      find.byType(RideSummaryScreen),
-    );
-    expect(summary.request.pickup, 'Manual pickup');
-    expect(summary.request.pickupLatitude, 42.70);
-    expect(summary.request.pickupLongitude, 23.32);
-  });
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(summary.request.pickup, 'Manual pickup');
+      expect(summary.request.pickupLatitude, 42.70);
+      expect(summary.request.pickupLongitude, 23.32);
+    },
+  );
 
   testWidgets(
     'autocomplete pickup uses resolved coordinates instead of previous GPS',
@@ -971,6 +979,86 @@ void main() {
       expect(routeService.pickupLongitude, isNull);
     },
   );
+
+  testWidgets(
+    'manual text pickup without route coordinates keeps the backend fallback',
+    (WidgetTester tester) async {
+      geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+      final routeService = RecordingCoordinateRouteService(
+        routeResultPickupLatitude: null,
+        routeResultPickupLongitude: null,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await enableManualPickup(tester);
+      await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+      await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+      final confirmButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      confirmButton.onPressed!();
+      await tester.pumpAndSettle();
+
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(summary.request.pickup, 'Manual pickup');
+      expect(summary.request.pickupLatitude, isNull);
+      expect(summary.request.pickupLongitude, isNull);
+      expect(summary.request.routeResult?.pickupLatitude, isNull);
+      expect(summary.request.routeResult?.pickupLongitude, isNull);
+      expect(routeService.pickupLatitude, isNull);
+      expect(routeService.pickupLongitude, isNull);
+    },
+  );
+
+  testWidgets('manual pickup discards an invalid route coordinate pair', (
+    WidgetTester tester,
+  ) async {
+    geolocatorPlatform.currentPosition = _position(42.6977, 23.3219);
+    final routeService = RecordingCoordinateRouteService(
+      routeResultPickupLatitude: 91,
+      routeResultPickupLongitude: 23.40,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await enableManualPickup(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.pickupLatitude, isNull);
+    expect(summary.request.pickupLongitude, isNull);
+    expect(summary.request.routeResult?.pickupLatitude, isNull);
+    expect(summary.request.routeResult?.pickupLongitude, isNull);
+  });
 
   testWidgets('choosing a favorite pickup clears previous GPS coordinates', (
     WidgetTester tester,

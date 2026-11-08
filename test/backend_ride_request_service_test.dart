@@ -75,6 +75,13 @@ void main() {
     };
   }
 
+  http.Response jsonResponse(Map<String, dynamic> body, int statusCode) =>
+      http.Response.bytes(
+        utf8.encode(jsonEncode(body)),
+        statusCode,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+
   test(
     'submitRequest creates backend ride and preserves local presentation data',
     () async {
@@ -205,7 +212,7 @@ void main() {
         baseUrl: 'http://example.test',
         client: MockClient((request) async {
           sentBody = jsonDecode(request.body) as Map<String, dynamic>;
-          return http.Response(jsonEncode(backendRide()), 201);
+          return jsonResponse(backendRide(), 201);
         }),
       );
 
@@ -237,7 +244,7 @@ void main() {
         baseUrl: 'http://example.test',
         client: MockClient((request) async {
           sentBody = jsonDecode(request.body) as Map<String, dynamic>;
-          return http.Response(jsonEncode(backendRide()), 201);
+          return jsonResponse(backendRide(), 201);
         }),
       );
 
@@ -256,14 +263,14 @@ void main() {
   );
 
   test(
-    'submitRequest rejects any pickup without a valid coordinate pair',
+    'submitRequest rejects current-location pickup without a valid coordinate pair',
     () async {
       var requestCount = 0;
       final service = BackendRideRequestService(
         baseUrl: 'http://example.test',
         client: MockClient((request) async {
           requestCount++;
-          return http.Response(jsonEncode(backendRide()), 201);
+          return jsonResponse(backendRide(), 201);
         }),
       );
 
@@ -292,18 +299,56 @@ void main() {
         );
       }
 
-      await expectLater(
-        service.submitRequest(
-          createRequest(
-            pickup: 'Selected manual address',
-            pickupLatitude: null,
-            pickupLongitude: null,
-          ),
-        ),
-        throwsA(isA<ArgumentError>()),
+      expect(requestCount, 0);
+    },
+  );
+
+  test(
+    'manual pickup omits missing or invalid coordinates for Backend fallback',
+    () async {
+      final sentBodies = <Map<String, dynamic>>[];
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          sentBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return jsonResponse(backendRide(), 201);
+        }),
       );
 
-      expect(requestCount, 0);
+      final requests = [
+        createRequest(
+          pickup: 'Manual text address',
+          pickupLatitude: null,
+          pickupLongitude: null,
+        ),
+        createRequest(
+          pickup: 'Selected Places address',
+          pickupLatitude: 91,
+          pickupLongitude: 23.40,
+        ),
+        createRequest(
+          pickup: 'Manual text address',
+          pickupLatitude: 42.70,
+          pickupLongitude: null,
+        ),
+        createRequest(
+          pickup: 'Manual text address',
+          pickupLatitude: double.nan,
+          pickupLongitude: 23.40,
+        ),
+      ];
+
+      for (final request in requests) {
+        final submitted = await service.submitRequest(request);
+        expect(submitted.pickupLatitude, isNull);
+        expect(submitted.pickupLongitude, isNull);
+      }
+
+      expect(sentBodies, hasLength(requests.length));
+      for (final body in sentBodies) {
+        expect(body, isNot(contains('pickupLatitude')));
+        expect(body, isNot(contains('pickupLongitude')));
+      }
     },
   );
 
@@ -322,7 +367,7 @@ void main() {
         return Completer<http.Response>().future;
       }
 
-      return http.Response(jsonEncode(backendRide()), 201);
+      return jsonResponse(backendRide(), 201);
     });
 
     final service = BackendRideRequestService(
@@ -332,7 +377,7 @@ void main() {
     );
 
     final request = createRequest(
-      pickup: 'Моето местоположение',
+      pickup: 'Selected manual address',
       pickupLatitude: 42.6977,
       pickupLongitude: 23.3219,
     );
@@ -360,17 +405,16 @@ void main() {
     );
     expect(recovered.requestId, 'ride-001');
     expect(recovered.status, RideRequestStatus.pending);
+    expect(recovered.pickupLatitude, 42.6977);
+    expect(recovered.pickupLongitude, 23.3219);
   });
   test('reads awaiting customer bonus decision from backend', () async {
     final client = MockClient((request) async {
-      return http.Response(
-        jsonEncode({
-          ...backendRide(),
-          'bonusDecision': 'awaiting_customer',
-          'driverBonusMinor': 0,
-        }),
-        200,
-      );
+      return jsonResponse({
+        ...backendRide(),
+        'bonusDecision': 'awaiting_customer',
+        'driverBonusMinor': 0,
+      }, 200);
     });
 
     final service = BackendRideRequestService(
@@ -393,14 +437,11 @@ void main() {
         'http://example.test/rides/ride-001/bonus/accept',
       );
 
-      return http.Response(
-        jsonEncode({
-          ...backendRide(),
-          'bonusDecision': 'accepted',
-          'driverBonusMinor': 500,
-        }),
-        200,
-      );
+      return jsonResponse({
+        ...backendRide(),
+        'bonusDecision': 'accepted',
+        'driverBonusMinor': 500,
+      }, 200);
     });
 
     final service = BackendRideRequestService(
@@ -424,14 +465,11 @@ void main() {
         'http://example.test/rides/ride-001/bonus/decline',
       );
 
-      return http.Response(
-        jsonEncode({
-          ...backendRide(status: 'waitingForVehicle'),
-          'bonusDecision': 'declined',
-          'driverBonusMinor': 0,
-        }),
-        200,
-      );
+      return jsonResponse({
+        ...backendRide(status: 'waitingForVehicle'),
+        'bonusDecision': 'declined',
+        'driverBonusMinor': 0,
+      }, 200);
     });
 
     final service = BackendRideRequestService(
@@ -456,14 +494,11 @@ void main() {
 
       expect(request.method, 'GET');
 
-      return http.Response(
-        jsonEncode({
-          ...backendRide(),
-          'bonusDecision': 'accepted',
-          'driverBonusMinor': 500,
-        }),
-        200,
-      );
+      return jsonResponse({
+        ...backendRide(),
+        'bonusDecision': 'accepted',
+        'driverBonusMinor': 500,
+      }, 200);
     });
 
     final service = BackendRideRequestService(
@@ -483,7 +518,7 @@ void main() {
       expect(request.method, 'GET');
       expect(request.url.toString(), 'http://example.test/rides/ride-001');
 
-      return http.Response(jsonEncode(backendRide(status: 'reserved')), 200);
+      return jsonResponse(backendRide(status: 'reserved'), 200);
     });
 
     final service = BackendRideRequestService(
@@ -548,14 +583,12 @@ void main() {
     'getRequestStatus parses meter fare independently from estimate and bonus',
     () async {
       final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode(
-            backendRide(
-              status: 'completed',
-              meterFareMinor: 520,
-              bonusDecision: 'accepted',
-              driverBonusMinor: 500,
-            ),
+        return jsonResponse(
+          backendRide(
+            status: 'completed',
+            meterFareMinor: 520,
+            bonusDecision: 'accepted',
+            driverBonusMinor: 500,
           ),
           200,
         );
@@ -585,8 +618,8 @@ void main() {
       final service = BackendRideRequestService(
         baseUrl: 'http://example.test',
         client: MockClient(
-          (request) async => http.Response(
-            jsonEncode(backendRide(status: 'completed', meterFareMinor: 0)),
+          (request) async => jsonResponse(
+            backendRide(status: 'completed', meterFareMinor: 0),
             200,
           ),
         ),
@@ -605,10 +638,8 @@ void main() {
       final service = BackendRideRequestService(
         baseUrl: 'http://example.test',
         client: MockClient(
-          (request) async => http.Response(
-            jsonEncode(
-              backendRide(status: 'completed', meterFareMinor: invalidFare),
-            ),
+          (request) async => jsonResponse(
+            backendRide(status: 'completed', meterFareMinor: invalidFare),
             200,
           ),
         ),
@@ -629,7 +660,7 @@ void main() {
         'http://example.test/rides/ride-001/cancel',
       );
 
-      return http.Response(jsonEncode(backendRide(status: 'cancelled')), 200);
+      return jsonResponse(backendRide(status: 'cancelled'), 200);
     });
 
     final service = BackendRideRequestService(
@@ -653,21 +684,16 @@ void main() {
         statusReadCount += 1;
 
         if (statusReadCount == 1) {
-          return http.Response(
-            jsonEncode(backendRide(status: 'waitingForVehicle')),
-            200,
-          );
+          return jsonResponse(backendRide(status: 'waitingForVehicle'), 200);
         }
 
-        return http.Response(
-          jsonEncode(
-            backendRide(
-              status: 'completed',
-              assignedDriverId: 'driver-001',
-              assignedVehicleId: 'vehicle-001',
-              completedByDriverId: 'driver-001',
-              completedAt: '2026-09-30T17:30:00.000Z',
-            ),
+        return jsonResponse(
+          backendRide(
+            status: 'completed',
+            assignedDriverId: 'driver-001',
+            assignedVehicleId: 'vehicle-001',
+            completedByDriverId: 'driver-001',
+            completedAt: '2026-09-30T17:30:00.000Z',
           ),
           200,
         );
@@ -723,7 +749,7 @@ void main() {
               ? 'waitingForVehicle'
               : 'completed';
 
-          return http.Response(jsonEncode(backendRide(status: status)), 200);
+          return jsonResponse(backendRide(status: status), 200);
         } finally {
           activeStatusRequests--;
         }
@@ -839,7 +865,7 @@ void main() {
           return http.Response('{}', statusCode);
         }
 
-        return http.Response(jsonEncode(backendRide(status: 'completed')), 200);
+        return jsonResponse(backendRide(status: 'completed'), 200);
       });
 
       final service = BackendRideRequestService(

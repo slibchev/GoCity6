@@ -131,6 +131,8 @@ void main() {
     final request = RideRequestData(
       clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
+      pickupLatitude: 42.75,
+      pickupLongitude: 23.40,
       destination: 'Destination',
       passengers: 1,
       paymentMethod: RidePaymentMethod.cash,
@@ -162,6 +164,8 @@ void main() {
     expect(storedRequest, isNotNull);
     expect(storedRequest!.requestId, 'recording-request-001');
     expect(storedRequest.status, RideRequestStatus.pending);
+    expect(storedRequest.pickupLatitude, 42.75);
+    expect(storedRequest.pickupLongitude, 23.40);
 
     expect(find.byType(RideConfirmationScreen), findsOneWidget);
 
@@ -170,6 +174,8 @@ void main() {
     );
 
     expect(confirmationScreen.activeRideStore, same(store));
+    expect(confirmationScreen.request.pickupLatitude, 42.75);
+    expect(confirmationScreen.request.pickupLongitude, 23.40);
   });
   testWidgets('RideSummaryScreen submits request before opening confirmation', (
     WidgetTester tester,
@@ -179,6 +185,8 @@ void main() {
     final request = RideRequestData(
       clientRequestId: '11111111-2222-4333-8444-555555555555',
       pickup: 'Pickup',
+      pickupLatitude: 42.75,
+      pickupLongitude: 23.40,
       destination: 'Destination',
       passengers: 1,
       paymentMethod: RidePaymentMethod.cash,
@@ -210,6 +218,8 @@ void main() {
     expect(service.submitCalled, isTrue);
 
     expect(service.submittedRequest, same(request));
+    expect(service.submittedRequest!.pickupLatitude, 42.75);
+    expect(service.submittedRequest!.pickupLongitude, 23.40);
 
     expect(find.byType(RideConfirmationScreen), findsOneWidget);
     final confirmationScreen = tester.widget<RideConfirmationScreen>(
@@ -217,6 +227,8 @@ void main() {
     );
 
     expect(confirmationScreen.request.requestId, 'recording-request-001');
+    expect(confirmationScreen.request.pickupLatitude, 42.75);
+    expect(confirmationScreen.request.pickupLongitude, 23.40);
   });
   testWidgets('RideSummaryScreen shows error when ride submission fails', (
     WidgetTester tester,

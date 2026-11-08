@@ -51,13 +51,19 @@ class BackendRideRequestService
 
   @override
   Future<RideRequestData> submitRequest(RideRequestData request) async {
-    if (!request.hasValidPickupCoordinatePair) {
+    final hasValidPickupCoordinates = request.hasValidPickupCoordinatePair;
+    if (RideRequestData.isCurrentLocationPickupLabel(request.pickup) &&
+        !hasValidPickupCoordinates) {
       throw ArgumentError.value(
         request,
         'request',
-        'Ride pickup requires a valid WGS84 coordinate pair.',
+        'Current-location pickup requires a valid WGS84 coordinate pair.',
       );
     }
+
+    final requestWithSafePickupCoordinates = hasValidPickupCoordinates
+        ? request
+        : request.copyWith(pickupLatitude: null, pickupLongitude: null);
 
     final response = await client
         .post(
@@ -65,8 +71,10 @@ class BackendRideRequestService
           headers: await _jsonHeaders(),
           body: jsonEncode({
             'pickup': request.pickup,
-            'pickupLatitude': request.pickupLatitude,
-            'pickupLongitude': request.pickupLongitude,
+            if (hasValidPickupCoordinates) ...{
+              'pickupLatitude': request.pickupLatitude,
+              'pickupLongitude': request.pickupLongitude,
+            },
             'destination': request.destination,
             'passengers': request.passengers,
             'hasLuggage': request.hasLuggage,
@@ -82,7 +90,10 @@ class BackendRideRequestService
       );
     }
 
-    return _mergeBackendRide(request, _decodeRide(response.bodyBytes));
+    return _mergeBackendRide(
+      requestWithSafePickupCoordinates,
+      _decodeRide(response.bodyBytes),
+    );
   }
 
   @override
