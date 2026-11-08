@@ -19,6 +19,8 @@ void main() {
       pickupLatitude: 42.6977,
       pickupLongitude: 23.3219,
       destination: 'Destination',
+      destinationLatitude: 42.7102,
+      destinationLongitude: 23.3302,
       passengers: 2,
       paymentMethod: RidePaymentMethod.card,
       rideType: RideType.city,
@@ -40,6 +42,9 @@ void main() {
     expect(acceptedRequest.hasValidPickupCoordinatePair, isTrue);
 
     expect(acceptedRequest.destination, request.destination);
+    expect(acceptedRequest.destinationLatitude, request.destinationLatitude);
+    expect(acceptedRequest.destinationLongitude, request.destinationLongitude);
+    expect(acceptedRequest.hasValidDestinationCoordinatePair, isTrue);
 
     expect(acceptedRequest.paymentMethod, request.paymentMethod);
 
@@ -62,5 +67,16 @@ void main() {
     expect(clearedPickupCoordinates.pickupLatitude, isNull);
     expect(clearedPickupCoordinates.pickupLongitude, isNull);
     expect(clearedPickupCoordinates.hasValidPickupCoordinatePair, isFalse);
+
+    final clearedDestinationCoordinates = request.copyWith(
+      destinationLatitude: null,
+      destinationLongitude: null,
+    );
+    expect(clearedDestinationCoordinates.destinationLatitude, isNull);
+    expect(clearedDestinationCoordinates.destinationLongitude, isNull);
+    expect(
+      clearedDestinationCoordinates.hasValidDestinationCoordinatePair,
+      isFalse,
+    );
   });
 }

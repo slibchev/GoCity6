@@ -134,6 +134,8 @@ void main() {
       pickupLatitude: 42.75,
       pickupLongitude: 23.40,
       destination: 'Destination',
+      destinationLatitude: 42.71,
+      destinationLongitude: 23.33,
       passengers: 1,
       paymentMethod: RidePaymentMethod.cash,
       rideType: RideType.city,
@@ -166,6 +168,8 @@ void main() {
     expect(storedRequest.status, RideRequestStatus.pending);
     expect(storedRequest.pickupLatitude, 42.75);
     expect(storedRequest.pickupLongitude, 23.40);
+    expect(storedRequest.destinationLatitude, 42.71);
+    expect(storedRequest.destinationLongitude, 23.33);
 
     expect(find.byType(RideConfirmationScreen), findsOneWidget);
 
@@ -176,6 +180,8 @@ void main() {
     expect(confirmationScreen.activeRideStore, same(store));
     expect(confirmationScreen.request.pickupLatitude, 42.75);
     expect(confirmationScreen.request.pickupLongitude, 23.40);
+    expect(confirmationScreen.request.destinationLatitude, 42.71);
+    expect(confirmationScreen.request.destinationLongitude, 23.33);
   });
   testWidgets('RideSummaryScreen submits request before opening confirmation', (
     WidgetTester tester,
@@ -188,6 +194,8 @@ void main() {
       pickupLatitude: 42.75,
       pickupLongitude: 23.40,
       destination: 'Destination',
+      destinationLatitude: 42.71,
+      destinationLongitude: 23.33,
       passengers: 1,
       paymentMethod: RidePaymentMethod.cash,
       rideType: RideType.city,
@@ -220,6 +228,8 @@ void main() {
     expect(service.submittedRequest, same(request));
     expect(service.submittedRequest!.pickupLatitude, 42.75);
     expect(service.submittedRequest!.pickupLongitude, 23.40);
+    expect(service.submittedRequest!.destinationLatitude, 42.71);
+    expect(service.submittedRequest!.destinationLongitude, 23.33);
 
     expect(find.byType(RideConfirmationScreen), findsOneWidget);
     final confirmationScreen = tester.widget<RideConfirmationScreen>(
@@ -229,6 +239,8 @@ void main() {
     expect(confirmationScreen.request.requestId, 'recording-request-001');
     expect(confirmationScreen.request.pickupLatitude, 42.75);
     expect(confirmationScreen.request.pickupLongitude, 23.40);
+    expect(confirmationScreen.request.destinationLatitude, 42.71);
+    expect(confirmationScreen.request.destinationLongitude, 23.33);
   });
   testWidgets('RideSummaryScreen shows error when ride submission fails', (
     WidgetTester tester,

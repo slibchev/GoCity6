@@ -26,6 +26,8 @@ class RideRequestData {
   final double? pickupLatitude;
   final double? pickupLongitude;
   final String destination;
+  final double? destinationLatitude;
+  final double? destinationLongitude;
   final int passengers;
   final bool hasLuggage;
 
@@ -56,6 +58,8 @@ class RideRequestData {
     this.pickupLatitude,
     this.pickupLongitude,
     required this.destination,
+    this.destinationLatitude,
+    this.destinationLongitude,
     required this.passengers,
     this.hasLuggage = false,
     required this.paymentMethod,
@@ -82,6 +86,11 @@ class RideRequestData {
       longitude >= -180 &&
       longitude <= 180;
 
+  static bool isValidDestinationCoordinatePair(
+    double? latitude,
+    double? longitude,
+  ) => isValidPickupCoordinatePair(latitude, longitude);
+
   static bool isCurrentLocationPickupLabel(String pickup) {
     final normalized = pickup.trim().toLowerCase();
     return normalized == 'моето местоположение' || normalized == 'my location';
@@ -89,6 +98,12 @@ class RideRequestData {
 
   bool get hasValidPickupCoordinatePair =>
       isValidPickupCoordinatePair(pickupLatitude, pickupLongitude);
+
+  bool get hasValidDestinationCoordinatePair =>
+      isValidDestinationCoordinatePair(
+        destinationLatitude,
+        destinationLongitude,
+      );
 
   RideRequestData copyWith({
     Object? requestId = _notProvided,
@@ -103,6 +118,8 @@ class RideRequestData {
     Object? pickupLatitude = _notProvided,
     Object? pickupLongitude = _notProvided,
     String? destination,
+    Object? destinationLatitude = _notProvided,
+    Object? destinationLongitude = _notProvided,
     int? passengers,
     bool? hasLuggage,
     RidePaymentMethod? paymentMethod,
@@ -144,6 +161,12 @@ class RideRequestData {
           ? this.pickupLongitude
           : pickupLongitude as double?,
       destination: destination ?? this.destination,
+      destinationLatitude: identical(destinationLatitude, _notProvided)
+          ? this.destinationLatitude
+          : destinationLatitude as double?,
+      destinationLongitude: identical(destinationLongitude, _notProvided)
+          ? this.destinationLongitude
+          : destinationLongitude as double?,
       passengers: passengers ?? this.passengers,
       hasLuggage: hasLuggage ?? this.hasLuggage,
       paymentMethod: paymentMethod ?? this.paymentMethod,

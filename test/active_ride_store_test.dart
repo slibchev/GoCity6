@@ -44,6 +44,8 @@ void main() {
       pickupLatitude: 42.6977,
       pickupLongitude: 23.3219,
       destination: 'Destination',
+      destinationLatitude: 42.7123,
+      destinationLongitude: 23.3345,
       passengers: 2,
       hasLuggage: true,
       paymentMethod: RidePaymentMethod.card,
@@ -91,6 +93,9 @@ void main() {
     expect(loaded.pickupLatitude, request.pickupLatitude);
     expect(loaded.pickupLongitude, request.pickupLongitude);
     expect(loaded.destination, request.destination);
+    expect(loaded.destinationLatitude, request.destinationLatitude);
+    expect(loaded.destinationLongitude, request.destinationLongitude);
+    expect(loaded.hasValidDestinationCoordinatePair, isTrue);
     expect(loaded.passengers, request.passengers);
     expect(loaded.hasLuggage, request.hasLuggage);
     expect(loaded.paymentMethod, request.paymentMethod);
@@ -156,8 +161,30 @@ void main() {
       expect(loaded?.meterFareMinor, isNull);
       expect(loaded?.pickupLatitude, isNull);
       expect(loaded?.pickupLongitude, isNull);
+      expect(loaded?.destinationLatitude, isNull);
+      expect(loaded?.destinationLongitude, isNull);
     },
   );
+
+  test('ignores an incomplete stored destination coordinate pair', () async {
+    SharedPreferences.setMockInitialValues({
+      'activeRide':
+          '{"requestId":"ride-destination-coordinates",'
+          '"pickup":"Pickup","destination":"Destination",'
+          '"destinationLatitude":42.6977,"passengers":1,'
+          '"hasLuggage":false,"paymentMethod":"cash",'
+          '"rideType":"city","requestedAt":"2026-10-02T16:00:00.000",'
+          '"status":"pending"}',
+    });
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final loaded = store.load();
+
+    expect(loaded, isNotNull);
+    expect(loaded!.destinationLatitude, isNull);
+    expect(loaded.destinationLongitude, isNull);
+  });
 
   test('ignores an incomplete stored pickup coordinate pair', () async {
     SharedPreferences.setMockInitialValues({

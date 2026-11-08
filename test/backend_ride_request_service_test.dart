@@ -18,6 +18,8 @@ void main() {
     String pickup = 'Pickup',
     double? pickupLatitude = 42.6977,
     double? pickupLongitude = 23.3219,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) {
     return RideRequestData(
       requestId: requestId,
@@ -26,6 +28,8 @@ void main() {
       pickupLatitude: pickupLatitude,
       pickupLongitude: pickupLongitude,
       destination: 'Destination',
+      destinationLatitude: destinationLatitude,
+      destinationLongitude: destinationLongitude,
       passengers: 2,
       hasLuggage: true,
       paymentMethod: RidePaymentMethod.card,
@@ -109,6 +113,8 @@ void main() {
         pickup: 'Selected Places address',
         pickupLatitude: 42.75,
         pickupLongitude: 23.40,
+        destinationLatitude: 42.71,
+        destinationLongitude: 23.33,
       );
 
       final result = await service.submitRequest(local);
@@ -118,6 +124,8 @@ void main() {
         'pickupLatitude': 42.75,
         'pickupLongitude': 23.40,
         'destination': 'Destination',
+        'destinationLatitude': 42.71,
+        'destinationLongitude': 23.33,
         'passengers': 2,
         'hasLuggage': true,
         'clientRequestId': '11111111-2222-4333-8444-555555555555',
@@ -132,6 +140,8 @@ void main() {
 
       expect(result.paymentMethod, RidePaymentMethod.card);
       expect(result.rideType, RideType.city);
+      expect(result.destinationLatitude, 42.71);
+      expect(result.destinationLongitude, 23.33);
       expect(result.routeResult, same(local.routeResult));
       expect(result.estimatedPrice, 12.50);
     },
@@ -352,6 +362,43 @@ void main() {
     },
   );
 
+  test(
+    'submitRequest omits missing or invalid destination coordinates together',
+    () async {
+      final sentBodies = <Map<String, dynamic>>[];
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          sentBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return jsonResponse(backendRide(), 201);
+        }),
+      );
+
+      final requests = [
+        createRequest(),
+        createRequest(destinationLatitude: 42.71),
+        createRequest(destinationLongitude: 23.33),
+        createRequest(destinationLatitude: 91, destinationLongitude: 23.33),
+        createRequest(
+          destinationLatitude: 42.71,
+          destinationLongitude: double.nan,
+        ),
+      ];
+
+      for (final request in requests) {
+        final submitted = await service.submitRequest(request);
+        expect(submitted.destinationLatitude, isNull);
+        expect(submitted.destinationLongitude, isNull);
+      }
+
+      expect(sentBodies, hasLength(requests.length));
+      for (final body in sentBodies) {
+        expect(body, isNot(contains('destinationLatitude')));
+        expect(body, isNot(contains('destinationLongitude')));
+      }
+    },
+  );
+
   test('retry after timeout preserves client request ID', () async {
     final sentBodies = <Map<String, dynamic>>[];
     var callCount = 0;
@@ -380,6 +427,8 @@ void main() {
       pickup: 'Selected manual address',
       pickupLatitude: 42.6977,
       pickupLongitude: 23.3219,
+      destinationLatitude: 42.71,
+      destinationLongitude: 23.33,
     );
 
     await expectLater(
@@ -403,10 +452,20 @@ void main() {
         [42.6977, 23.3219],
       ],
     );
+    expect(sentBodies.map((body) => body['destinationLatitude']), [
+      42.71,
+      42.71,
+    ]);
+    expect(sentBodies.map((body) => body['destinationLongitude']), [
+      23.33,
+      23.33,
+    ]);
     expect(recovered.requestId, 'ride-001');
     expect(recovered.status, RideRequestStatus.pending);
     expect(recovered.pickupLatitude, 42.6977);
     expect(recovered.pickupLongitude, 23.3219);
+    expect(recovered.destinationLatitude, 42.71);
+    expect(recovered.destinationLongitude, 23.33);
   });
   test('reads awaiting customer bonus decision from backend', () async {
     final client = MockClient((request) async {

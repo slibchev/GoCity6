@@ -309,11 +309,16 @@ class RecordingCoordinateRouteService implements RouteService {
   RecordingCoordinateRouteService({
     this.routeResultPickupLatitude = 42.75,
     this.routeResultPickupLongitude = 23.40,
+    this.routeResultDestinationLatitude,
+    this.routeResultDestinationLongitude,
   });
 
   final double? routeResultPickupLatitude;
   final double? routeResultPickupLongitude;
+  final double? routeResultDestinationLatitude;
+  final double? routeResultDestinationLongitude;
   String? selectedPickupPlaceId;
+  String? selectedDestination;
   double? pickupLatitude;
   double? pickupLongitude;
 
@@ -327,6 +332,7 @@ class RecordingCoordinateRouteService implements RouteService {
     double? pickupLongitude,
   }) async {
     selectedPickupPlaceId = pickupPlaceId;
+    selectedDestination = destination;
     this.pickupLatitude = pickupLatitude;
     this.pickupLongitude = pickupLongitude;
     return RouteResult(
@@ -334,6 +340,39 @@ class RecordingCoordinateRouteService implements RouteService {
       durationMinutes: 25,
       pickupLatitude: routeResultPickupLatitude,
       pickupLongitude: routeResultPickupLongitude,
+      destinationLatitude: routeResultDestinationLatitude,
+      destinationLongitude: routeResultDestinationLongitude,
+    );
+  }
+}
+
+class PendingThenFreshDestinationRouteService implements RouteService {
+  final Completer<RouteResult> firstRoute = Completer<RouteResult>();
+  final List<String> requestedDestinations = [];
+
+  @override
+  Future<RouteResult> calculateRoute({
+    required String pickup,
+    required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
+  }) {
+    requestedDestinations.add(destination);
+    if (requestedDestinations.length == 1) {
+      return firstRoute.future;
+    }
+
+    return Future.value(
+      const RouteResult(
+        distanceKm: 9,
+        durationMinutes: 18,
+        pickupLatitude: 42.70,
+        pickupLongitude: 23.32,
+        destinationLatitude: 42.81,
+        destinationLongitude: 23.41,
+      ),
     );
   }
 }
@@ -799,6 +838,173 @@ void main() {
       isNot(summary.routeResult?.pickupLongitude),
     );
   });
+
+  testWidgets('destination coordinates from route reach ride summary', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingCoordinateRouteService(
+      routeResultDestinationLatitude: 42.7123,
+      routeResultDestinationLongitude: 23.3345,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await enableManualPickup(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.destination, 'Sofia Airport');
+    expect(summary.request.destinationLatitude, 42.7123);
+    expect(summary.request.destinationLongitude, 23.3345);
+    expect(summary.request.hasValidDestinationCoordinatePair, isTrue);
+    expect(summary.routeResult?.destinationLatitude, 42.7123);
+    expect(summary.routeResult?.destinationLongitude, 23.3345);
+    expect(routeService.selectedDestination, 'Sofia Airport');
+  });
+
+  testWidgets('missing destination route coordinates stay absent', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingCoordinateRouteService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await enableManualPickup(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.destinationLatitude, isNull);
+    expect(summary.request.destinationLongitude, isNull);
+    expect(summary.routeResult?.destinationLatitude, isNull);
+    expect(summary.routeResult?.destinationLongitude, isNull);
+  });
+
+  testWidgets('invalid destination route coordinates are discarded together', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingCoordinateRouteService(
+      routeResultDestinationLatitude: 91,
+      routeResultDestinationLongitude: 23.3345,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await enableManualPickup(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+    await tester.enterText(find.byType(TextField).at(1), 'Sofia Airport');
+
+    final confirmButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
+    );
+    confirmButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(summary.request.destinationLatitude, isNull);
+    expect(summary.request.destinationLongitude, isNull);
+    expect(summary.routeResult?.destinationLatitude, isNull);
+    expect(summary.routeResult?.destinationLongitude, isNull);
+  });
+
+  testWidgets(
+    'destination change during route calculation discards the stale result',
+    (WidgetTester tester) async {
+      final routeService = PendingThenFreshDestinationRouteService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await enableManualPickup(tester);
+      await tester.enterText(find.byType(TextField).at(0), 'Manual pickup');
+      await tester.enterText(find.byType(TextField).at(1), 'Old destination');
+
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed!();
+      await tester.pump();
+      expect(routeService.requestedDestinations, ['Old destination']);
+
+      await tester.enterText(find.byType(TextField).at(1), 'New destination');
+      await tester.pump();
+      routeService.firstRoute.complete(
+        const RouteResult(
+          distanceKm: 12,
+          durationMinutes: 24,
+          pickupLatitude: 42.70,
+          pickupLongitude: 23.32,
+          destinationLatitude: 42.75,
+          destinationLongitude: 23.40,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RideSummaryScreen), findsNothing);
+      expect(routeService.requestedDestinations, ['Old destination']);
+
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed!();
+      await tester.pumpAndSettle();
+
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(routeService.requestedDestinations, [
+        'Old destination',
+        'New destination',
+      ]);
+      expect(summary.request.destination, 'New destination');
+      expect(summary.request.destinationLatitude, 42.81);
+      expect(summary.request.destinationLongitude, 23.41);
+    },
+  );
 
   testWidgets(
     'English My location label retains the selected GPS coordinates',

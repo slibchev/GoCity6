@@ -77,6 +77,8 @@ class ActiveRideStore {
       'pickupLatitude': request.pickupLatitude,
       'pickupLongitude': request.pickupLongitude,
       'destination': request.destination,
+      'destinationLatitude': request.destinationLatitude,
+      'destinationLongitude': request.destinationLongitude,
       'passengers': request.passengers,
       'hasLuggage': request.hasLuggage,
       'paymentMethod': request.paymentMethod.name,
@@ -104,6 +106,10 @@ class ActiveRideStore {
     final pickupLongitude = _validLongitude(json['pickupLongitude']);
     final hasValidPickupCoordinates =
         pickupLatitude != null && pickupLongitude != null;
+    final destinationLatitude = _validLatitude(json['destinationLatitude']);
+    final destinationLongitude = _validLongitude(json['destinationLongitude']);
+    final hasValidDestinationCoordinates =
+        destinationLatitude != null && destinationLongitude != null;
 
     if (pickup is! String ||
         destination is! String ||
@@ -164,6 +170,12 @@ class ActiveRideStore {
       pickupLatitude: hasValidPickupCoordinates ? pickupLatitude : null,
       pickupLongitude: hasValidPickupCoordinates ? pickupLongitude : null,
       destination: destination,
+      destinationLatitude: hasValidDestinationCoordinates
+          ? destinationLatitude
+          : null,
+      destinationLongitude: hasValidDestinationCoordinates
+          ? destinationLongitude
+          : null,
       passengers: passengers,
       hasLuggage: hasLuggage,
       paymentMethod: RidePaymentMethod.values.byName(paymentMethod),

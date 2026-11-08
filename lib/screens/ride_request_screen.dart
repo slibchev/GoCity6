@@ -895,6 +895,11 @@ class _RideRequestScreenState extends State<RideRequestScreen>
         return;
       }
 
+      if (destinationController.text.trim() != destination ||
+          selectedDestinationPlaceId != destinationPlaceId) {
+        return;
+      }
+
       final routeHasValidPickupCoordinates =
           RideRequestData.isValidPickupCoordinatePair(
             routeResult.pickupLatitude,
@@ -910,10 +915,26 @@ class _RideRequestScreenState extends State<RideRequestScreen>
           : routeHasValidPickupCoordinates
           ? routeResult.pickupLongitude
           : null;
+      final routeHasValidDestinationCoordinates =
+          RideRequestData.isValidDestinationCoordinatePair(
+            routeResult.destinationLatitude,
+            routeResult.destinationLongitude,
+          );
+      final resolvedDestinationLatitude = routeHasValidDestinationCoordinates
+          ? routeResult.destinationLatitude
+          : null;
+      final resolvedDestinationLongitude = routeHasValidDestinationCoordinates
+          ? routeResult.destinationLongitude
+          : null;
 
-      final routeResultForRequest = _withValidPickupCoordinatesOrNull(
-        routeResult,
-        routeHasValidPickupCoordinates,
+      final routeResultWithSafePickupCoordinates =
+          _withValidPickupCoordinatesOrNull(
+            routeResult,
+            routeHasValidPickupCoordinates,
+          );
+      final routeResultForRequest = _withValidDestinationCoordinatesOrNull(
+        routeResultWithSafePickupCoordinates,
+        routeHasValidDestinationCoordinates,
       );
 
       if (!isCurrentLocationPickup) {
@@ -937,6 +958,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
         pickupLatitude: resolvedPickupLatitude,
         pickupLongitude: resolvedPickupLongitude,
         destination: destination,
+        destinationLatitude: resolvedDestinationLatitude,
+        destinationLongitude: resolvedDestinationLongitude,
         passengers: passengers,
         hasLuggage: hasLuggage,
         paymentMethod: paymentMethod,
@@ -982,6 +1005,25 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       durationMinutes: routeResult.durationMinutes,
       destinationLatitude: routeResult.destinationLatitude,
       destinationLongitude: routeResult.destinationLongitude,
+      encodedPolyline: routeResult.encodedPolyline,
+    );
+  }
+
+  RouteResult _withValidDestinationCoordinatesOrNull(
+    RouteResult routeResult,
+    bool hasValidDestinationCoordinates,
+  ) {
+    if (hasValidDestinationCoordinates ||
+        (routeResult.destinationLatitude == null &&
+            routeResult.destinationLongitude == null)) {
+      return routeResult;
+    }
+
+    return RouteResult(
+      distanceKm: routeResult.distanceKm,
+      durationMinutes: routeResult.durationMinutes,
+      pickupLatitude: routeResult.pickupLatitude,
+      pickupLongitude: routeResult.pickupLongitude,
       encodedPolyline: routeResult.encodedPolyline,
     );
   }
