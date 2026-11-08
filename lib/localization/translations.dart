@@ -236,17 +236,17 @@ class AppTranslations {
 
   static String get rideAccepted {
     if (currentLanguage == AppLanguage.english) {
-      return 'Ride request accepted!';
+      return 'Your ride request has been accepted.';
     }
-    return 'Заявката е приета успешно!';
+    return 'Поръчката Ви е приета.';
   }
 
   static String get rideAcceptedMessage {
     if (currentLanguage == AppLanguage.english) {
-      return 'The driver accepted your request';
+      return 'The driver is finishing the current ride and will head your way afterwards.';
     }
 
-    return 'Шофьорът прие заявката ви';
+    return 'Шофьорът довършва текущия курс и след това ще тръгне към Вас.';
   }
 
   static String get acceptedRideTitle {

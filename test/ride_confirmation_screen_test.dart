@@ -614,6 +614,196 @@ void main() {
     expect(find.text(AppTranslations.acceptedRideTitle), findsOneWidget);
     expect(find.text(AppTranslations.acceptedRideMessage), findsOneWidget);
   });
+
+  testWidgets('reserved status shows Bulgarian queue message only', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.reserved,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Поръчката Ви е приета.'), findsOneWidget);
+    expect(
+      find.text(
+        'Шофьорът довършва текущия курс и след това ще тръгне към Вас.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(AppTranslations.acceptedRideTitle), findsNothing);
+    expect(find.text(AppTranslations.acceptedRideMessage), findsNothing);
+  });
+
+  testWidgets('reserved status shows English queue message only', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    AppTranslations.currentLanguage = AppLanguage.english;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.reserved,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your ride request has been accepted.'), findsOneWidget);
+    expect(
+      find.text(
+        'The driver is finishing the current ride and will head your way afterwards.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(AppTranslations.acceptedRideTitle), findsNothing);
+    expect(find.text(AppTranslations.acceptedRideMessage), findsNothing);
+  });
+
+  testWidgets('accepted status keeps the Bulgarian in-progress message', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.accepted,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Поръчката Ви е приета успешно'), findsOneWidget);
+    expect(find.text('Шофьорът пътува към Вас'), findsOneWidget);
+    expect(find.text('Поръчката Ви е приета.'), findsNothing);
+    expect(
+      find.text(
+        'Шофьорът довършва текущия курс и след това ще тръгне към Вас.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('accepted status keeps the English in-progress message', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    AppTranslations.currentLanguage = AppLanguage.english;
+    addTearDown(() {
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    });
+    final request = RideRequestData(
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 1, 1, 10, 0),
+      status: RideRequestStatus.accepted,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: RideConfirmationScreen(request: request)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Your ride request was accepted successfully'),
+      findsOneWidget,
+    );
+    expect(find.text('The driver is on the way to you'), findsOneWidget);
+    expect(find.text('Your ride request has been accepted.'), findsNothing);
+    expect(
+      find.text(
+        'The driver is finishing the current ride and will head your way afterwards.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'reserved to accepted stream replaces the message without duplicates',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+      addTearDown(() {
+        AppTranslations.currentLanguage = AppLanguage.bulgarian;
+      });
+      final request = RideRequestData(
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 1, 1, 10, 0),
+        status: RideRequestStatus.reserved,
+      );
+      final service = ControlledRideRequestService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+            rideRequestService: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      const reservedTitle = 'Поръчката Ви е приета.';
+      const reservedMessage =
+          'Шофьорът довършва текущия курс и след това ще тръгне към Вас.';
+      const acceptedTitle = 'Поръчката Ви е приета успешно';
+      const acceptedMessage = 'Шофьорът пътува към Вас';
+      expect(find.text(reservedTitle), findsOneWidget);
+      expect(find.text(reservedMessage), findsOneWidget);
+      expect(find.text(acceptedTitle), findsNothing);
+      expect(find.text(acceptedMessage), findsNothing);
+
+      service.publish(request.copyWith(status: RideRequestStatus.accepted));
+      await tester.pumpAndSettle();
+
+      expect(find.text(acceptedTitle), findsOneWidget);
+      expect(find.text(acceptedMessage), findsOneWidget);
+      expect(find.text(reservedTitle), findsNothing);
+      expect(find.text(reservedMessage), findsNothing);
+      expect(service.watchCallCount, 1);
+    },
+  );
+
   testWidgets('RideConfirmationScreen shows driver info when accepted', (
     WidgetTester tester,
   ) async {
