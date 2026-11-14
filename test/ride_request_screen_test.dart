@@ -286,6 +286,35 @@ class FailingRouteService implements RouteService {
   }
 }
 
+class TimeoutThenLateRouteService implements RouteService {
+  TimeoutThenLateRouteService({
+    this.timeout = const Duration(milliseconds: 30),
+  });
+
+  final Duration timeout;
+  final Completer<RouteResult> firstResponse = Completer<RouteResult>();
+  int callCount = 0;
+
+  @override
+  Future<RouteResult> calculateRoute({
+    required String pickup,
+    required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
+  }) {
+    callCount++;
+    if (callCount == 1) {
+      return firstResponse.future.timeout(timeout);
+    }
+
+    return Future.value(
+      const RouteResult(distanceKm: 12.5, durationMinutes: 25),
+    );
+  }
+}
+
 class SuccessfulRouteService implements RouteService {
   @override
   Future<RouteResult> calculateRoute({
@@ -1400,6 +1429,58 @@ void main() {
 
     expect(buttonAfterError.onPressed, isNotNull);
   });
+
+  testWidgets(
+    'route timeout restores the order button, allows retry, and ignores late response',
+    (WidgetTester tester) async {
+      final routeService = TimeoutThenLateRouteService();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await enableManualPickup(tester);
+
+      final textFields = find.byType(TextField);
+      await tester.enterText(textFields.at(0), 'Pickup location');
+      await tester.enterText(textFields.at(1), 'Destination location');
+
+      final orderButton = find.widgetWithText(
+        ElevatedButton,
+        AppTranslations.placeOrder,
+      );
+      await tester.tap(orderButton);
+      await tester.pump();
+      expect(tester.widget<ElevatedButton>(orderButton).onPressed, isNull);
+
+      await tester.pump(const Duration(milliseconds: 31));
+      await tester.pump();
+
+      expect(find.text(AppTranslations.routeCalculationFailed), findsOneWidget);
+      expect(tester.widget<ElevatedButton>(orderButton).onPressed, isNotNull);
+      expect(find.byType(RideSummaryScreen), findsNothing);
+      expect(routeService.callCount, 1);
+
+      routeService.firstResponse.complete(
+        const RouteResult(distanceKm: 12.5, durationMinutes: 25),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RideSummaryScreen), findsNothing);
+
+      await tester.tap(orderButton);
+      await tester.pumpAndSettle();
+
+      expect(routeService.callCount, 2);
+      expect(find.byType(RideSummaryScreen), findsOneWidget);
+    },
+  );
+
   testWidgets('RideRequestScreen passes route result to RideSummaryScreen', (
     WidgetTester tester,
   ) async {

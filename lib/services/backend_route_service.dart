@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -8,8 +9,14 @@ import '../config/backend_config.dart';
 
 class BackendRouteService implements RouteService {
   final String? baseUrl;
+  final http.Client? client;
+  final Duration timeout;
 
-  const BackendRouteService({this.baseUrl});
+  const BackendRouteService({
+    this.baseUrl,
+    this.client,
+    this.timeout = const Duration(seconds: 15),
+  });
 
   String get _baseUrl => baseUrl ?? BackendConfig.baseUrl;
 
@@ -22,19 +29,48 @@ class BackendRouteService implements RouteService {
     double? pickupLatitude,
     double? pickupLongitude,
   }) async {
-    final response = await http.post(
-      Uri.parse('${_baseUrl}/route'),
-      headers: {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode({
-        'pickup': pickup,
-        'destination': destination,
-        if (pickupLatitude != null) 'pickupLatitude': pickupLatitude,
-        if (pickupLongitude != null) 'pickupLongitude': pickupLongitude,
-        if (pickupPlaceId != null) 'pickupPlaceId': pickupPlaceId,
-        if (destinationPlaceId != null)
-          'destinationPlaceId': destinationPlaceId,
-      }),
-    );
+    final requestClient = client ?? http.Client();
+    final shouldCloseClient = client == null;
+    final abortTrigger = Completer<void>();
+    final request =
+        http.AbortableRequest(
+            'POST',
+            Uri.parse('${_baseUrl}/route'),
+            abortTrigger: abortTrigger.future,
+          )
+          ..headers['Content-Type'] = 'application/json; charset=utf-8'
+          ..body = jsonEncode({
+            'pickup': pickup,
+            'destination': destination,
+            if (pickupLatitude != null) 'pickupLatitude': pickupLatitude,
+            if (pickupLongitude != null) 'pickupLongitude': pickupLongitude,
+            if (pickupPlaceId != null) 'pickupPlaceId': pickupPlaceId,
+            if (destinationPlaceId != null)
+              'destinationPlaceId': destinationPlaceId,
+          });
+
+    late final http.Response response;
+    try {
+      response = await requestClient
+          .send(request)
+          .then(http.Response.fromStream)
+          .timeout(
+            timeout,
+            onTimeout: () {
+              if (!abortTrigger.isCompleted) {
+                abortTrigger.complete();
+              }
+              throw TimeoutException(
+                'Route calculation exceeded ${timeout.inSeconds} seconds.',
+                timeout,
+              );
+            },
+          );
+    } finally {
+      if (shouldCloseClient) {
+        requestClient.close();
+      }
+    }
 
     if (response.statusCode != 200) {
       throw Exception(
