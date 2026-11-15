@@ -7,11 +7,13 @@ import 'localization/app_language.dart';
 import 'localization/translations.dart';
 import 'models/passenger_session.dart';
 import 'screens/city6_intro_screen.dart';
+import 'screens/language_screen.dart';
 import 'screens/passenger_login_screen.dart';
 import 'services/active_ride_store.dart';
 import 'services/backend_ride_request_service.dart';
 import 'services/passenger_auth_service.dart';
 import 'services/ride_request_service.dart';
+import 'widgets/language_selector.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +23,7 @@ Future<void> main() async {
 
   if (savedLanguage == 'english') {
     AppTranslations.currentLanguage = AppLanguage.english;
-  } else if (savedLanguage == 'bulgarian') {
+  } else {
     AppTranslations.currentLanguage = AppLanguage.bulgarian;
   }
 
@@ -57,6 +59,17 @@ class _TaxiAppState extends State<TaxiApp> {
   PassengerSession? _session;
   PassengerAuthException? _sessionRestoreError;
   bool _isCheckingSession = true;
+  bool _needsLanguageSelection = false;
+  final LanguageSaveQueue _languageSaveQueue = LanguageSaveQueue();
+
+  bool _hasKnownLanguage(String? value) =>
+      value == 'english' || value == 'bulgarian';
+
+  AppLanguage _parseLanguage(String? value) =>
+      value == 'english' ? AppLanguage.english : AppLanguage.bulgarian;
+
+  String _languagePreferenceValue(AppLanguage language) =>
+      language == AppLanguage.english ? 'english' : 'bulgarian';
 
   @override
   void initState() {
@@ -82,11 +95,28 @@ class _TaxiAppState extends State<TaxiApp> {
     }
 
     try {
+      final preferences = await _preferencesFuture;
+      _preferences = preferences;
+      final savedLanguage = preferences.getString('language');
+      AppTranslations.currentLanguage = _parseLanguage(savedLanguage);
+
       final restoredSession = await _authService.restoreSession();
       if (!mounted) return;
+
+      if (restoredSession != null && !_hasKnownLanguage(savedLanguage)) {
+        try {
+          await preferences.setString('language', 'bulgarian');
+        } catch (_) {
+          // Existing authenticated installs keep the safe Bulgarian default.
+        }
+      }
+      if (!mounted) return;
+
       setState(() {
         _session = restoredSession;
         _sessionRestoreError = null;
+        _needsLanguageSelection =
+            restoredSession == null && !_hasKnownLanguage(savedLanguage);
         _isCheckingSession = false;
       });
     } on PassengerAuthException catch (error) {
@@ -94,6 +124,7 @@ class _TaxiAppState extends State<TaxiApp> {
       setState(() {
         _session = null;
         _sessionRestoreError = error;
+        _needsLanguageSelection = false;
         _isCheckingSession = false;
       });
     } catch (_) {
@@ -103,8 +134,35 @@ class _TaxiAppState extends State<TaxiApp> {
         _sessionRestoreError = const PassengerAuthException(
           PassengerAuthFailure.invalidResponse,
         );
+        _needsLanguageSelection = false;
         _isCheckingSession = false;
       });
+    }
+  }
+
+  Future<bool> _saveLanguage(AppLanguage language) =>
+      _languageSaveQueue.run(() => _persistLanguage(language));
+
+  Future<bool> _persistLanguage(AppLanguage language) async {
+    try {
+      final preferences = await _preferencesFuture;
+      final saved = await preferences.setString(
+        'language',
+        _languagePreferenceValue(language),
+      );
+      if (!saved) return false;
+
+      AppTranslations.currentLanguage = language;
+      if (mounted) {
+        setState(() {
+          if (_session == null && _sessionRestoreError == null) {
+            _needsLanguageSelection = false;
+          }
+        });
+      }
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -113,6 +171,7 @@ class _TaxiAppState extends State<TaxiApp> {
     setState(() {
       _session = session;
       _sessionRestoreError = null;
+      _needsLanguageSelection = false;
     });
   }
 
@@ -152,12 +211,15 @@ class _TaxiAppState extends State<TaxiApp> {
       home: _isCheckingSession
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : session == null
-          ? PassengerLoginScreen(
-              authService: _authService,
-              onAuthenticated: _onAuthenticated,
-              sessionCheckMessage: _sessionErrorMessage,
-              onRetrySessionCheck: _restoreSession,
-            )
+          ? _needsLanguageSelection
+                ? LanguageScreen(onLanguageSelected: _saveLanguage)
+                : PassengerLoginScreen(
+                    authService: _authService,
+                    onAuthenticated: _onAuthenticated,
+                    onLanguageSelected: _saveLanguage,
+                    sessionCheckMessage: _sessionErrorMessage,
+                    onRetrySessionCheck: _restoreSession,
+                  )
           : FutureBuilder<SharedPreferences>(
               future: _preferencesFuture,
               builder: (context, snapshot) {
@@ -182,6 +244,7 @@ class _TaxiAppState extends State<TaxiApp> {
                   rideRequestService: _rideRequestService,
                   passengerId: session.passengerId,
                   onLogout: _logout,
+                  onLanguageSelected: _saveLanguage,
                   skipIntroAnimation: widget.skipIntroAnimation,
                 );
               },

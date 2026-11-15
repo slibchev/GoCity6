@@ -23,6 +23,7 @@ import '../services/favorites_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/active_ride_store.dart';
+import '../widgets/language_selector.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
@@ -31,6 +32,7 @@ class RideRequestScreen extends StatefulWidget {
   final ActiveRideStore? activeRideStore;
   final FavoritesService? favoritesService;
   final String? passengerId;
+  final SaveAppLanguage? onLanguageSelected;
   final DateTime Function() now;
   final bool mapIsActive;
 
@@ -42,6 +44,7 @@ class RideRequestScreen extends StatefulWidget {
     this.activeRideStore,
     this.favoritesService,
     this.passengerId,
+    this.onLanguageSelected,
     DateTime Function()? now,
     this.mapIsActive = true,
   }) : routeService = routeService ?? const BackendRouteService(),
@@ -54,7 +57,7 @@ class RideRequestScreen extends StatefulWidget {
 }
 
 class _RideRequestScreenState extends State<RideRequestScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, AppLanguageAwareState<RideRequestScreen> {
   int passengers = 1;
   bool hasLuggage = false;
   bool _isManualPickupEntry = false;
@@ -1038,6 +1041,7 @@ class _RideRequestScreenState extends State<RideRequestScreen>
             request: request,
             rideRequestService: widget.rideRequestService,
             activeRideStore: widget.activeRideStore,
+            onLanguageSelected: widget.onLanguageSelected,
           ),
         ),
       );

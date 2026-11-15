@@ -1,7 +1,16 @@
 import 'app_language.dart';
+import 'package:flutter/foundation.dart';
 
 class AppTranslations {
-  static AppLanguage currentLanguage = AppLanguage.bulgarian;
+  static final ValueNotifier<AppLanguage> languageNotifier = ValueNotifier(
+    AppLanguage.bulgarian,
+  );
+
+  static AppLanguage get currentLanguage => languageNotifier.value;
+
+  static set currentLanguage(AppLanguage language) {
+    languageNotifier.value = language;
+  }
 
   static String get chooseLanguage {
     if (currentLanguage == AppLanguage.english) {
@@ -9,6 +18,13 @@ class AppTranslations {
     }
     return 'Избери език';
   }
+
+  static String get favorites =>
+      currentLanguage == AppLanguage.english ? 'Favorites' : 'Любими';
+
+  static String get languageSaveError => currentLanguage == AppLanguage.english
+      ? 'Could not save the language. Please try again.'
+      : 'Езикът не беше запазен. Опитайте отново.';
 
   static String get english {
     return 'English';

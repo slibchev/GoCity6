@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_language.dart';
 import '../localization/translations.dart';
 import '../models/passenger_session.dart';
 import '../services/passenger_auth_service.dart';
+import '../widgets/language_selector.dart';
 
 class PassengerLoginScreen extends StatefulWidget {
   final PassengerAuthService authService;
   final Future<void> Function(PassengerSession session) onAuthenticated;
+  final SaveAppLanguage? onLanguageSelected;
   final String? sessionCheckMessage;
   final Future<void> Function()? onRetrySessionCheck;
 
@@ -14,6 +17,7 @@ class PassengerLoginScreen extends StatefulWidget {
     super.key,
     required this.authService,
     required this.onAuthenticated,
+    this.onLanguageSelected,
     this.sessionCheckMessage,
     this.onRetrySessionCheck,
   });
@@ -22,7 +26,8 @@ class PassengerLoginScreen extends StatefulWidget {
   State<PassengerLoginScreen> createState() => _PassengerLoginScreenState();
 }
 
-class _PassengerLoginScreenState extends State<PassengerLoginScreen> {
+class _PassengerLoginScreenState extends State<PassengerLoginScreen>
+    with AppLanguageAwareState<PassengerLoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isSigningIn = false;
@@ -82,6 +87,17 @@ class _PassengerLoginScreenState extends State<PassengerLoginScreen> {
     }
   }
 
+  Future<bool> _changeLanguage(AppLanguage language) async {
+    final save = widget.onLanguageSelected;
+    if (save == null) return false;
+    final saved = await save(language);
+    if (!mounted) return saved;
+    if (saved) {
+      setState(() => _errorMessage = null);
+    }
+    return saved;
+  }
+
   String _messageFor(PassengerAuthFailure failure) {
     return switch (failure) {
       PassengerAuthFailure.invalidCredentials =>
@@ -109,6 +125,23 @@ class _PassengerLoginScreenState extends State<PassengerLoginScreen> {
             fit: BoxFit.cover,
           ),
           Container(color: const Color(0x99081A2B)),
+          if (widget.onLanguageSelected != null)
+            Positioned(
+              top: 8,
+              right: 12,
+              child: SafeArea(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0x9907192A),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: LanguageSelectorButton(
+                    onLanguageSelected: _changeLanguage,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(

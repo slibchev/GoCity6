@@ -11,6 +11,7 @@ import '../models/ride_request_status.dart';
 import '../services/ride_request_service.dart';
 import '../services/ride_bonus_decision_service.dart';
 import '../services/active_ride_store.dart';
+import '../widgets/language_selector.dart';
 
 typedef PhoneLauncher = Future<bool> Function(Uri uri);
 
@@ -18,6 +19,7 @@ class RideConfirmationScreen extends StatefulWidget {
   final RideRequestData request;
   final RideRequestService? rideRequestService;
   final ActiveRideStore? activeRideStore;
+  final SaveAppLanguage? onLanguageSelected;
   final PhoneLauncher? phoneLauncher;
 
   const RideConfirmationScreen({
@@ -25,6 +27,7 @@ class RideConfirmationScreen extends StatefulWidget {
     required this.request,
     this.rideRequestService,
     this.activeRideStore,
+    this.onLanguageSelected,
     this.phoneLauncher,
   });
 
@@ -33,7 +36,10 @@ class RideConfirmationScreen extends StatefulWidget {
 }
 
 class _RideConfirmationScreenState extends State<RideConfirmationScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        AppLanguageAwareState<RideConfirmationScreen> {
   late RideRequestData currentRequest;
   late final AnimationController _hourglassController;
   bool _reduceAnimations = false;
@@ -667,6 +673,13 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
           centerTitle: true,
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
+          actions: [
+            if (widget.onLanguageSelected != null)
+              LanguageSelectorButton(
+                onLanguageSelected: widget.onLanguageSelected!,
+                foregroundColor: Colors.white,
+              ),
+          ],
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -743,9 +756,12 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
                   children: [
                     const Icon(Icons.payments),
                     const SizedBox(width: 8),
-                    Text(
-                      '$fareLabel: $fareValue',
-                      style: const TextStyle(fontSize: 20),
+                    Flexible(
+                      child: Text(
+                        '$fareLabel: $fareValue',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 20),
+                      ),
                     ),
                   ],
                 ),

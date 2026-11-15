@@ -10,6 +10,7 @@ import '../services/active_ride_store.dart';
 import '../services/backend_ride_request_service.dart';
 import '../services/ride_request_service.dart';
 import '../widgets/city6_primary_button.dart';
+import '../widgets/language_selector.dart';
 import 'main_navigation_screen.dart';
 import 'ride_confirmation_screen.dart';
 
@@ -20,6 +21,7 @@ class City6IntroScreen extends StatefulWidget {
   final RideRequestService? rideRequestService;
   final String? passengerId;
   final Future<void> Function()? onLogout;
+  final SaveAppLanguage? onLanguageSelected;
   final bool skipIntroAnimation;
 
   const City6IntroScreen({
@@ -30,6 +32,7 @@ class City6IntroScreen extends StatefulWidget {
     this.rideRequestService,
     this.passengerId,
     this.onLogout,
+    this.onLanguageSelected,
     this.skipIntroAnimation = false,
   });
 
@@ -38,7 +41,9 @@ class City6IntroScreen extends StatefulWidget {
 }
 
 class _City6IntroScreenState extends State<City6IntroScreen>
-    with SingleTickerProviderStateMixin {
+    with
+        SingleTickerProviderStateMixin,
+        AppLanguageAwareState<City6IntroScreen> {
   late final AnimationController _controller;
   late final RideRequestService _rideRequestService;
 
@@ -362,6 +367,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
             rideRequestService: _rideRequestService,
             passengerId: widget.passengerId,
             restoreActiveRide: false,
+            onLanguageSelected: widget.onLanguageSelected,
           );
         },
       ),
@@ -447,6 +453,7 @@ class _City6IntroScreenState extends State<City6IntroScreen>
             request: ride!,
             rideRequestService: _rideRequestService,
             activeRideStore: widget.activeRideStore,
+            onLanguageSelected: widget.onLanguageSelected,
           );
         },
       ),
@@ -830,22 +837,46 @@ class _City6IntroScreenState extends State<City6IntroScreen>
                     alignment: const Alignment(0, 0.18),
                     child: _buildLogo(value),
                   ),
-                  if (widget.onLogout != null && _introFinished)
+                  if ((widget.onLogout != null ||
+                          widget.onLanguageSelected != null) &&
+                      _introFinished)
                     SafeArea(
                       child: Align(
                         alignment: Alignment.topRight,
                         child: Padding(
                           padding: const EdgeInsets.only(top: 4, right: 12),
-                          child: TextButton.icon(
-                            onPressed: _isLoggingOut ? null : _confirmLogout,
-                            icon: const Icon(Icons.logout),
-                            label: Text(AppTranslations.logout),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              backgroundColor: Colors.black.withValues(
-                                alpha: 0.28,
-                              ),
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.onLanguageSelected != null)
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.28),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: LanguageSelectorButton(
+                                    onLanguageSelected:
+                                        widget.onLanguageSelected!,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              if (widget.onLogout != null) ...[
+                                const SizedBox(width: 8),
+                                TextButton.icon(
+                                  onPressed: _isLoggingOut
+                                      ? null
+                                      : _confirmLogout,
+                                  icon: const Icon(Icons.logout),
+                                  label: Text(AppTranslations.logout),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.black.withValues(
+                                      alpha: 0.28,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),

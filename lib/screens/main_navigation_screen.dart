@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../config/colors.dart';
+import '../localization/translations.dart';
 import '../models/ride_request_data.dart';
 import '../models/ride_request_status.dart';
 import '../services/active_ride_store.dart';
@@ -10,6 +11,7 @@ import '../services/backend_ride_request_service.dart';
 import '../services/backend_route_service.dart';
 import '../services/favorites_service.dart';
 import '../services/ride_request_service.dart';
+import '../widgets/language_selector.dart';
 import 'favorites_screen.dart';
 import 'ride_confirmation_screen.dart';
 import 'ride_request_screen.dart';
@@ -19,6 +21,7 @@ class MainNavigationScreen extends StatefulWidget {
   final RideRequestService? rideRequestService;
   final bool restoreActiveRide;
   final String? passengerId;
+  final SaveAppLanguage? onLanguageSelected;
 
   const MainNavigationScreen({
     super.key,
@@ -26,13 +29,15 @@ class MainNavigationScreen extends StatefulWidget {
     this.rideRequestService,
     this.restoreActiveRide = true,
     this.passengerId,
+    this.onLanguageSelected,
   });
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with AppLanguageAwareState<MainNavigationScreen> {
   int _currentIndex = 0;
   bool _restoredRideRouteVisible = false;
 
@@ -122,6 +127,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             request: requestToRestore,
             rideRequestService: _rideRequestService,
             activeRideStore: store,
+            onLanguageSelected: widget.onLanguageSelected,
           ),
         ),
       );
@@ -159,6 +165,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             activeRideStore: widget.activeRideStore,
             passengerId: widget.passengerId,
             favoritesService: FavoritesService(passengerId: widget.passengerId),
+            onLanguageSelected: widget.onLanguageSelected,
             mapIsActive: _currentIndex == 0 && !_restoredRideRouteVisible,
           ),
           FavoritesScreen(
@@ -166,26 +173,40 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: AppColors.primary,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_taxi_outlined),
-            activeIcon: Icon(Icons.local_taxi),
-            label: 'Поръчай',
+      bottomNavigationBar: Row(
+        children: [
+          Expanded(
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              selectedItemColor: AppColors.primary,
+              type: BottomNavigationBarType.fixed,
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              items: [
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.local_taxi_outlined),
+                  activeIcon: const Icon(Icons.local_taxi),
+                  label: AppTranslations.placeOrder,
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.star_border),
+                  activeIcon: const Icon(Icons.star),
+                  label: AppTranslations.favorites,
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star_border),
-            activeIcon: Icon(Icons.star),
-            label: 'Любими',
-          ),
+          if (widget.onLanguageSelected != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: LanguageSelectorButton(
+                onLanguageSelected: widget.onLanguageSelected!,
+                foregroundColor: AppColors.primary,
+              ),
+            ),
         ],
       ),
     );

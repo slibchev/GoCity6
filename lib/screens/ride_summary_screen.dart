@@ -11,6 +11,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import '../widgets/city6_app_bar_title.dart';
 import '../widgets/city6_primary_button.dart';
 import '../services/active_ride_store.dart';
+import '../widgets/language_selector.dart';
 
 class RideSummaryScreen extends StatefulWidget {
   final String pickup;
@@ -23,12 +24,14 @@ class RideSummaryScreen extends StatefulWidget {
   final double? estimatedPrice;
   final RideRequestService? rideRequestService;
   final ActiveRideStore? activeRideStore;
+  final SaveAppLanguage? onLanguageSelected;
 
   RideSummaryScreen.fromRequest({
     super.key,
     required this.request,
     this.rideRequestService,
     this.activeRideStore,
+    this.onLanguageSelected,
   }) : pickup = request.pickup,
        destination = request.destination,
        passengers = request.passengers,
@@ -41,7 +44,8 @@ class RideSummaryScreen extends StatefulWidget {
   State<RideSummaryScreen> createState() => _RideSummaryScreenState();
 }
 
-class _RideSummaryScreenState extends State<RideSummaryScreen> {
+class _RideSummaryScreenState extends State<RideSummaryScreen>
+    with AppLanguageAwareState<RideSummaryScreen> {
   static const CameraPosition _initialMapPosition = CameraPosition(
     target: LatLng(42.6977, 23.3219),
     zoom: 12,
@@ -256,6 +260,7 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
             request: submittedRequest,
             rideRequestService: service,
             activeRideStore: activeRideStore,
+            onLanguageSelected: widget.onLanguageSelected,
           ),
         ),
       );
@@ -285,6 +290,13 @@ class _RideSummaryScreenState extends State<RideSummaryScreen> {
         centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          if (widget.onLanguageSelected != null)
+            LanguageSelectorButton(
+              onLanguageSelected: widget.onLanguageSelected!,
+              foregroundColor: Colors.white,
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
