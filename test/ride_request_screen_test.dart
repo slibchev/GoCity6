@@ -477,7 +477,7 @@ Future<void> enableManualPickup(WidgetTester tester) async {
   await tester.tap(pickupField);
   await tester.pumpAndSettle();
 
-  final manualAddressOption = find.text('Въведи адрес');
+  final manualAddressOption = find.text(AppTranslations.enterPickupAddress);
 
   expect(manualAddressOption, findsOneWidget);
 
@@ -515,6 +515,51 @@ void main() {
     await mapsPlatform.close();
     GeolocatorPlatform.instance = originalGeolocatorPlatform;
     GoogleMapsFlutterPlatform.instance = originalMapsPlatform;
+  });
+
+  test('processing and manual pickup labels are localized', () {
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    expect(AppTranslations.processing, 'Обработва се...');
+    expect(AppTranslations.enterPickupAddress, 'Въведи адрес');
+
+    AppTranslations.currentLanguage = AppLanguage.english;
+    expect(AppTranslations.processing, 'Processing...');
+    expect(AppTranslations.enterPickupAddress, 'Enter pickup address');
+  });
+
+  testWidgets('pickup menu shows the manual-address label in both languages', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(placesService: const FakePlacesService()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Въведи адрес'), findsOneWidget);
+    await tester.tap(find.text('Въведи адрес'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).readOnly,
+      isFalse,
+    );
+
+    AppTranslations.currentLanguage = AppLanguage.english;
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter pickup address'), findsOneWidget);
+    await tester.tap(find.text('Enter pickup address'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).readOnly,
+      isFalse,
+    );
   });
 
   testWidgets('request map is interactive and exposes a follow control', (

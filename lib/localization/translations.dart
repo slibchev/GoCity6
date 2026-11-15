@@ -132,6 +132,10 @@ class AppTranslations {
       ? 'My location'
       : 'Моето местоположение';
 
+  static String get enterPickupAddress => currentLanguage == AppLanguage.english
+      ? 'Enter pickup address'
+      : 'Въведи адрес';
+
   static String get locationServicesDisabled =>
       currentLanguage == AppLanguage.english
       ? 'Location services are disabled.'
@@ -669,7 +673,9 @@ class AppTranslations {
     return 'Откажи заявката';
   }
 
-  static const String processing = 'Обработва се...';
+  static String get processing => currentLanguage == AppLanguage.english
+      ? 'Processing...'
+      : 'Обработва се...';
 
   static String get cancelRideConfirmationTitle {
     if (currentLanguage == AppLanguage.english) {

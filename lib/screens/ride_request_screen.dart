@@ -1224,7 +1224,7 @@ class _RideRequestScreenState extends State<RideRequestScreen>
                               }
                             });
                           },
-                          child: const Text('Въведи адрес'),
+                          child: Text(AppTranslations.enterPickupAddress),
                         ),
 
                         if (_favoritePlaces.isNotEmpty) const Divider(),
