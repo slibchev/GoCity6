@@ -79,6 +79,15 @@ RideRequestData testRide({
 void main() {
   setUp(() {
     AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
+  });
+  tearDown(() {
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
+        .clearAccessibilityFeaturesTestValue();
   });
 
   testWidgets('bonus buttons appear only when customer decision is needed', (

@@ -219,7 +219,162 @@ RideRequestData buildWaitingBoardRequest({
   cancellationReason: cancellationReason,
 );
 
+void enableAnimationsForTest(WidgetTester tester) {
+  tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures();
+}
+
 void main() {
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
+  });
+  tearDown(() {
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
+        .clearAccessibilityFeaturesTestValue();
+  });
+
+  testWidgets('pending status continuously rotates the hourglass', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    enableAnimationsForTest(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: buildWaitingBoardRequest(status: RideRequestStatus.pending),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(milliseconds: 750));
+    final transition = tester.widget<RotationTransition>(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+    );
+    expect(transition.turns.value, greaterThan(0.1));
+    expect(transition.turns.value, lessThan(0.5));
+  });
+
+  testWidgets('waitingForVehicle status continuously rotates the hourglass', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    enableAnimationsForTest(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: buildWaitingBoardRequest(
+            status: RideRequestStatus.waitingForVehicle,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(milliseconds: 750));
+    final transition = tester.widget<RotationTransition>(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+    );
+    expect(transition.turns.value, greaterThan(0.1));
+    expect(transition.turns.value, lessThan(0.5));
+  });
+
+  testWidgets('hourglass stops rotating when ride is accepted', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    enableAnimationsForTest(tester);
+    final request = buildWaitingBoardRequest(status: RideRequestStatus.pending);
+    final service = ControlledRideRequestService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: service,
+        ),
+      ),
+    );
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(seconds: 1));
+    service.publish(request.copyWith(status: RideRequestStatus.accepted));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsNothing,
+    );
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+  });
+
+  testWidgets('completed status has no rotating status icon', (
+    WidgetTester tester,
+  ) async {
+    useWideTestSurface(tester);
+    enableAnimationsForTest(tester);
+    final request = buildWaitingBoardRequest(status: RideRequestStatus.pending);
+    final service = ControlledRideRequestService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: request,
+          rideRequestService: service,
+        ),
+      ),
+    );
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsOneWidget,
+    );
+
+    service.publish(request.copyWith(status: RideRequestStatus.completed));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsNothing,
+    );
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+  });
+
+  testWidgets('reduced motion keeps the waiting hourglass static', (
+    WidgetTester tester,
+  ) async {
+    tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(
+      tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue,
+    );
+    useWideTestSurface(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideConfirmationScreen(
+          request: buildWaitingBoardRequest(status: RideRequestStatus.pending),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('ride-status-hourglass-rotation')),
+      findsNothing,
+    );
+    expect(find.byIcon(Icons.hourglass_top), findsOneWidget);
+  });
+
   testWidgets(
     'waiting board warning is backend controlled and clears on status change',
     (WidgetTester tester) async {

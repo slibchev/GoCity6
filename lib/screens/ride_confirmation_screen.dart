@@ -33,8 +33,10 @@ class RideConfirmationScreen extends StatefulWidget {
 }
 
 class _RideConfirmationScreenState extends State<RideConfirmationScreen>
-    with WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late RideRequestData currentRequest;
+  late final AnimationController _hourglassController;
+  bool _reduceAnimations = false;
 
   StreamSubscription<RideRequestData>? _statusSubscription;
   int _statusWatchGeneration = 0;
@@ -84,9 +86,35 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
   void initState() {
     super.initState();
 
+    _hourglassController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+      animationBehavior: AnimationBehavior.normal,
+    );
     currentRequest = widget.request;
     WidgetsBinding.instance.addObserver(this);
     _watchStatus();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceAnimations = MediaQuery.disableAnimationsOf(context);
+    _syncHourglassAnimation();
+  }
+
+  bool get _isSearchingForVehicle =>
+      currentRequest.status == RideRequestStatus.pending ||
+      currentRequest.status == RideRequestStatus.waitingForVehicle;
+
+  void _syncHourglassAnimation() {
+    final shouldAnimate = _isSearchingForVehicle && !_reduceAnimations;
+    if (shouldAnimate && !_hourglassController.isAnimating) {
+      _hourglassController.repeat(period: const Duration(seconds: 3));
+    } else if (!shouldAnimate && _hourglassController.isAnimating) {
+      _hourglassController.stop();
+      _hourglassController.reset();
+    }
   }
 
   @override
@@ -144,6 +172,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
             setState(() {
               currentRequest = updatedRequest;
             });
+            _syncHourglassAnimation();
             _queuePersistence(updatedRequest);
 
             if (updatedRequest.status == RideRequestStatus.completed ||
@@ -200,7 +229,21 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
     if (subscription != null) {
       unawaited(subscription.cancel());
     }
+    _hourglassController.dispose();
     super.dispose();
+  }
+
+  Widget _buildStatusIcon() {
+    final icon = Icon(getStatusIcon(), size: 100, color: getStatusColor());
+    if (!_isSearchingForVehicle || _reduceAnimations) {
+      return icon;
+    }
+
+    return RotationTransition(
+      key: const ValueKey('ride-status-hourglass-rotation'),
+      turns: _hourglassController,
+      child: icon,
+    );
   }
 
   IconData getStatusIcon() {
@@ -352,6 +395,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
         currentRequest = updated;
         _isDecidingBonus = false;
       });
+      _syncHourglassAnimation();
 
       _queuePersistence(updated);
     } catch (_) {
@@ -467,6 +511,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
         currentRequest = cancelledRequest;
         _isCancelling = false;
       });
+      _syncHourglassAnimation();
       _queuePersistence(cancelledRequest);
     } catch (error) {
       if (!mounted) {
@@ -629,7 +674,7 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(getStatusIcon(), size: 100, color: getStatusColor()),
+                _buildStatusIcon(),
                 const SizedBox(height: 30),
                 Text(
                   getStatusTitle(),
