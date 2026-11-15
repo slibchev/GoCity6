@@ -26,6 +26,10 @@ void main() {
       rideType: RideType.city,
       requestedAt: DateTime(2026, 1, 1, 10, 0),
       status: RideRequestStatus.pending,
+      waitingBoardEnteredAt: DateTime.utc(2026, 11, 15, 10),
+      waitingWarningAt: DateTime.utc(2026, 11, 15, 10, 5),
+      waitingWarningRequired: true,
+      cancellationReason: 'no_vehicle_found',
       estimatedPrice: 10.50,
       meterFareMinor: 520,
     );
@@ -50,6 +54,13 @@ void main() {
 
     expect(acceptedRequest.estimatedPrice, request.estimatedPrice);
     expect(acceptedRequest.meterFareMinor, request.meterFareMinor);
+    expect(
+      acceptedRequest.waitingBoardEnteredAt,
+      request.waitingBoardEnteredAt,
+    );
+    expect(acceptedRequest.waitingWarningAt, request.waitingWarningAt);
+    expect(acceptedRequest.waitingWarningRequired, isTrue);
+    expect(acceptedRequest.cancellationReason, 'no_vehicle_found');
     expect(acceptedRequest.requestId, request.requestId);
     expect(acceptedRequest.driverInfo, request.driverInfo);
     expect(acceptedRequest.driverInfo?.phoneNumber, '+359888123456');
@@ -78,5 +89,16 @@ void main() {
       clearedDestinationCoordinates.hasValidDestinationCoordinatePair,
       isFalse,
     );
+
+    final clearedWaitingState = request.copyWith(
+      waitingBoardEnteredAt: null,
+      waitingWarningAt: null,
+      waitingWarningRequired: false,
+      cancellationReason: null,
+    );
+    expect(clearedWaitingState.waitingBoardEnteredAt, isNull);
+    expect(clearedWaitingState.waitingWarningAt, isNull);
+    expect(clearedWaitingState.waitingWarningRequired, isFalse);
+    expect(clearedWaitingState.cancellationReason, isNull);
   });
 }

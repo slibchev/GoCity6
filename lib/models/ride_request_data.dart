@@ -37,6 +37,12 @@ class RideRequestData {
   final DateTime requestedAt;
   final RideRequestStatus status;
 
+  // Backend-controlled waiting-board warning and cancellation metadata.
+  final DateTime? waitingBoardEnteredAt;
+  final DateTime? waitingWarningAt;
+  final bool waitingWarningRequired;
+  final String? cancellationReason;
+
   final RouteResult? routeResult;
   final double? estimatedPrice;
   final int? meterFareMinor;
@@ -66,6 +72,10 @@ class RideRequestData {
     required this.rideType,
     required this.requestedAt,
     this.status = RideRequestStatus.pending,
+    this.waitingBoardEnteredAt,
+    this.waitingWarningAt,
+    this.waitingWarningRequired = false,
+    this.cancellationReason,
     this.routeResult,
     this.estimatedPrice,
     this.meterFareMinor,
@@ -126,6 +136,10 @@ class RideRequestData {
     RideType? rideType,
     DateTime? requestedAt,
     RideRequestStatus? status,
+    Object? waitingBoardEnteredAt = _notProvided,
+    Object? waitingWarningAt = _notProvided,
+    bool? waitingWarningRequired,
+    Object? cancellationReason = _notProvided,
     Object? routeResult = _notProvided,
     Object? estimatedPrice = _notProvided,
     Object? meterFareMinor = _notProvided,
@@ -173,6 +187,17 @@ class RideRequestData {
       rideType: rideType ?? this.rideType,
       requestedAt: requestedAt ?? this.requestedAt,
       status: status ?? this.status,
+      waitingBoardEnteredAt: identical(waitingBoardEnteredAt, _notProvided)
+          ? this.waitingBoardEnteredAt
+          : waitingBoardEnteredAt as DateTime?,
+      waitingWarningAt: identical(waitingWarningAt, _notProvided)
+          ? this.waitingWarningAt
+          : waitingWarningAt as DateTime?,
+      waitingWarningRequired:
+          waitingWarningRequired ?? this.waitingWarningRequired,
+      cancellationReason: identical(cancellationReason, _notProvided)
+          ? this.cancellationReason
+          : cancellationReason as String?,
       routeResult: identical(routeResult, _notProvided)
           ? this.routeResult
           : routeResult as RouteResult?,

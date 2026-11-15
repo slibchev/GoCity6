@@ -347,6 +347,23 @@ class BackendRideRequestService
       throw const FormatException('Invalid backend meter fare amount.');
     }
 
+    final waitingBoardEnteredAt = _parseOptionalBackendDateTime(
+      ride,
+      'waitingBoardEnteredAt',
+    );
+    final waitingWarningAt = _parseOptionalBackendDateTime(
+      ride,
+      'waitingWarningAt',
+    );
+    final waitingWarningValue = ride['waitingWarningRequired'];
+    if (waitingWarningValue != null && waitingWarningValue is! bool) {
+      throw const FormatException('Backend waitingWarningRequired is invalid.');
+    }
+    final cancellationReason = ride['cancellationReason'];
+    if (cancellationReason != null && cancellationReason is! String) {
+      throw const FormatException('Backend cancellationReason is invalid.');
+    }
+
     if (id is! String ||
         id.isEmpty ||
         pickup is! String ||
@@ -419,6 +436,10 @@ class BackendRideRequestService
       hasLuggage: hasLuggage,
       requestedAt: parsedRequestedAt.toLocal(),
       status: parsedStatus,
+      waitingBoardEnteredAt: waitingBoardEnteredAt?.toLocal(),
+      waitingWarningAt: waitingWarningAt?.toLocal(),
+      waitingWarningRequired: waitingWarningValue as bool? ?? false,
+      cancellationReason: cancellationReason as String?,
       meterFareMinor: meterFareMinor as int?,
       assignedDriverId: assignedDriverId,
       assignedVehicleId: assignedVehicleId,
@@ -436,6 +457,25 @@ class BackendRideRequestService
     }
 
     return mergedWithPickupDistrict.copyWith(driverInfo: parsedDriverInfo);
+  }
+
+  DateTime? _parseOptionalBackendDateTime(
+    Map<String, dynamic> ride,
+    String fieldName,
+  ) {
+    final value = ride[fieldName];
+    if (value == null) {
+      return null;
+    }
+    if (value is! String) {
+      throw FormatException('Backend $fieldName is invalid.');
+    }
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      throw FormatException('Backend $fieldName is invalid.');
+    }
+    return parsed;
   }
 
   DriverInfo? _parseDriverInfo(Object? value) {

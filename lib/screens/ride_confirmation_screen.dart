@@ -49,6 +49,10 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
       currentRequest.bonusDecision == RideBonusDecision.awaitingCustomer &&
       currentRequest.requestId != null &&
       widget.rideRequestService is RideBonusDecisionService;
+
+  bool get _showWaitingBoardWarning =>
+      currentRequest.status == RideRequestStatus.waitingForVehicle &&
+      currentRequest.waitingWarningRequired;
   Future<void> _persistenceChain = Future<void>.value();
 
   void _queuePersistence(RideRequestData request) {
@@ -269,7 +273,9 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
         return AppTranslations.rideCompleted;
 
       case RideRequestStatus.cancelled:
-        return AppTranslations.rideCancelled;
+        return currentRequest.cancellationReason == 'no_vehicle_found'
+            ? AppTranslations.rideNoVehicleFoundTitle
+            : AppTranslations.rideCancelled;
     }
   }
 
@@ -299,7 +305,11 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
         return AppTranslations.rideCompletedMessage;
 
       case RideRequestStatus.cancelled:
-        return AppTranslations.rideCancelledMessage;
+        return switch (currentRequest.cancellationReason) {
+          'customer_cancelled' => AppTranslations.rideCancelledMessage,
+          'no_vehicle_found' => AppTranslations.rideNoVehicleFoundMessage,
+          _ => AppTranslations.rideCancelledUnknownReasonMessage,
+        };
     }
   }
 
@@ -630,6 +640,51 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
+                if (_showWaitingBoardWarning) ...[
+                  Card(
+                    margin: EdgeInsets.zero,
+                    color: const Color(0xFFFFF3E0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Colors.orange),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.search,
+                                color: Colors.deepOrange,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  AppTranslations.waitingBoardWarningTitle,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(AppTranslations.waitingBoardWarningMessage),
+                          const SizedBox(height: 10),
+                          Text(
+                            AppTranslations.waitingBoardWarningNote,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 if (currentRequest.status == RideRequestStatus.accepted) ...[
                   Text(
                     getStatusMessage(),
@@ -652,7 +707,8 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen>
                 const SizedBox(height: 20),
                 if (currentRequest.status != RideRequestStatus.driverArriving &&
                     currentRequest.status != RideRequestStatus.inProgress &&
-                    currentRequest.status != RideRequestStatus.accepted)
+                    currentRequest.status != RideRequestStatus.accepted &&
+                    !_showWaitingBoardWarning)
                   Text(
                     getStatusMessage(),
                     textAlign: TextAlign.center,

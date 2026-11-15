@@ -158,6 +158,44 @@ void main() {
     expect(persistedRequest.assignedVehicleId, 'vehicle-001');
   });
 
+  testWidgets('restores backend waiting warning when reopening an active ride', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final storedRequest =
+        buildRequest(status: RideRequestStatus.waitingForVehicle).copyWith(
+          waitingBoardEnteredAt: DateTime.utc(2026, 11, 15, 10),
+          waitingWarningAt: DateTime.utc(2026, 11, 15, 10, 5),
+          waitingWarningRequired: true,
+        );
+    await store.save(storedRequest);
+
+    final service = RestoreRideRequestService(refreshedRequest: storedRequest);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MainNavigationScreen(
+          activeRideStore: store,
+          rideRequestService: service,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(service.getStatusCallCount, 1);
+    expect(find.byType(RideConfirmationScreen), findsOneWidget);
+    expect(find.text('Продължаваме да търсим автомобил'), findsOneWidget);
+    expect(
+      find.text(
+        'В момента не успяваме да намерим свободен автомобил за Вашата поръчка. Продължаваме да търсим за Вас. Благодарим Ви за търпението!',
+      ),
+      findsOneWidget,
+    );
+    expect(store.load()?.waitingWarningRequired, isTrue);
+  });
+
   testWidgets('preserves unresolved submission with client request ID', (
     WidgetTester tester,
   ) async {

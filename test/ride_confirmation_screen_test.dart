@@ -200,7 +200,215 @@ void useWideTestSurface(WidgetTester tester) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
+RideRequestData buildWaitingBoardRequest({
+  RideRequestStatus status = RideRequestStatus.waitingForVehicle,
+  bool warningRequired = false,
+  String? cancellationReason,
+}) => RideRequestData(
+  requestId: 'ride-waiting-board-001',
+  pickup: 'Pickup',
+  destination: 'Destination',
+  passengers: 1,
+  paymentMethod: RidePaymentMethod.cash,
+  rideType: RideType.city,
+  requestedAt: DateTime(2026, 11, 15, 10),
+  status: status,
+  waitingBoardEnteredAt: DateTime.utc(2026, 11, 15, 10),
+  waitingWarningAt: warningRequired ? DateTime.utc(2026, 11, 15, 10, 5) : null,
+  waitingWarningRequired: warningRequired,
+  cancellationReason: cancellationReason,
+);
+
 void main() {
+  testWidgets(
+    'waiting board warning is backend controlled and clears on status change',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      final initialRequest = buildWaitingBoardRequest();
+      final service = ControlledRideRequestService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: initialRequest,
+            rideRequestService: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(AppTranslations.waitingBoardWarningTitle), findsNothing);
+
+      final warnedRequest = buildWaitingBoardRequest(warningRequired: true);
+      service.publish(warnedRequest);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Продължаваме да търсим автомобил'), findsOneWidget);
+      expect(
+        find.text(
+          'В момента не успяваме да намерим свободен автомобил за Вашата поръчка. Продължаваме да търсим за Вас. Благодарим Ви за търпението!',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Поръчката остава активна. Можете да я отмените по всяко време.',
+        ),
+        findsOneWidget,
+      );
+
+      service.publish(warnedRequest);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(AppTranslations.waitingBoardWarningTitle),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppTranslations.waitingBoardWarningMessage),
+        findsOneWidget,
+      );
+
+      service.publish(
+        buildWaitingBoardRequest(
+          status: RideRequestStatus.reserved,
+          warningRequired: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(AppTranslations.waitingBoardWarningTitle), findsNothing);
+      expect(find.text(AppTranslations.rideAccepted), findsOneWidget);
+
+      service.publish(
+        buildWaitingBoardRequest(
+          status: RideRequestStatus.accepted,
+          warningRequired: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(AppTranslations.waitingBoardWarningTitle), findsNothing);
+      expect(find.text(AppTranslations.acceptedRideTitle), findsOneWidget);
+      expect(find.text(AppTranslations.acceptedRideMessage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'waiting warning and automatic cancellation are translated to English',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      AppTranslations.currentLanguage = AppLanguage.english;
+      addTearDown(
+        () => AppTranslations.currentLanguage = AppLanguage.bulgarian,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: buildWaitingBoardRequest(warningRequired: true),
+          ),
+        ),
+      );
+      expect(find.text('We’re still looking for a vehicle'), findsOneWidget);
+      expect(
+        find.text(
+          'We are currently unable to find an available vehicle for your ride. We are continuing to search for you. Thank you for your patience!',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Your ride request remains active. You can cancel it at any time.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: buildWaitingBoardRequest(
+              status: RideRequestStatus.cancelled,
+              cancellationReason: 'no_vehicle_found',
+            ),
+          ),
+        ),
+      );
+      expect(find.text('We couldn’t find a vehicle'), findsOneWidget);
+      expect(
+        find.text(
+          'Unfortunately, we could not find a vehicle for your ride. The request was cancelled automatically. Please try again later.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'automatic no vehicle cancellation has a specific Bulgarian message',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: buildWaitingBoardRequest(
+              status: RideRequestStatus.cancelled,
+              cancellationReason: 'no_vehicle_found',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Не успяхме да намерим автомобил'), findsOneWidget);
+      expect(
+        find.text(
+          'За съжаление, не успяхме да осигурим автомобил за Вашата поръчка. Заявката е прекратена автоматично. Моля, опитайте отново по-късно.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(AppTranslations.rideCancelledMessage), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'customer cancellation keeps normal message and unknown reason stays neutral',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: buildWaitingBoardRequest(
+              status: RideRequestStatus.cancelled,
+              cancellationReason: 'customer_cancelled',
+            ),
+          ),
+        ),
+      );
+      expect(find.text(AppTranslations.rideCancelledMessage), findsOneWidget);
+
+      for (final reason in <String?>[null, 'future_backend_reason']) {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpWidget(
+          MaterialApp(
+            home: RideConfirmationScreen(
+              request: buildWaitingBoardRequest(
+                status: RideRequestStatus.cancelled,
+                cancellationReason: reason,
+              ),
+            ),
+          ),
+        );
+        expect(
+          find.text(AppTranslations.rideCancelledUnknownReasonMessage),
+          findsOneWidget,
+        );
+        expect(find.text(AppTranslations.rideCancelledMessage), findsNothing);
+        expect(
+          find.text(AppTranslations.rideNoVehicleFoundMessage),
+          findsNothing,
+        );
+      }
+    },
+  );
+
   testWidgets('RideConfirmationScreen displays estimated price in euros', (
     WidgetTester tester,
   ) async {
@@ -1080,6 +1288,7 @@ void main() {
       rideType: RideType.city,
       requestedAt: DateTime(2026, 1, 1, 10, 0),
       status: RideRequestStatus.cancelled,
+      cancellationReason: 'customer_cancelled',
       estimatedPrice: 10.50,
     );
 
@@ -1720,6 +1929,7 @@ void main() {
       rideType: RideType.city,
       requestedAt: DateTime(2026, 1, 1, 10, 0),
       status: RideRequestStatus.cancelled,
+      cancellationReason: 'customer_cancelled',
       estimatedPrice: 10.50,
     );
 

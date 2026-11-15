@@ -85,6 +85,10 @@ class ActiveRideStore {
       'rideType': request.rideType.name,
       'requestedAt': request.requestedAt.toIso8601String(),
       'status': request.status.name,
+      'waitingBoardEnteredAt': request.waitingBoardEnteredAt?.toIso8601String(),
+      'waitingWarningAt': request.waitingWarningAt?.toIso8601String(),
+      'waitingWarningRequired': request.waitingWarningRequired,
+      'cancellationReason': request.cancellationReason,
       'routeResult': _routeResultToJson(request.routeResult),
       'estimatedPrice': request.estimatedPrice,
       'meterFareMinor': request.meterFareMinor,
@@ -102,6 +106,21 @@ class ActiveRideStore {
     final rideType = json['rideType'];
     final requestedAt = json['requestedAt'];
     final status = json['status'];
+    final waitingBoardEnteredAt = _optionalDateTime(
+      json['waitingBoardEnteredAt'],
+      'waitingBoardEnteredAt',
+    );
+    final waitingWarningAt = _optionalDateTime(
+      json['waitingWarningAt'],
+      'waitingWarningAt',
+    );
+    final waitingWarningRequired = json['waitingWarningRequired'];
+    final cancellationReason = json['cancellationReason'];
+
+    if ((waitingWarningRequired != null && waitingWarningRequired is! bool) ||
+        (cancellationReason != null && cancellationReason is! String)) {
+      throw const FormatException('Stored waiting-board state is invalid.');
+    }
     final pickupLatitude = _validLatitude(json['pickupLatitude']);
     final pickupLongitude = _validLongitude(json['pickupLongitude']);
     final hasValidPickupCoordinates =
@@ -182,6 +201,10 @@ class ActiveRideStore {
       rideType: RideType.values.byName(rideType),
       requestedAt: parsedRequestedAt,
       status: RideRequestStatus.values.byName(status),
+      waitingBoardEnteredAt: waitingBoardEnteredAt,
+      waitingWarningAt: waitingWarningAt,
+      waitingWarningRequired: waitingWarningRequired as bool? ?? false,
+      cancellationReason: cancellationReason as String?,
       routeResult: _routeResultFromJson(json['routeResult']),
       estimatedPrice: _nullableDouble(json['estimatedPrice']),
       meterFareMinor: meterFareMinor as int?,
@@ -283,6 +306,21 @@ class ActiveRideStore {
     }
 
     return value;
+  }
+
+  DateTime? _optionalDateTime(Object? value, String fieldName) {
+    if (value == null) {
+      return null;
+    }
+    if (value is! String) {
+      throw FormatException('Stored $fieldName is invalid.');
+    }
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      throw FormatException('Stored $fieldName is invalid.');
+    }
+    return parsed;
   }
 
   double _requiredDouble(Object? value) {

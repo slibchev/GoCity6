@@ -321,6 +321,21 @@ class AppTranslations {
     return 'Очаква се потвърждение от шофьора';
   }
 
+  static String get waitingBoardWarningTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'We’re still looking for a vehicle'
+      : 'Продължаваме да търсим автомобил';
+
+  static String get waitingBoardWarningMessage =>
+      currentLanguage == AppLanguage.english
+      ? 'We are currently unable to find an available vehicle for your ride. We are continuing to search for you. Thank you for your patience!'
+      : 'В момента не успяваме да намерим свободен автомобил за Вашата поръчка. Продължаваме да търсим за Вас. Благодарим Ви за търпението!';
+
+  static String get waitingBoardWarningNote =>
+      currentLanguage == AppLanguage.english
+      ? 'Your ride request remains active. You can cancel it at any time.'
+      : 'Поръчката остава активна. Можете да я отмените по всяко време.';
+
   static String get driverArriving {
     if (currentLanguage == AppLanguage.english) {
       return 'Your taxi is at the pickup location';
@@ -392,6 +407,21 @@ class AppTranslations {
 
     return 'Заявката за курс беше отменена успешно.';
   }
+
+  static String get rideCancelledUnknownReasonMessage =>
+      currentLanguage == AppLanguage.english
+      ? 'The ride request has ended.'
+      : 'Заявката за курс е приключила.';
+
+  static String get rideNoVehicleFoundTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'We couldn’t find a vehicle'
+      : 'Не успяхме да намерим автомобил';
+
+  static String get rideNoVehicleFoundMessage =>
+      currentLanguage == AppLanguage.english
+      ? 'Unfortunately, we could not find a vehicle for your ride. The request was cancelled automatically. Please try again later.'
+      : 'За съжаление, не успяхме да осигурим автомобил за Вашата поръчка. Заявката е прекратена автоматично. Моля, опитайте отново по-късно.';
 
   static String get rideSummary {
     if (currentLanguage == AppLanguage.english) {

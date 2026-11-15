@@ -52,6 +52,8 @@ void main() {
       rideType: RideType.city,
       requestedAt: DateTime(2026, 10, 2, 15, 30),
       status: RideRequestStatus.accepted,
+      waitingBoardEnteredAt: DateTime.utc(2026, 10, 2, 12, 32),
+      waitingWarningAt: DateTime.utc(2026, 10, 2, 12, 37),
       routeResult: const RouteResult(
         distanceKm: 4.25,
         durationMinutes: 11.5,
@@ -102,6 +104,10 @@ void main() {
     expect(loaded.rideType, request.rideType);
     expect(loaded.requestedAt, request.requestedAt);
     expect(loaded.status, request.status);
+    expect(loaded.waitingBoardEnteredAt, request.waitingBoardEnteredAt);
+    expect(loaded.waitingWarningAt, request.waitingWarningAt);
+    expect(loaded.waitingWarningRequired, isFalse);
+    expect(loaded.cancellationReason, isNull);
     expect(loaded.estimatedPrice, request.estimatedPrice);
     expect(loaded.meterFareMinor, request.meterFareMinor);
     expect(loaded.completedByDriverId, request.completedByDriverId);
@@ -163,8 +169,58 @@ void main() {
       expect(loaded?.pickupLongitude, isNull);
       expect(loaded?.destinationLatitude, isNull);
       expect(loaded?.destinationLongitude, isNull);
+      expect(loaded?.waitingBoardEnteredAt, isNull);
+      expect(loaded?.waitingWarningAt, isNull);
+      expect(loaded?.waitingWarningRequired, isFalse);
+      expect(loaded?.cancellationReason, isNull);
     },
   );
+
+  test('restores backend waiting warning after app restart', () async {
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final request = RideRequestData(
+      requestId: 'ride-waiting-warning',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 11, 15, 10),
+      status: RideRequestStatus.waitingForVehicle,
+      waitingBoardEnteredAt: DateTime.utc(2026, 11, 15, 10),
+      waitingWarningAt: DateTime.utc(2026, 11, 15, 10, 5),
+      waitingWarningRequired: true,
+    );
+
+    await store.save(request);
+    final restored = store.load();
+
+    expect(restored?.status, RideRequestStatus.waitingForVehicle);
+    expect(restored?.waitingBoardEnteredAt, request.waitingBoardEnteredAt);
+    expect(restored?.waitingWarningAt, request.waitingWarningAt);
+    expect(restored?.waitingWarningRequired, isTrue);
+  });
+
+  test('persists cancellation reason for a restored ride snapshot', () async {
+    final preferences = await SharedPreferences.getInstance();
+    final store = ActiveRideStore(preferences);
+    final request = RideRequestData(
+      requestId: 'ride-cancelled-no-vehicle',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 11, 15, 10),
+      status: RideRequestStatus.cancelled,
+      cancellationReason: 'no_vehicle_found',
+    );
+
+    await store.save(request);
+
+    expect(store.load()?.cancellationReason, 'no_vehicle_found');
+  });
 
   test('ignores an incomplete stored destination coordinate pair', () async {
     SharedPreferences.setMockInitialValues({

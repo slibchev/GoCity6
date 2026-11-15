@@ -50,6 +50,10 @@ void main() {
     Object? meterFareMinor,
     String bonusDecision = 'not_offered',
     Object? driverBonusMinor,
+    String? waitingBoardEnteredAt,
+    String? waitingWarningAt,
+    Object? waitingWarningRequired = false,
+    Object? cancellationReason,
   }) {
     return {
       'id': 'ride-001',
@@ -76,6 +80,10 @@ void main() {
       'commissionAmountMinor': null,
       'completedByDriverId': completedByDriverId,
       'completedAt': completedAt,
+      'waitingBoardEnteredAt': waitingBoardEnteredAt,
+      'waitingWarningAt': waitingWarningAt,
+      'waitingWarningRequired': waitingWarningRequired,
+      'cancellationReason': cancellationReason,
     };
   }
 
@@ -593,6 +601,104 @@ void main() {
     expect(result.assignedDriverId, isNull);
     expect(result.assignedVehicleId, isNull);
   });
+
+  test(
+    'getRequestStatus parses waiting board warning and cancellation data',
+    () async {
+      final result = await BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient(
+          (request) async => jsonResponse(
+            backendRide(
+              status: 'waitingForVehicle',
+              waitingBoardEnteredAt: '2026-11-15T10:00:00.000Z',
+              waitingWarningAt: '2026-11-15T10:05:00.000Z',
+              waitingWarningRequired: true,
+            ),
+            200,
+          ),
+        ),
+      ).getRequestStatus(createRequest(requestId: 'ride-001'));
+
+      expect(
+        result.waitingBoardEnteredAt,
+        DateTime.parse('2026-11-15T10:00:00Z').toLocal(),
+      );
+      expect(
+        result.waitingWarningAt,
+        DateTime.parse('2026-11-15T10:05:00Z').toLocal(),
+      );
+      expect(result.waitingWarningRequired, isTrue);
+      expect(result.cancellationReason, isNull);
+    },
+  );
+
+  test(
+    'getRequestStatus safely accepts old backend responses without new fields',
+    () async {
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          final response = backendRide(status: 'waitingForVehicle')
+            ..remove('waitingBoardEnteredAt')
+            ..remove('waitingWarningAt')
+            ..remove('waitingWarningRequired')
+            ..remove('cancellationReason');
+          return jsonResponse(response, 200);
+        }),
+      );
+
+      final result = await service.getRequestStatus(
+        createRequest(requestId: 'ride-001').copyWith(
+          waitingBoardEnteredAt: DateTime(2026, 11, 15, 10),
+          waitingWarningAt: DateTime(2026, 11, 15, 10, 5),
+          waitingWarningRequired: true,
+          cancellationReason: 'no_vehicle_found',
+        ),
+      );
+
+      expect(result.waitingBoardEnteredAt, isNull);
+      expect(result.waitingWarningAt, isNull);
+      expect(result.waitingWarningRequired, isFalse);
+      expect(result.cancellationReason, isNull);
+    },
+  );
+
+  test(
+    'getRequestStatus parses cancellation reason and rejects invalid field types',
+    () async {
+      final result = await BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient(
+          (request) async => jsonResponse(
+            backendRide(
+              status: 'cancelled',
+              cancellationReason: 'no_vehicle_found',
+            ),
+            200,
+          ),
+        ),
+      ).getRequestStatus(createRequest(requestId: 'ride-001'));
+      expect(result.cancellationReason, 'no_vehicle_found');
+
+      final invalidService = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient(
+          (request) async => jsonResponse(
+            backendRide(
+              status: 'waitingForVehicle',
+              waitingWarningRequired: 'yes',
+            ),
+            200,
+          ),
+        ),
+      );
+      await expectLater(
+        invalidService.getRequestStatus(createRequest(requestId: 'ride-001')),
+        throwsA(isA<FormatException>()),
+      );
+    },
+  );
 
   test('getRequestStatus applies accepted assignment data', () async {
     final client = MockClient((request) async {
