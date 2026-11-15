@@ -169,6 +169,30 @@ class ControlledRideRequestService
   }
 }
 
+class FailingStatusRideRequestService implements RideRequestService {
+  int watchCallCount = 0;
+
+  @override
+  Future<RideRequestData> submitRequest(RideRequestData request) async =>
+      request;
+
+  @override
+  Future<RideRequestData> getRequestStatus(RideRequestData request) async =>
+      request;
+
+  @override
+  Future<RideRequestData> cancelRequest(RideRequestData request) async =>
+      request;
+
+  @override
+  Stream<RideRequestData> watchRequestStatus(RideRequestData request) {
+    watchCallCount++;
+    return Stream<RideRequestData>.error(
+      StateError('Permanent status request failure.'),
+    );
+  }
+}
+
 void useWideTestSurface(WidgetTester tester) {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1;
@@ -425,6 +449,100 @@ void main() {
       expect(store.load()?.status, RideRequestStatus.accepted);
       expect(store.load()?.assignedDriverId, 'driver-001');
       expect(service.watchCallCount, 1);
+    },
+  );
+
+  testWidgets(
+    'pauses and resumes the existing status subscription without duplicates',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      final request = RideRequestData(
+        requestId: 'ride-lifecycle-001',
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 10, 2, 16),
+        status: RideRequestStatus.pending,
+      );
+      final service = ControlledRideRequestService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+            rideRequestService: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(service.watchCallCount, 1);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
+      expect(service.watchCallCount, 1);
+      service.publish(request.copyWith(status: RideRequestStatus.accepted));
+      await tester.pumpAndSettle();
+      expect(find.text(AppTranslations.acceptedRideTitle), findsOneWidget);
+
+      service.publish(request.copyWith(status: RideRequestStatus.completed));
+      await tester.pumpAndSettle();
+      service.publish(request.copyWith(status: RideRequestStatus.pending));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppTranslations.rideCompleted), findsOneWidget);
+      expect(find.text(AppTranslations.rideRequestSent), findsNothing);
+      expect(service.watchCallCount, 1);
+      expect(service.statusStreamHasNoListeners, isTrue);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    },
+  );
+
+  testWidgets(
+    'does not automatically restart a permanently failed status stream on resume',
+    (WidgetTester tester) async {
+      useWideTestSurface(tester);
+      final request = RideRequestData(
+        requestId: 'ride-lifecycle-error-001',
+        pickup: 'Pickup',
+        destination: 'Destination',
+        passengers: 1,
+        paymentMethod: RidePaymentMethod.cash,
+        rideType: RideType.city,
+        requestedAt: DateTime(2026, 10, 2, 16),
+        status: RideRequestStatus.pending,
+      );
+      final service = FailingStatusRideRequestService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideConfirmationScreen(
+            request: request,
+            rideRequestService: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 2; i++) {
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
+      }
+
+      expect(service.watchCallCount, 1);
+      expect(
+        find.text('Неуспешно обновяване на статуса на поръчката.'),
+        findsOneWidget,
+      );
     },
   );
 

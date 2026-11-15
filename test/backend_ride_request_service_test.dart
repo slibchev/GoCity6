@@ -780,6 +780,74 @@ void main() {
   );
 
   test(
+    'watchRequestStatus starts its first backend read immediately',
+    () async {
+      var statusReadCount = 0;
+      final pollDelays = <Duration>[];
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          statusReadCount++;
+          return jsonResponse(backendRide(status: 'completed'), 200);
+        }),
+        pollInterval: const Duration(seconds: 3),
+        pollDelay: (duration) async {
+          pollDelays.add(duration);
+        },
+      );
+
+      final statuses = await service
+          .watchRequestStatus(createRequest(requestId: 'ride-001'))
+          .map((request) => request.status)
+          .toList();
+
+      expect(statuses, [
+        RideRequestStatus.pending,
+        RideRequestStatus.completed,
+      ]);
+      expect(statusReadCount, 1);
+      expect(pollDelays, isEmpty);
+    },
+  );
+
+  test(
+    'watchRequestStatus keeps the 3 second interval after success',
+    () async {
+      var statusReadCount = 0;
+      final pollDelays = <Duration>[];
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          statusReadCount++;
+          return jsonResponse(
+            backendRide(
+              status: statusReadCount == 1 ? 'waitingForVehicle' : 'completed',
+            ),
+            200,
+          );
+        }),
+        pollInterval: const Duration(seconds: 3),
+        pollDelay: (duration) async {
+          pollDelays.add(duration);
+        },
+      );
+
+      final statuses = await service
+          .watchRequestStatus(createRequest(requestId: 'ride-001'))
+          .map((request) => request.status)
+          .toList();
+
+      expect(statuses, [
+        RideRequestStatus.pending,
+        RideRequestStatus.waitingForVehicle,
+        RideRequestStatus.completed,
+      ]);
+      expect(statusReadCount, 2);
+      expect(pollDelays, [const Duration(seconds: 3)]);
+    },
+  );
+
+  test(
     'watchRequestStatus retries transient failures with bounded backoff and resets after success',
     () async {
       var statusReadCount = 0;
@@ -819,7 +887,7 @@ void main() {
         client: client,
         pollInterval: const Duration(seconds: 3),
         retryBaseInterval: const Duration(seconds: 3),
-        maxRetryInterval: const Duration(seconds: 30),
+        maxRetryInterval: const Duration(seconds: 6),
         pollDelay: (duration) async {
           pollDelays.add(duration);
         },
@@ -839,12 +907,11 @@ void main() {
       expect(maxActiveStatusRequests, 1);
       expect(pollDelays, [
         const Duration(seconds: 3),
-        const Duration(seconds: 3),
         const Duration(seconds: 6),
-        const Duration(seconds: 12),
-        const Duration(seconds: 24),
-        const Duration(seconds: 30),
-        const Duration(seconds: 30),
+        const Duration(seconds: 6),
+        const Duration(seconds: 6),
+        const Duration(seconds: 6),
+        const Duration(seconds: 6),
         const Duration(seconds: 3),
         const Duration(seconds: 3),
       ]);

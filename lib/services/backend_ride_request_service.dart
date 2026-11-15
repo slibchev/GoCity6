@@ -36,7 +36,7 @@ class BackendRideRequestService
     this.pollInterval = const Duration(seconds: 3),
     this.statusTimeout = const Duration(seconds: 10),
     this.retryBaseInterval = const Duration(seconds: 3),
-    this.maxRetryInterval = const Duration(seconds: 30),
+    this.maxRetryInterval = const Duration(seconds: 6),
     Future<void> Function(Duration duration)? pollDelay,
     this.submitTimeout = const Duration(seconds: 25),
     this.authorizationHeaderProvider,
@@ -229,11 +229,15 @@ class BackendRideRequestService
     var currentRequest = request;
     var delayBeforeNextPoll = pollInterval;
     var retryDelay = retryBaseInterval;
+    var firstPoll = true;
 
     yield currentRequest;
 
     while (!_isTerminal(currentRequest.status)) {
-      await _pollDelay(delayBeforeNextPoll);
+      if (!firstPoll) {
+        await _pollDelay(delayBeforeNextPoll);
+      }
+      firstPoll = false;
 
       try {
         currentRequest = await getRequestStatus(currentRequest);

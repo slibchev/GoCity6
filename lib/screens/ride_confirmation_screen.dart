@@ -32,10 +32,13 @@ class RideConfirmationScreen extends StatefulWidget {
   State<RideConfirmationScreen> createState() => _RideConfirmationScreenState();
 }
 
-class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
+class _RideConfirmationScreenState extends State<RideConfirmationScreen>
+    with WidgetsBindingObserver {
   late RideRequestData currentRequest;
 
   StreamSubscription<RideRequestData>? _statusSubscription;
+  int _statusWatchGeneration = 0;
+  bool _statusWatchPaused = false;
   bool _ignoreStatusUpdates = false;
   bool _isCancelling = false;
   bool _isDecidingBonus = false;
@@ -78,7 +81,31 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
     super.initState();
 
     currentRequest = widget.request;
+    WidgetsBinding.instance.addObserver(this);
     _watchStatus();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final subscription = _statusSubscription;
+
+    if (state == AppLifecycleState.resumed) {
+      if (_statusWatchPaused) {
+        _statusWatchPaused = false;
+        subscription?.resume();
+      }
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      if (!_statusWatchPaused) {
+        _statusWatchPaused = true;
+        subscription?.pause();
+      }
+    }
   }
 
   void _watchStatus() {
@@ -88,11 +115,15 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
       return;
     }
 
+    final generation = ++_statusWatchGeneration;
     _statusSubscription = service
         .watchRequestStatus(currentRequest)
         .listen(
           (updatedRequest) {
-            if (!mounted || _ignoreStatusUpdates || _isDecidingBonus) {
+            if (!mounted ||
+                generation != _statusWatchGeneration ||
+                _ignoreStatusUpdates ||
+                _isDecidingBonus) {
               return;
             }
 
@@ -117,7 +148,9 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
             }
           },
           onError: (Object error, StackTrace stackTrace) {
-            if (!mounted || _ignoreStatusUpdates) {
+            if (!mounted ||
+                generation != _statusWatchGeneration ||
+                _ignoreStatusUpdates) {
               return;
             }
 
@@ -130,11 +163,21 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
               context,
             ).showSnackBar(SnackBar(content: Text(message)));
           },
+          onDone: () {
+            if (generation == _statusWatchGeneration) {
+              _statusSubscription = null;
+            }
+          },
         );
+
+    if (_statusWatchPaused) {
+      _statusSubscription!.pause();
+    }
   }
 
   void _stopStatusWatch() {
     _ignoreStatusUpdates = true;
+    _statusWatchGeneration++;
 
     final subscription = _statusSubscription;
     _statusSubscription = null;
@@ -146,7 +189,13 @@ class _RideConfirmationScreenState extends State<RideConfirmationScreen> {
 
   @override
   void dispose() {
-    _statusSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _statusWatchGeneration++;
+    final subscription = _statusSubscription;
+    _statusSubscription = null;
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
     super.dispose();
   }
 

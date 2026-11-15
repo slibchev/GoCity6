@@ -264,7 +264,7 @@ void main() {
   );
 
   testWidgets(
-    'restores stored ride when the initial Backend status request times out',
+    'restores stored ride when startup and screen status requests time out',
     (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
 
@@ -276,13 +276,13 @@ void main() {
       await store.save(storedRequest);
 
       var statusRequestCount = 0;
-      var requestAborted = false;
+      var abortedRequestCount = 0;
       final pollDelayGate = Completer<void>();
       final client = MockClient.streaming((request, bodyStream) async {
         statusRequestCount++;
         final abortTrigger = (request as http.AbortableRequest).abortTrigger!;
         await abortTrigger;
-        requestAborted = true;
+        abortedRequestCount++;
         throw http.RequestAbortedException(request.url);
       });
       final service = BackendRideRequestService(
@@ -304,8 +304,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
       await tester.pumpAndSettle();
 
-      expect(statusRequestCount, 1);
-      expect(requestAborted, isTrue);
+      expect(statusRequestCount, 2);
+      expect(abortedRequestCount, 2);
       expect(find.byType(RideConfirmationScreen), findsOneWidget);
 
       final confirmation = tester.widget<RideConfirmationScreen>(
