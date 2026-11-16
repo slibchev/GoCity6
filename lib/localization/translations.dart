@@ -22,6 +22,85 @@ class AppTranslations {
   static String get favorites =>
       currentLanguage == AppLanguage.english ? 'Favorites' : 'Любими';
 
+  static String get favoriteAdd =>
+      currentLanguage == AppLanguage.english ? 'Add' : 'Добави';
+
+  static String get favoriteEmptyTitle => currentLanguage == AppLanguage.english
+      ? 'No favorite addresses yet'
+      : 'Нямате любими адреси';
+
+  static String get favoriteEmptyDescription =>
+      currentLanguage == AppLanguage.english
+      ? 'Add frequently used addresses like Home, Work, or another favorite address.'
+      : 'Добавете често използвани адреси като Дом, Работа или друг любим адрес.';
+
+  static String get favoriteEdit =>
+      currentLanguage == AppLanguage.english ? 'Edit' : 'Редактирай';
+
+  static String get favoriteDelete =>
+      currentLanguage == AppLanguage.english ? 'Delete' : 'Изтрий';
+
+  static String get favoriteDeleteConfirmationTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Delete favorite address'
+      : 'Изтриване на любим адрес';
+
+  static String favoriteDeleteConfirmationMessage(String name) =>
+      currentLanguage == AppLanguage.english
+      ? 'Are you sure you want to delete "$name"?'
+      : 'Сигурни ли сте, че искате да изтриете "$name"?';
+
+  static String get favoriteCancel =>
+      currentLanguage == AppLanguage.english ? 'Cancel' : 'Отказ';
+
+  static String get favoriteEditDialogTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Edit address'
+      : 'Редактиране на адрес';
+
+  static String get favoriteAddDialogTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Add favorite address'
+      : 'Добавяне на любим адрес';
+
+  static String get favoriteNameLabel =>
+      currentLanguage == AppLanguage.english ? 'Name' : 'Име';
+
+  static String get favoriteNameHint => currentLanguage == AppLanguage.english
+      ? 'Home, Work...'
+      : 'Дом, Работа...';
+
+  static String get favoriteAddressLabel =>
+      currentLanguage == AppLanguage.english ? 'Address' : 'Адрес';
+
+  static String get favoriteAddressHint =>
+      currentLanguage == AppLanguage.english
+      ? 'Start typing an address'
+      : 'Започнете да въвеждате адрес';
+
+  static String get favoriteNameValidation =>
+      currentLanguage == AppLanguage.english
+      ? 'Enter a name for this address'
+      : 'Въведете име на адреса';
+
+  static String get favoriteAddressValidation =>
+      currentLanguage == AppLanguage.english
+      ? 'Select an address from the suggestions'
+      : 'Изберете адрес от предложенията';
+
+  static String get favoriteSave =>
+      currentLanguage == AppLanguage.english ? 'Save' : 'Запази';
+
+  static String get destinationFavoritesEmpty =>
+      currentLanguage == AppLanguage.english
+      ? 'You have no saved favorite addresses.'
+      : 'Нямате запазени любими адреси.';
+
+  static String get chooseFavoriteAddress =>
+      currentLanguage == AppLanguage.english
+      ? 'Choose a favorite address'
+      : 'Изберете любим адрес';
+
   static String get languageSaveError => currentLanguage == AppLanguage.english
       ? 'Could not save the language. Please try again.'
       : 'Езикът не беше запазен. Опитайте отново.';

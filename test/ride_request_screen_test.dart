@@ -1001,6 +1001,74 @@ void main() {
     },
   );
 
+  testWidgets('empty destination favorites message is localized', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          placesService: const FakePlacesService(),
+          favoritesService: FakeFavoritesService(const []),
+          mapIsActive: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AppTranslations.currentLanguage = AppLanguage.bulgarian;
+    await tester.tap(find.byTooltip(AppTranslations.favorites));
+    await tester.pumpAndSettle();
+    expect(find.text('Нямате запазени любими адреси.'), findsOneWidget);
+
+    AppTranslations.currentLanguage = AppLanguage.english;
+    await tester.pumpAndSettle();
+    expect(find.text('You have no saved favorite addresses.'), findsOneWidget);
+    expect(find.text('Нямате запазени любими адреси.'), findsNothing);
+    expect(find.textContaining('Ð'), findsNothing);
+  });
+
+  testWidgets(
+    'destination favorites title localizes without translating data',
+    (WidgetTester tester) async {
+      const favorite = FavoritePlace(
+        id: 'work',
+        name: 'Central Office',
+        address: 'бул. Витоша 1, София',
+        placeId: 'central-office',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            placesService: const FakePlacesService(),
+            favoritesService: FakeFavoritesService(const [favorite]),
+            mapIsActive: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      AppTranslations.currentLanguage = AppLanguage.bulgarian;
+      await tester.tap(find.byTooltip(AppTranslations.favorites));
+      await tester.pumpAndSettle();
+      expect(find.text('Изберете любим адрес'), findsOneWidget);
+      expect(find.text('Central Office'), findsOneWidget);
+      expect(find.text('бул. Витоша 1, София'), findsOneWidget);
+
+      AppTranslations.currentLanguage = AppLanguage.english;
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a favorite address'), findsOneWidget);
+      expect(find.text('Central Office'), findsOneWidget);
+      expect(find.text('бул. Витоша 1, София'), findsOneWidget);
+
+      await tester.tap(find.text('Central Office'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+        'бул. Витоша 1, София',
+      );
+    },
+  );
+
   testWidgets(
     'autocomplete selection after map pickup clears old coordinates',
     (WidgetTester tester) async {

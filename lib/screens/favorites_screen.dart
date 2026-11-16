@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../config/colors.dart';
+import '../localization/translations.dart';
 import '../models/favorite_place.dart';
 import '../models/place_suggestion.dart';
 import '../services/backend_places_service.dart';
 import '../services/favorites_service.dart';
 import '../widgets/city6_app_bar_title.dart';
+import '../widgets/language_selector.dart';
 
 class FavoritesScreen extends StatefulWidget {
   final FavoritesService favoritesService;
@@ -23,7 +25,8 @@ class FavoritesScreen extends StatefulWidget {
   State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen> {
+class _FavoritesScreenState extends State<FavoritesScreen>
+    with AppLanguageAwareState<FavoritesScreen> {
   List<FavoritePlace> _favorites = [];
   bool _isLoading = true;
 
@@ -51,9 +54,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final favorite = await showDialog<FavoritePlace>(
       context: context,
       builder: (context) {
-        return FavoritePlaceDialog(
-          placesService: widget.placesService,
-        );
+        return FavoritePlaceDialog(placesService: widget.placesService);
       },
     );
 
@@ -66,9 +67,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     await _loadFavorites();
   }
 
-  Future<void> _editFavorite(
-    FavoritePlace favorite,
-  ) async {
+  Future<void> _editFavorite(FavoritePlace favorite) async {
     final updatedFavorite = await showDialog<FavoritePlace>(
       context: context,
       builder: (context) {
@@ -83,38 +82,37 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return;
     }
 
-    await widget.favoritesService.updateFavorite(
-      updatedFavorite,
-    );
+    await widget.favoritesService.updateFavorite(updatedFavorite);
 
     await _loadFavorites();
   }
 
-  Future<void> _deleteFavorite(
-    FavoritePlace favorite,
-  ) async {
+  Future<void> _deleteFavorite(FavoritePlace favorite) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Изтриване на любим адрес'),
-          content: Text(
-            'Сигурни ли сте, че искате да изтриете "${favorite.name}"?',
+        return AnimatedBuilder(
+          animation: AppTranslations.languageNotifier,
+          builder: (context, _) => AlertDialog(
+            title: Text(AppTranslations.favoriteDeleteConfirmationTitle),
+            content: Text(
+              AppTranslations.favoriteDeleteConfirmationMessage(favorite.name),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                child: Text(AppTranslations.favoriteCancel),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                child: Text(AppTranslations.favoriteDelete),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Отказ'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('Изтрий'),
-            ),
-          ],
         );
       },
     );
@@ -123,9 +121,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return;
     }
 
-    await widget.favoritesService.deleteFavorite(
-      favorite.id,
-    );
+    await widget.favoritesService.deleteFavorite(favorite.id);
 
     await _loadFavorites();
   }
@@ -134,21 +130,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const City6AppBarTitle(),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const City6AppBarTitle(), centerTitle: true),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addFavorite,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Добави'),
+        label: Text(AppTranslations.favoriteAdd),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : _favorites.isEmpty
           ? _buildEmptyState()
           : _buildFavoritesList(),
@@ -162,23 +153,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.star_border,
-              size: 72,
-              color: AppColors.primary,
-            ),
+            Icon(Icons.star_border, size: 72, color: AppColors.primary),
             const SizedBox(height: 16),
-            const Text(
-              'Нямате любими адреси',
+            Text(
+              AppTranslations.favoriteEmptyTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Добавете често използвани адреси като Дом, Работа или друг любим адрес.',
+            Text(
+              AppTranslations.favoriteEmptyDescription,
               textAlign: TextAlign.center,
             ),
           ],
@@ -189,12 +173,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   Widget _buildFavoritesList() {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        100,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: _favorites.length,
       separatorBuilder: (context, index) {
         return const SizedBox(height: 10);
@@ -211,9 +190,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
             title: Text(
               favorite.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -230,25 +207,31 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 }
               },
               itemBuilder: (context) {
-                return const [
+                return [
                   PopupMenuItem(
                     value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_outlined),
-                        SizedBox(width: 12),
-                        Text('Редактирай'),
-                      ],
+                    child: AnimatedBuilder(
+                      animation: AppTranslations.languageNotifier,
+                      builder: (context, _) => Row(
+                        children: [
+                          const Icon(Icons.edit_outlined),
+                          const SizedBox(width: 12),
+                          Text(AppTranslations.favoriteEdit),
+                        ],
+                      ),
                     ),
                   ),
                   PopupMenuItem(
                     value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline),
-                        SizedBox(width: 12),
-                        Text('Изтрий'),
-                      ],
+                    child: AnimatedBuilder(
+                      animation: AppTranslations.languageNotifier,
+                      builder: (context, _) => Row(
+                        children: [
+                          const Icon(Icons.delete_outline),
+                          const SizedBox(width: 12),
+                          Text(AppTranslations.favoriteDelete),
+                        ],
+                      ),
                     ),
                   ),
                 ];
@@ -272,12 +255,11 @@ class FavoritePlaceDialog extends StatefulWidget {
   });
 
   @override
-  State<FavoritePlaceDialog> createState() =>
-      _FavoritePlaceDialogState();
+  State<FavoritePlaceDialog> createState() => _FavoritePlaceDialogState();
 }
 
-class _FavoritePlaceDialogState
-    extends State<FavoritePlaceDialog> {
+class _FavoritePlaceDialogState extends State<FavoritePlaceDialog>
+    with AppLanguageAwareState<FavoritePlaceDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _addressController;
 
@@ -289,8 +271,8 @@ class _FavoritePlaceDialogState
 
   String? _selectedPlaceId;
 
-  String? _nameError;
-  String? _addressError;
+  bool _nameHasError = false;
+  bool _addressHasError = false;
 
   bool get _isEditing => widget.favorite != null;
 
@@ -298,9 +280,7 @@ class _FavoritePlaceDialogState
   void initState() {
     super.initState();
 
-    _nameController = TextEditingController(
-      text: widget.favorite?.name ?? '',
-    );
+    _nameController = TextEditingController(text: widget.favorite?.name ?? '');
 
     _addressController = TextEditingController(
       text: widget.favorite?.address ?? '',
@@ -327,7 +307,7 @@ class _FavoritePlaceDialogState
     final query = value.trim();
 
     setState(() {
-      _addressError = null;
+      _addressHasError = false;
     });
 
     if (query.length < 3) {
@@ -339,17 +319,12 @@ class _FavoritePlaceDialogState
       return;
     }
 
-    _debounce = Timer(
-      const Duration(milliseconds: 400),
-      () {
-        _loadSuggestions(query);
-      },
-    );
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _loadSuggestions(query);
+    });
   }
 
-  Future<void> _loadSuggestions(
-    String query,
-  ) async {
+  Future<void> _loadSuggestions(String query) async {
     if (!mounted) {
       return;
     }
@@ -359,10 +334,7 @@ class _FavoritePlaceDialogState
     });
 
     try {
-      final suggestions =
-          await widget.placesService.autocomplete(
-        input: query,
-      );
+      final suggestions = await widget.placesService.autocomplete(input: query);
 
       if (!mounted) {
         return;
@@ -388,9 +360,7 @@ class _FavoritePlaceDialogState
     }
   }
 
-  void _selectSuggestion(
-    PlaceSuggestion suggestion,
-  ) {
+  void _selectSuggestion(PlaceSuggestion suggestion) {
     setState(() {
       _addressController.text = suggestion.text;
       _selectedPlaceId = suggestion.placeId;
@@ -398,7 +368,7 @@ class _FavoritePlaceDialogState
       _suggestions = [];
       _isLoadingSuggestions = false;
 
-      _addressError = null;
+      _addressHasError = false;
     });
 
     FocusScope.of(context).unfocus();
@@ -409,17 +379,11 @@ class _FavoritePlaceDialogState
     final address = _addressController.text.trim();
 
     final nameIsValid = name.isNotEmpty;
-    final addressIsValid =
-        address.isNotEmpty && _selectedPlaceId != null;
+    final addressIsValid = address.isNotEmpty && _selectedPlaceId != null;
 
     setState(() {
-      _nameError = nameIsValid
-          ? null
-          : 'Въведете име на адреса';
-
-      _addressError = addressIsValid
-          ? null
-          : 'Изберете адрес от предложенията';
+      _nameHasError = !nameIsValid;
+      _addressHasError = !addressIsValid;
     });
 
     if (!nameIsValid || !addressIsValid) {
@@ -427,19 +391,15 @@ class _FavoritePlaceDialogState
     }
 
     final favorite = FavoritePlace(
-      id: widget.favorite?.id ??
-          DateTime.now()
-              .microsecondsSinceEpoch
-              .toString(),
+      id:
+          widget.favorite?.id ??
+          DateTime.now().microsecondsSinceEpoch.toString(),
       name: name,
       address: address,
       placeId: _selectedPlaceId!,
     );
 
-    Navigator.pop(
-      context,
-      favorite,
-    );
+    Navigator.pop(context, favorite);
   }
 
   @override
@@ -447,8 +407,8 @@ class _FavoritePlaceDialogState
     return AlertDialog(
       title: Text(
         _isEditing
-            ? 'Редактиране на адрес'
-            : 'Добавяне на любим адрес',
+            ? AppTranslations.favoriteEditDialogTitle
+            : AppTranslations.favoriteAddDialogTitle,
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -458,21 +418,20 @@ class _FavoritePlaceDialogState
             children: [
               TextField(
                 controller: _nameController,
-                textCapitalization:
-                    TextCapitalization.sentences,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: 'Име',
-                  hintText: 'Дом, Работа...',
-                  errorText: _nameError,
-                  prefixIcon: const Icon(
-                    Icons.label_outline,
-                  ),
+                  labelText: AppTranslations.favoriteNameLabel,
+                  hintText: AppTranslations.favoriteNameHint,
+                  errorText: _nameHasError
+                      ? AppTranslations.favoriteNameValidation
+                      : null,
+                  prefixIcon: const Icon(Icons.label_outline),
                   border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) {
-                  if (_nameError != null) {
+                  if (_nameHasError) {
                     setState(() {
-                      _nameError = null;
+                      _nameHasError = false;
                     });
                   }
                 },
@@ -482,12 +441,12 @@ class _FavoritePlaceDialogState
                 controller: _addressController,
                 onChanged: _onAddressChanged,
                 decoration: InputDecoration(
-                  labelText: 'Адрес',
-                  hintText: 'Започнете да въвеждате адрес',
-                  errorText: _addressError,
-                  prefixIcon: const Icon(
-                    Icons.location_on_outlined,
-                  ),
+                  labelText: AppTranslations.favoriteAddressLabel,
+                  hintText: AppTranslations.favoriteAddressHint,
+                  errorText: _addressHasError
+                      ? AppTranslations.favoriteAddressValidation
+                      : null,
+                  prefixIcon: const Icon(Icons.location_on_outlined),
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -499,41 +458,26 @@ class _FavoritePlaceDialogState
               if (_suggestions.isNotEmpty)
                 Container(
                   margin: const EdgeInsets.only(top: 8),
-                  constraints: const BoxConstraints(
-                    maxHeight: 220,
-                  ),
+                  constraints: const BoxConstraints(maxHeight: 220),
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.black12,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(8),
+                    border: Border.all(color: Colors.black12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: _suggestions.length,
-                    separatorBuilder:
-                        (context, index) {
-                      return const Divider(
-                        height: 1,
-                      );
+                    separatorBuilder: (context, index) {
+                      return const Divider(height: 1);
                     },
                     itemBuilder: (context, index) {
-                      final suggestion =
-                          _suggestions[index];
+                      final suggestion = _suggestions[index];
 
                       return ListTile(
                         dense: true,
-                        leading: const Icon(
-                          Icons.location_on_outlined,
-                        ),
-                        title: Text(
-                          suggestion.text,
-                        ),
+                        leading: const Icon(Icons.location_on_outlined),
+                        title: Text(suggestion.text),
                         onTap: () {
-                          _selectSuggestion(
-                            suggestion,
-                          );
+                          _selectSuggestion(suggestion);
                         },
                       );
                     },
@@ -548,14 +492,14 @@ class _FavoritePlaceDialogState
           onPressed: () {
             Navigator.pop(context);
           },
-          child: const Text('Отказ'),
+          child: Text(AppTranslations.favoriteCancel),
         ),
         ElevatedButton(
           onPressed: _save,
           child: Text(
             _isEditing
-                ? 'Запази'
-                : 'Добави',
+                ? AppTranslations.favoriteSave
+                : AppTranslations.favoriteAdd,
           ),
         ),
       ],

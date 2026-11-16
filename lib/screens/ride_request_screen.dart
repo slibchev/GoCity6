@@ -521,9 +521,11 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
     if (_favoritePlaces.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'ÐÑÐ¼Ð°Ñ‚Ðµ Ð·Ð°Ð¿Ð°Ð·ÐµÐ½Ð¸ Ð»ÑŽÐ±Ð¸Ð¼Ð¸ Ð°Ð´Ñ€ÐµÑÐ¸.',
+        SnackBar(
+          content: AnimatedBuilder(
+            animation: AppTranslations.languageNotifier,
+            builder: (context, _) =>
+                Text(AppTranslations.destinationFavoritesEmpty),
           ),
         ),
       );
@@ -540,44 +542,50 @@ class _RideRequestScreenState extends State<RideRequestScreen>
     try {
       favorite = await showModalBottomSheet<FavoritePlace>(
         context: context,
-        builder: (context) {
-          return SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Изберете любим адрес',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        builder: (context) => AnimatedBuilder(
+          animation: AppTranslations.languageNotifier,
+          builder: (context, _) {
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      AppTranslations.chooseFavoriteAddress,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-                const Divider(height: 1),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _favoritePlaces.length,
-                    itemBuilder: (context, index) {
-                      final favorite = _favoritePlaces[index];
+                  const Divider(height: 1),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _favoritePlaces.length,
+                      itemBuilder: (context, index) {
+                        final favorite = _favoritePlaces[index];
 
-                      return ListTile(
-                        leading: Icon(Icons.star, color: AppColors.primary),
-                        title: Text(
-                          favorite.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(favorite.address),
-                        onTap: () {
-                          Navigator.pop(context, favorite);
-                        },
-                      );
-                    },
+                        return ListTile(
+                          leading: Icon(Icons.star, color: AppColors.primary),
+                          title: Text(
+                            favorite.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(favorite.address),
+                          onTap: () {
+                            Navigator.pop(context, favorite);
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       );
     } finally {
       if (mounted) {
