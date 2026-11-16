@@ -10,11 +10,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:taxi_app/models/place_suggestion.dart';
+import 'package:taxi_app/models/favorite_place.dart';
+import 'package:taxi_app/services/favorites_service.dart';
+import 'package:taxi_app/services/backend_reverse_geocode_service.dart';
 import 'package:taxi_app/services/backend_places_service.dart';
 import 'package:taxi_app/localization/translations.dart';
 import 'package:taxi_app/localization/app_language.dart';
 import 'package:taxi_app/models/route_result.dart';
 import 'package:taxi_app/screens/ride_request_screen.dart';
+import 'package:taxi_app/screens/map_picker_screen.dart';
 import 'package:taxi_app/services/route_service.dart';
 import 'package:taxi_app/screens/ride_summary_screen.dart';
 import 'package:taxi_app/models/ride.dart';
@@ -281,6 +285,8 @@ class FailingRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
     throw Exception('Route calculation failed');
   }
@@ -303,6 +309,8 @@ class TimeoutThenLateRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) {
     callCount++;
     if (callCount == 1) {
@@ -324,6 +332,8 @@ class SuccessfulRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
     return const RouteResult(
       distanceKm: 12.5,
@@ -347,9 +357,12 @@ class RecordingCoordinateRouteService implements RouteService {
   final double? routeResultDestinationLatitude;
   final double? routeResultDestinationLongitude;
   String? selectedPickupPlaceId;
+  String? selectedDestinationPlaceId;
   String? selectedDestination;
   double? pickupLatitude;
   double? pickupLongitude;
+  double? destinationLatitude;
+  double? destinationLongitude;
 
   @override
   Future<RouteResult> calculateRoute({
@@ -359,11 +372,16 @@ class RecordingCoordinateRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
     selectedPickupPlaceId = pickupPlaceId;
+    selectedDestinationPlaceId = destinationPlaceId;
     selectedDestination = destination;
     this.pickupLatitude = pickupLatitude;
     this.pickupLongitude = pickupLongitude;
+    this.destinationLatitude = destinationLatitude;
+    this.destinationLongitude = destinationLongitude;
     return RouteResult(
       distanceKm: 12.5,
       durationMinutes: 25,
@@ -387,11 +405,52 @@ class PendingThenFreshDestinationRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) {
     requestedDestinations.add(destination);
     if (requestedDestinations.length == 1) {
       return firstRoute.future;
     }
+
+    return Future.value(
+      const RouteResult(
+        distanceKm: 9,
+        durationMinutes: 18,
+        pickupLatitude: 42.70,
+        pickupLongitude: 23.32,
+        destinationLatitude: 42.81,
+        destinationLongitude: 23.41,
+      ),
+    );
+  }
+}
+
+class PendingThenFreshRouteService implements RouteService {
+  final Completer<RouteResult> firstRoute = Completer<RouteResult>();
+  final List<(String, String, double?, double?, double?, double?)> requests =
+      [];
+
+  @override
+  Future<RouteResult> calculateRoute({
+    required String pickup,
+    required String destination,
+    String? pickupPlaceId,
+    String? destinationPlaceId,
+    double? pickupLatitude,
+    double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
+  }) {
+    requests.add((
+      pickup,
+      destination,
+      pickupLatitude,
+      pickupLongitude,
+      destinationLatitude,
+      destinationLongitude,
+    ));
+    if (requests.length == 1) return firstRoute.future;
 
     return Future.value(
       const RouteResult(
@@ -415,6 +474,8 @@ class NightIntercityRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
     return const RouteResult(
       distanceKm: 10,
@@ -437,6 +498,8 @@ class RecordingPlaceIdRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
     this.pickupPlaceId = pickupPlaceId;
     this.destinationPlaceId = destinationPlaceId;
@@ -469,6 +532,78 @@ class FakePlacesService extends BackendPlacesService {
       ),
     ];
   }
+}
+
+class FakeReverseGeocodeService implements ReverseGeocodeService {
+  final List<LatLng> requests = [];
+
+  @override
+  Future<String?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+  }) async {
+    requests.add(LatLng(latitude, longitude));
+    return 'Map address ${requests.length}';
+  }
+}
+
+class FakeFavoritesService extends FavoritesService {
+  FakeFavoritesService(this.favorites);
+
+  final List<FavoritePlace> favorites;
+
+  @override
+  Future<List<FavoritePlace>> getFavorites() async => favorites;
+}
+
+Future<void> selectMapPoint(
+  WidgetTester tester,
+  LatLng point, {
+  String? reverseGeocodeText,
+}) async {
+  expect(find.byType(MapPickerScreen), findsOneWidget);
+  final pickerMap = find.descendant(
+    of: find.byType(MapPickerScreen),
+    matching: find.byType(GoogleMap),
+  );
+  final map = tester.widget<GoogleMap>(pickerMap);
+  expect(map.onTap, isNotNull);
+  map.onTap!(point);
+  await tester.pump();
+  if (reverseGeocodeText != null) {
+    await tester.pump(const Duration(milliseconds: 351));
+    await tester.pump();
+    expect(find.text(reverseGeocodeText), findsOneWidget);
+  }
+}
+
+Future<void> confirmCurrentMapPoint(WidgetTester tester) async {
+  await tester.tap(find.text(AppTranslations.confirmLocation));
+  await tester.pumpAndSettle();
+}
+
+Future<void> choosePickupPointOnMap(
+  WidgetTester tester,
+  LatLng point, {
+  String? address,
+}) async {
+  await tester.tap(find.byTooltip('Избери начална точка'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(AppTranslations.chooseOnMap));
+  await tester.pumpAndSettle();
+  await selectMapPoint(tester, point, reverseGeocodeText: address);
+  await confirmCurrentMapPoint(tester);
+}
+
+Future<void> chooseDestinationPointOnMap(
+  WidgetTester tester,
+  LatLng point, {
+  String? address,
+}) async {
+  await tester.tap(find.byTooltip(AppTranslations.chooseOnMap));
+  await tester.pumpAndSettle();
+  await selectMapPoint(tester, point, reverseGeocodeText: address);
+  await confirmCurrentMapPoint(tester);
 }
 
 Future<void> enableManualPickup(WidgetTester tester) async {
@@ -561,6 +696,360 @@ void main() {
       isFalse,
     );
   });
+
+  testWidgets('map-selected pickup and destination keep exact coordinates', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingCoordinateRouteService(
+      routeResultPickupLatitude: 42.8,
+      routeResultPickupLongitude: 23.4,
+      routeResultDestinationLatitude: 42.81,
+      routeResultDestinationLongitude: 23.41,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+          reverseGeocodeService: FakeReverseGeocodeService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await pumpLocationUpdates(tester);
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    expect(find.text(AppTranslations.chooseOnMap), findsOneWidget);
+    await tester.tap(find.text(AppTranslations.chooseOnMap));
+    await tester.pumpAndSettle();
+    await selectMapPoint(
+      tester,
+      const LatLng(42.7123, 23.3345),
+      reverseGeocodeText: 'Map address 1',
+    );
+    await confirmCurrentMapPoint(tester);
+
+    await tester.tap(find.byTooltip(AppTranslations.chooseOnMap));
+    await tester.pumpAndSettle();
+    await selectMapPoint(
+      tester,
+      const LatLng(42.7224, 23.3446),
+      reverseGeocodeText: 'Map address 2',
+    );
+    await confirmCurrentMapPoint(tester);
+
+    tester
+        .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+        .onPressed!();
+    await tester.pumpAndSettle();
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(routeService.pickupLatitude, 42.7123);
+    expect(routeService.pickupLongitude, 23.3345);
+    expect(routeService.destinationLatitude, 42.7224);
+    expect(routeService.destinationLongitude, 23.3446);
+    expect(summary.request.pickupLatitude, 42.7123);
+    expect(summary.request.pickupLongitude, 23.3345);
+    expect(summary.request.destinationLatitude, 42.7224);
+    expect(summary.request.destinationLongitude, 23.3446);
+    expect(summary.request.pickupLatitude, isNot(42.8));
+    expect(summary.request.destinationLatitude, isNot(42.81));
+  });
+
+  testWidgets(
+    'reopening map centers at confirmed point and Back cancels edits',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            placesService: const FakePlacesService(),
+            reverseGeocodeService: FakeReverseGeocodeService(),
+            mapIsActive: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.chooseOnMap));
+      await tester.pumpAndSettle();
+      await selectMapPoint(
+        tester,
+        const LatLng(42.713, 23.335),
+        reverseGeocodeText: 'Map address 1',
+      );
+      await confirmCurrentMapPoint(tester);
+
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.chooseOnMap));
+      await tester.pumpAndSettle();
+      final picker = tester.widget<MapPickerScreen>(
+        find.byType(MapPickerScreen),
+      );
+      expect(picker.initialSelectedPoint, const LatLng(42.713, 23.335));
+      expect(picker.initialCameraTarget, const LatLng(42.713, 23.335));
+      expect(picker.initialAddress, 'Map address 1');
+      tester
+          .widget<GoogleMap>(
+            find.descendant(
+              of: find.byType(MapPickerScreen),
+              matching: find.byType(GoogleMap),
+            ),
+          )
+          .onTap!(const LatLng(42.723, 23.345));
+      await tester.pump();
+      Navigator.of(tester.element(find.byType(MapPickerScreen))).pop();
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        'Map address 1',
+      );
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.chooseOnMap));
+      await tester.pumpAndSettle();
+      final reopenedPicker = tester.widget<MapPickerScreen>(
+        find.byType(MapPickerScreen),
+      );
+      expect(reopenedPicker.initialSelectedPoint, const LatLng(42.713, 23.335));
+      Navigator.of(tester.element(find.byType(MapPickerScreen))).pop();
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'manual edits after map selection do not send stale coordinates',
+    (WidgetTester tester) async {
+      final routeService = RecordingCoordinateRouteService(
+        routeResultPickupLatitude: 42.8,
+        routeResultPickupLongitude: 23.4,
+        routeResultDestinationLatitude: 42.81,
+        routeResultDestinationLongitude: 23.41,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+            reverseGeocodeService: FakeReverseGeocodeService(),
+            mapIsActive: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.chooseOnMap));
+      await tester.pumpAndSettle();
+      await selectMapPoint(
+        tester,
+        const LatLng(42.7123, 23.3345),
+        reverseGeocodeText: 'Map address 1',
+      );
+      await confirmCurrentMapPoint(tester);
+      await tester.tap(find.byTooltip(AppTranslations.chooseOnMap));
+      await tester.pumpAndSettle();
+      await selectMapPoint(
+        tester,
+        const LatLng(42.7224, 23.3446),
+        reverseGeocodeText: 'Map address 2',
+      );
+      await confirmCurrentMapPoint(tester);
+
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.enterPickupAddress));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Manual pickup');
+      await tester.enterText(
+        find.byType(TextField).at(1),
+        'Manual destination',
+      );
+      tester
+          .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+          .onPressed!();
+      await tester.pumpAndSettle();
+
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(routeService.pickupLatitude, isNull);
+      expect(routeService.pickupLongitude, isNull);
+      expect(routeService.destinationLatitude, isNull);
+      expect(routeService.destinationLongitude, isNull);
+      expect(summary.request.pickupLatitude, 42.8);
+      expect(summary.request.destinationLatitude, 42.81);
+      expect(summary.request.pickupLatitude, isNot(42.7123));
+      expect(summary.request.destinationLatitude, isNot(42.7224));
+    },
+  );
+
+  testWidgets('Place selection after map pickup clears its coordinates', (
+    WidgetTester tester,
+  ) async {
+    final routeService = RecordingCoordinateRouteService(
+      routeResultPickupLatitude: 42.8,
+      routeResultPickupLongitude: 23.4,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RideRequestScreen(
+          routeService: routeService,
+          placesService: const FakePlacesService(),
+          reverseGeocodeService: FakeReverseGeocodeService(),
+          mapIsActive: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await choosePickupPointOnMap(
+      tester,
+      const LatLng(42.7123, 23.3345),
+      address: 'Map address 1',
+    );
+
+    await tester.tap(find.byTooltip('Избери начална точка'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppTranslations.enterPickupAddress));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'бул. Вит');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.tap(find.text('бул. „Витоша“, София, България'));
+    await tester.enterText(find.byType(TextField).at(1), 'Manual destination');
+
+    tester
+        .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+        .onPressed!();
+    await tester.pumpAndSettle();
+    final summary = tester.widget<RideSummaryScreen>(
+      find.byType(RideSummaryScreen),
+    );
+    expect(routeService.pickupLatitude, isNull);
+    expect(routeService.pickupLongitude, isNull);
+    expect(routeService.selectedPickupPlaceId, 'pickup-place-001');
+    expect(summary.request.pickupLatitude, 42.8);
+    expect(summary.request.pickupLongitude, 23.4);
+  });
+
+  testWidgets(
+    'favorite destination after map selection clears map coordinates',
+    (WidgetTester tester) async {
+      final routeService = RecordingCoordinateRouteService(
+        routeResultDestinationLatitude: 42.81,
+        routeResultDestinationLongitude: 23.41,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+            favoritesService: FakeFavoritesService(const [
+              FavoritePlace(
+                id: 'home',
+                name: 'Home',
+                address: 'Favorite home address',
+                placeId: 'favorite-place-id',
+              ),
+            ]),
+            reverseGeocodeService: FakeReverseGeocodeService(),
+            mapIsActive: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.enterPickupAddress));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Pickup address');
+      await tester.enterText(
+        find.byType(TextField).at(1),
+        'Temporary destination',
+      );
+      await chooseDestinationPointOnMap(
+        tester,
+        const LatLng(42.7224, 23.3446),
+        address: 'Map address 1',
+      );
+
+      await tester.tap(find.byTooltip(AppTranslations.favorites));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Home'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+        'Favorite home address',
+      );
+
+      tester
+          .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+          .onPressed!();
+      await tester.pumpAndSettle();
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(routeService.destinationLatitude, isNull);
+      expect(routeService.destinationLongitude, isNull);
+      expect(routeService.selectedDestinationPlaceId, isNull);
+      expect(summary.request.destination, 'Favorite home address');
+      expect(summary.request.destinationLatitude, 42.81);
+    },
+  );
+
+  testWidgets(
+    'autocomplete selection after map pickup clears old coordinates',
+    (WidgetTester tester) async {
+      final routeService = RecordingCoordinateRouteService(
+        routeResultPickupLatitude: 42.8,
+        routeResultPickupLongitude: 23.4,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RideRequestScreen(
+            routeService: routeService,
+            placesService: const FakePlacesService(),
+            reverseGeocodeService: FakeReverseGeocodeService(),
+            mapIsActive: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await choosePickupPointOnMap(
+        tester,
+        const LatLng(42.7123, 23.3345),
+        address: 'Map address 1',
+      );
+      await tester.tap(find.byTooltip('Избери начална точка'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppTranslations.enterPickupAddress));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'бул. Вит');
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.tap(find.text('бул. „Витоша“, София, България'));
+      await tester.enterText(
+        find.byType(TextField).at(1),
+        'Manual destination',
+      );
+
+      tester
+          .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+          .onPressed!();
+      await tester.pumpAndSettle();
+      final summary = tester.widget<RideSummaryScreen>(
+        find.byType(RideSummaryScreen),
+      );
+      expect(routeService.pickupLatitude, isNull);
+      expect(routeService.pickupLongitude, isNull);
+      expect(routeService.selectedPickupPlaceId, 'pickup-place-001');
+      expect(summary.request.pickupLatitude, 42.8);
+      expect(summary.request.pickupLongitude, 23.4);
+    },
+  );
 
   testWidgets('request map is interactive and exposes a follow control', (
     WidgetTester tester,
@@ -1079,6 +1568,114 @@ void main() {
       expect(summary.request.destinationLongitude, 23.41);
     },
   );
+
+  for (final purpose in MapPickerPurpose.values) {
+    testWidgets(
+      'opening the $purpose picker invalidates a pending route and allows retry',
+      (WidgetTester tester) async {
+        final routeService = PendingThenFreshRouteService();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: RideRequestScreen(
+              routeService: routeService,
+              placesService: const FakePlacesService(),
+              reverseGeocodeService: FakeReverseGeocodeService(),
+              mapIsActive: false,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await enableManualPickup(tester);
+        await tester.enterText(find.byType(TextField).first, 'Original pickup');
+        await tester.enterText(
+          find.byType(TextField).at(1),
+          'Original destination',
+        );
+
+        tester
+            .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+            .onPressed!();
+        await tester.pump();
+        expect(routeService.requests, hasLength(1));
+
+        if (purpose == MapPickerPurpose.pickup) {
+          await tester.tap(find.byTooltip('Избери начална точка'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(AppTranslations.chooseOnMap));
+        } else {
+          await tester.tap(find.byTooltip(AppTranslations.chooseOnMap));
+        }
+        await tester.pumpAndSettle();
+        expect(find.byType(MapPickerScreen), findsOneWidget);
+
+        routeService.firstRoute.complete(
+          const RouteResult(
+            distanceKm: 99,
+            durationMinutes: 99,
+            pickupLatitude: 10,
+            pickupLongitude: 11,
+            destinationLatitude: 12,
+            destinationLongitude: 13,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(RideSummaryScreen), findsNothing);
+        expect(find.byType(MapPickerScreen), findsOneWidget);
+
+        LatLng? confirmedPoint;
+        if (purpose == MapPickerPurpose.pickup) {
+          confirmedPoint = const LatLng(42.7123, 23.3345);
+          await selectMapPoint(
+            tester,
+            confirmedPoint,
+            reverseGeocodeText: 'Map address 1',
+          );
+          await confirmCurrentMapPoint(tester);
+        } else {
+          Navigator.of(tester.element(find.byType(MapPickerScreen))).pop();
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<TextField>(find.byType(TextField).first)
+                .controller!
+                .text,
+            'Original pickup',
+          );
+          expect(
+            tester
+                .widget<TextField>(find.byType(TextField).at(1))
+                .controller!
+                .text,
+            'Original destination',
+          );
+        }
+
+        final retryButton = tester.widget<ElevatedButton>(
+          find.byType(ElevatedButton).last,
+        );
+        expect(retryButton.onPressed, isNotNull);
+        retryButton.onPressed!();
+        await tester.pumpAndSettle();
+
+        expect(routeService.requests, hasLength(2));
+        final summary = tester.widget<RideSummaryScreen>(
+          find.byType(RideSummaryScreen),
+        );
+        if (purpose == MapPickerPurpose.pickup) {
+          expect(summary.request.pickup, 'Map address 1');
+          expect(routeService.requests.last.$3, 42.7123);
+          expect(routeService.requests.last.$4, 23.3345);
+          expect(summary.request.pickupLatitude, 42.7123);
+          expect(summary.request.pickupLongitude, 23.3345);
+        } else {
+          expect(summary.request.pickup, 'Original pickup');
+          expect(summary.request.destination, 'Original destination');
+          expect(summary.request.destinationLatitude, 42.81);
+          expect(summary.request.destinationLongitude, 23.41);
+        }
+      },
+    );
+  }
 
   testWidgets(
     'English My location label retains the selected GPS coordinates',

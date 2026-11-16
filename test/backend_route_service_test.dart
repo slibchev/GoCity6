@@ -50,6 +50,70 @@ void main() {
     }
   });
 
+  test('sends valid selected coordinates for both route endpoints', () async {
+    final client = MockClient((request) async {
+      expect(jsonDecode(request.body), {
+        'pickup': 'Map pickup',
+        'pickupLatitude': 42.6977,
+        'pickupLongitude': 23.3219,
+        'destination': 'Map destination',
+        'destinationLatitude': 42.701,
+        'destinationLongitude': 23.331,
+      });
+      return http.Response(
+        jsonEncode({'distanceKm': 1, 'durationMinutes': 4}),
+        200,
+      );
+    });
+
+    try {
+      await BackendRouteService(
+        baseUrl: 'https://backend.example',
+        client: client,
+      ).calculateRoute(
+        pickup: 'Map pickup',
+        pickupLatitude: 42.6977,
+        pickupLongitude: 23.3219,
+        destination: 'Map destination',
+        destinationLatitude: 42.701,
+        destinationLongitude: 23.331,
+      );
+    } finally {
+      client.close();
+    }
+  });
+
+  test(
+    'omits incomplete or invalid coordinate pairs from route payload',
+    () async {
+      final client = MockClient((request) async {
+        expect(jsonDecode(request.body), {
+          'pickup': 'Pickup',
+          'destination': 'Destination',
+        });
+        return http.Response(
+          jsonEncode({'distanceKm': 1, 'durationMinutes': 4}),
+          200,
+        );
+      });
+
+      try {
+        await BackendRouteService(
+          baseUrl: 'https://backend.example',
+          client: client,
+        ).calculateRoute(
+          pickup: 'Pickup',
+          pickupLatitude: 42.7,
+          destination: 'Destination',
+          destinationLatitude: double.nan,
+          destinationLongitude: 23.3,
+        );
+      } finally {
+        client.close();
+      }
+    },
+  );
+
   test('reports an HTTP error response', () async {
     final client = MockClient((_) async => http.Response('Unavailable', 503));
 

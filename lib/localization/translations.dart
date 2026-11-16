@@ -156,12 +156,49 @@ class AppTranslations {
       ? 'Could not determine a valid pickup location. Please select it again.'
       : 'Не успяхме да определим валидна начална точка. Изберете я отново.';
 
+  static String get destinationCoordinatesUnavailable =>
+      currentLanguage == AppLanguage.english
+      ? 'Could not determine a valid destination. Please select it again.'
+      : 'Не успяхме да определим валидна крайна точка. Изберете я отново.';
+
   static String get destinationLocation {
     if (currentLanguage == AppLanguage.english) {
       return 'Destination';
     }
     return 'До къде?';
   }
+
+  static String get chooseOnMap => currentLanguage == AppLanguage.english
+      ? 'Choose on map'
+      : 'Избери от картата';
+
+  static String get mapPickerPickupTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Choose pickup location'
+      : 'Изберете начална точка';
+
+  static String get mapPickerDestinationTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Choose destination'
+      : 'Изберете крайна точка';
+
+  static String get mapPickerTapToSelect =>
+      currentLanguage == AppLanguage.english
+      ? 'Tap the map to choose a location'
+      : 'Докоснете картата, за да изберете точка';
+
+  static String get mapPickerSelectedAddress =>
+      currentLanguage == AppLanguage.english
+      ? 'Selected location'
+      : 'Избрана точка';
+
+  static String get mapPickerResolvingAddress =>
+      currentLanguage == AppLanguage.english
+      ? 'Finding address...'
+      : 'Търсим адреса...';
+
+  static String get confirmLocation =>
+      currentLanguage == AppLanguage.english ? 'Confirm location' : 'Потвърди';
 
   static String get passengers {
     if (currentLanguage == AppLanguage.english) {

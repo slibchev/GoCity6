@@ -28,7 +28,17 @@ class BackendRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
+    final hasValidPickupCoordinates = _isValidCoordinatePair(
+      pickupLatitude,
+      pickupLongitude,
+    );
+    final hasValidDestinationCoordinates = _isValidCoordinatePair(
+      destinationLatitude,
+      destinationLongitude,
+    );
     final requestClient = client ?? http.Client();
     final shouldCloseClient = client == null;
     final abortTrigger = Completer<void>();
@@ -42,8 +52,12 @@ class BackendRouteService implements RouteService {
           ..body = jsonEncode({
             'pickup': pickup,
             'destination': destination,
-            if (pickupLatitude != null) 'pickupLatitude': pickupLatitude,
-            if (pickupLongitude != null) 'pickupLongitude': pickupLongitude,
+            if (hasValidPickupCoordinates) 'pickupLatitude': pickupLatitude,
+            if (hasValidPickupCoordinates) 'pickupLongitude': pickupLongitude,
+            if (hasValidDestinationCoordinates)
+              'destinationLatitude': destinationLatitude,
+            if (hasValidDestinationCoordinates)
+              'destinationLongitude': destinationLongitude,
             if (pickupPlaceId != null) 'pickupPlaceId': pickupPlaceId,
             if (destinationPlaceId != null)
               'destinationPlaceId': destinationPlaceId,
@@ -91,4 +105,14 @@ class BackendRouteService implements RouteService {
       encodedPolyline: data['encodedPolyline'] as String?,
     );
   }
+
+  bool _isValidCoordinatePair(double? latitude, double? longitude) =>
+      latitude != null &&
+      longitude != null &&
+      latitude.isFinite &&
+      longitude.isFinite &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180;
 }

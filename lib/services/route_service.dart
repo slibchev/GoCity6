@@ -8,5 +8,7 @@ abstract class RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   });
 }

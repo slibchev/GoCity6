@@ -10,6 +10,7 @@ import '../localization/translations.dart';
 import '../models/ride.dart';
 import '../models/ride_request_data.dart';
 import '../models/route_result.dart';
+import '../models/map_picker_result.dart';
 import '../services/route_service.dart';
 import 'ride_summary_screen.dart';
 import '../services/pricing_calculator.dart';
@@ -20,10 +21,12 @@ import '../models/place_suggestion.dart';
 import '../models/favorite_place.dart';
 import '../services/backend_places_service.dart';
 import '../services/favorites_service.dart';
+import '../services/backend_reverse_geocode_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/active_ride_store.dart';
 import '../widgets/language_selector.dart';
+import 'map_picker_screen.dart';
 
 class RideRequestScreen extends StatefulWidget {
   final RouteService? routeService;
@@ -33,6 +36,7 @@ class RideRequestScreen extends StatefulWidget {
   final FavoritesService? favoritesService;
   final String? passengerId;
   final SaveAppLanguage? onLanguageSelected;
+  final ReverseGeocodeService? reverseGeocodeService;
   final DateTime Function() now;
   final bool mapIsActive;
 
@@ -45,6 +49,7 @@ class RideRequestScreen extends StatefulWidget {
     this.favoritesService,
     this.passengerId,
     this.onLanguageSelected,
+    this.reverseGeocodeService,
     DateTime Function()? now,
     this.mapIsActive = true,
   }) : routeService = routeService ?? const BackendRouteService(),
@@ -85,6 +90,13 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   String? selectedDestinationPlaceId;
   double? selectedPickupLatitude;
   double? selectedPickupLongitude;
+  double? selectedDestinationLatitude;
+  double? selectedDestinationLongitude;
+  bool _pickupCoordinatesFromMap = false;
+  bool _destinationCoordinatesFromMap = false;
+  int _pickupSelectionRevision = 0;
+  int _destinationSelectionRevision = 0;
+  int _routeCalculationGeneration = 0;
   bool isGettingCurrentLocation = false;
   GoogleMapController? _requestMapController;
   StreamSubscription<Position>? _locationSubscription;
@@ -460,8 +472,10 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   }
 
   void _selectFavoriteAsPickup(FavoritePlace favorite) {
+    _pickupSelectionRevision++;
     setState(() {
       _isManualPickupEntry = false;
+      _pickupCoordinatesFromMap = false;
 
       pickupController.text = favorite.address;
 
@@ -479,8 +493,12 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   }
 
   void _selectFavoriteAsDestination(FavoritePlace favorite) {
+    _destinationSelectionRevision++;
     setState(() {
       destinationController.text = favorite.address;
+      _destinationCoordinatesFromMap = false;
+      selectedDestinationLatitude = null;
+      selectedDestinationLongitude = null;
 
       // При любим адрес маршрутизираме по адрес.
       selectedDestinationPlaceId = null;
@@ -668,6 +686,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   }
 
   void _setPickupToCurrentLocation(LatLng position) {
+    _pickupSelectionRevision++;
+    _pickupCoordinatesFromMap = false;
     selectedPickupPlaceId = null;
     selectedPickupLatitude = position.latitude;
     selectedPickupLongitude = position.longitude;
@@ -685,6 +705,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
   void _onPickupChanged(String input) {
     _pickupDebounce?.cancel();
+    _pickupSelectionRevision++;
+    _pickupCoordinatesFromMap = false;
 
     selectedPickupPlaceId = null;
     selectedPickupLatitude = null;
@@ -707,7 +729,11 @@ class _RideRequestScreenState extends State<RideRequestScreen>
   }
 
   void _onDestinationChanged(String input) {
+    _destinationSelectionRevision++;
     selectedDestinationPlaceId = null;
+    _destinationCoordinatesFromMap = false;
+    selectedDestinationLatitude = null;
+    selectedDestinationLongitude = null;
 
     _destinationDebounce?.cancel();
 
@@ -829,8 +855,14 @@ class _RideRequestScreenState extends State<RideRequestScreen>
     }
 
     final isCurrentLocationPickup = _isCurrentLocationPickupLabel(pickup);
+    final pickupSelectionRevision = _pickupSelectionRevision;
+    final destinationSelectionRevision = _destinationSelectionRevision;
+    final pickupCoordinatesFromMap = _pickupCoordinatesFromMap;
+    final destinationCoordinatesFromMap = _destinationCoordinatesFromMap;
     final pickupLatitude = selectedPickupLatitude;
     final pickupLongitude = selectedPickupLongitude;
+    final destinationLatitude = selectedDestinationLatitude;
+    final destinationLongitude = selectedDestinationLongitude;
     final hasValidPickupCoordinates =
         RideRequestData.isValidPickupCoordinatePair(
           pickupLatitude,
@@ -843,12 +875,38 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       );
       return;
     }
+    if (pickupCoordinatesFromMap && !hasValidPickupCoordinates) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
+      );
+      return;
+    }
+    if (destinationCoordinatesFromMap &&
+        !RideRequestData.isValidDestinationCoordinatePair(
+          destinationLatitude,
+          destinationLongitude,
+        )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppTranslations.destinationCoordinatesUnavailable),
+        ),
+      );
+      return;
+    }
 
-    final requestPickupLatitude = isCurrentLocationPickup
+    final requestPickupLatitude =
+        (isCurrentLocationPickup || pickupCoordinatesFromMap)
         ? pickupLatitude
         : null;
-    final requestPickupLongitude = isCurrentLocationPickup
+    final requestPickupLongitude =
+        (isCurrentLocationPickup || pickupCoordinatesFromMap)
         ? pickupLongitude
+        : null;
+    final requestDestinationLatitude = destinationCoordinatesFromMap
+        ? destinationLatitude
+        : null;
+    final requestDestinationLongitude = destinationCoordinatesFromMap
+        ? destinationLongitude
         : null;
     final pickupPlaceId = selectedPickupPlaceId;
     final destinationPlaceId = selectedDestinationPlaceId;
@@ -860,6 +918,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
         pickupLatitude: requestPickupLatitude,
         pickupLongitude: requestPickupLongitude,
         destination: destination,
+        destinationLatitude: requestDestinationLatitude,
+        destinationLongitude: requestDestinationLongitude,
         passengers: passengers,
         hasLuggage: hasLuggage,
         paymentMethod: paymentMethod,
@@ -875,6 +935,7 @@ class _RideRequestScreenState extends State<RideRequestScreen>
     setState(() {
       isCalculatingRoute = true;
     });
+    final routeCalculationGeneration = ++_routeCalculationGeneration;
 
     try {
       final routeResult = await widget.routeService!.calculateRoute(
@@ -884,14 +945,21 @@ class _RideRequestScreenState extends State<RideRequestScreen>
         destinationPlaceId: destinationPlaceId,
         pickupLatitude: requestPickupLatitude,
         pickupLongitude: requestPickupLongitude,
+        destinationLatitude: requestDestinationLatitude,
+        destinationLongitude: requestDestinationLongitude,
       );
 
       if (!mounted) {
         return;
       }
 
+      if (routeCalculationGeneration != _routeCalculationGeneration) {
+        return;
+      }
+
       if (pickupController.text.trim() != pickup ||
-          selectedPickupPlaceId != pickupPlaceId) {
+          selectedPickupPlaceId != pickupPlaceId ||
+          _pickupSelectionRevision != pickupSelectionRevision) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppTranslations.pickupCoordinatesUnavailable)),
         );
@@ -899,7 +967,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
       }
 
       if (destinationController.text.trim() != destination ||
-          selectedDestinationPlaceId != destinationPlaceId) {
+          selectedDestinationPlaceId != destinationPlaceId ||
+          _destinationSelectionRevision != destinationSelectionRevision) {
         return;
       }
 
@@ -908,12 +977,14 @@ class _RideRequestScreenState extends State<RideRequestScreen>
             routeResult.pickupLatitude,
             routeResult.pickupLongitude,
           );
-      final resolvedPickupLatitude = isCurrentLocationPickup
+      final resolvedPickupLatitude =
+          isCurrentLocationPickup || pickupCoordinatesFromMap
           ? requestPickupLatitude
           : routeHasValidPickupCoordinates
           ? routeResult.pickupLatitude
           : null;
-      final resolvedPickupLongitude = isCurrentLocationPickup
+      final resolvedPickupLongitude =
+          isCurrentLocationPickup || pickupCoordinatesFromMap
           ? requestPickupLongitude
           : routeHasValidPickupCoordinates
           ? routeResult.pickupLongitude
@@ -923,10 +994,14 @@ class _RideRequestScreenState extends State<RideRequestScreen>
             routeResult.destinationLatitude,
             routeResult.destinationLongitude,
           );
-      final resolvedDestinationLatitude = routeHasValidDestinationCoordinates
+      final resolvedDestinationLatitude = destinationCoordinatesFromMap
+          ? requestDestinationLatitude
+          : routeHasValidDestinationCoordinates
           ? routeResult.destinationLatitude
           : null;
-      final resolvedDestinationLongitude = routeHasValidDestinationCoordinates
+      final resolvedDestinationLongitude = destinationCoordinatesFromMap
+          ? requestDestinationLongitude
+          : routeHasValidDestinationCoordinates
           ? routeResult.destinationLongitude
           : null;
 
@@ -940,7 +1015,7 @@ class _RideRequestScreenState extends State<RideRequestScreen>
         routeHasValidDestinationCoordinates,
       );
 
-      if (!isCurrentLocationPickup) {
+      if (!isCurrentLocationPickup && !pickupCoordinatesFromMap) {
         setState(() {
           selectedPickupLatitude = resolvedPickupLatitude;
           selectedPickupLongitude = resolvedPickupLongitude;
@@ -974,7 +1049,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
       await _pushRideSummary(request);
     } catch (error) {
-      if (!mounted) {
+      if (!mounted ||
+          routeCalculationGeneration != _routeCalculationGeneration) {
         return;
       }
 
@@ -992,6 +1068,112 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
   bool _isCurrentLocationPickupLabel(String pickup) =>
       RideRequestData.isCurrentLocationPickupLabel(pickup);
+
+  LatLng get _sofiaMapFallback => const LatLng(42.6977, 23.3219);
+
+  Future<void> _choosePickupOnMap() async {
+    _pickupMenuController.close();
+    _pickupDebounce?.cancel();
+    FocusScope.of(context).unfocus();
+    _routeCalculationGeneration++;
+    final isCurrentLocation = _isCurrentLocationPickupLabel(
+      pickupController.text.trim(),
+    );
+    final hasSelectedCoordinates = RideRequestData.isValidPickupCoordinatePair(
+      selectedPickupLatitude,
+      selectedPickupLongitude,
+    );
+    final selectedPoint =
+        (_pickupCoordinatesFromMap || isCurrentLocation) &&
+            hasSelectedCoordinates
+        ? LatLng(selectedPickupLatitude!, selectedPickupLongitude!)
+        : null;
+    final initialCamera =
+        selectedPoint ?? _currentClientPosition ?? _sofiaMapFallback;
+    unawaited(_setRouteVisible(false));
+    MapPickerResult? result;
+    try {
+      if (!mounted) return;
+      result = await Navigator.of(context).push<MapPickerResult>(
+        MaterialPageRoute<MapPickerResult>(
+          builder: (context) => MapPickerScreen(
+            purpose: MapPickerPurpose.pickup,
+            initialCameraTarget: initialCamera,
+            initialSelectedPoint: selectedPoint,
+            initialAddress: _pickupCoordinatesFromMap || isCurrentLocation
+                ? pickupController.text.trim()
+                : null,
+            reverseGeocodeService: widget.reverseGeocodeService,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        await _setRouteVisible(true);
+      }
+    }
+    if (!mounted || result == null) return;
+    _pickupSelectionRevision++;
+    setState(() {
+      _isManualPickupEntry = false;
+      pickupController.text = result!.address;
+      selectedPickupPlaceId = null;
+      selectedPickupLatitude = result.latitude;
+      selectedPickupLongitude = result.longitude;
+      _pickupCoordinatesFromMap = true;
+      pickupSuggestions = [];
+      isLoadingPickupSuggestions = false;
+    });
+  }
+
+  Future<void> _chooseDestinationOnMap() async {
+    _destinationDebounce?.cancel();
+    FocusScope.of(context).unfocus();
+    _routeCalculationGeneration++;
+    final selectedPoint =
+        _destinationCoordinatesFromMap &&
+            RideRequestData.isValidDestinationCoordinatePair(
+              selectedDestinationLatitude,
+              selectedDestinationLongitude,
+            )
+        ? LatLng(selectedDestinationLatitude!, selectedDestinationLongitude!)
+        : null;
+    final initialCamera =
+        selectedPoint ?? _currentClientPosition ?? _sofiaMapFallback;
+    unawaited(_setRouteVisible(false));
+    MapPickerResult? result;
+    try {
+      if (!mounted) return;
+      result = await Navigator.of(context).push<MapPickerResult>(
+        MaterialPageRoute<MapPickerResult>(
+          builder: (context) => MapPickerScreen(
+            purpose: MapPickerPurpose.destination,
+            initialCameraTarget: initialCamera,
+            initialSelectedPoint: selectedPoint,
+            initialAddress: _destinationCoordinatesFromMap
+                ? destinationController.text.trim()
+                : null,
+            reverseGeocodeService: widget.reverseGeocodeService,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        await _setRouteVisible(true);
+      }
+    }
+    if (!mounted || result == null) return;
+    _destinationSelectionRevision++;
+    setState(() {
+      destinationController.text = result!.address;
+      selectedDestinationPlaceId = null;
+      selectedDestinationLatitude = result.latitude;
+      selectedDestinationLongitude = result.longitude;
+      _destinationCoordinatesFromMap = true;
+      destinationSuggestions = [];
+      isLoadingDestinationSuggestions = false;
+    });
+  }
 
   RouteResult _withValidPickupCoordinatesOrNull(
     RouteResult routeResult,
@@ -1201,12 +1383,23 @@ class _RideRequestScreenState extends State<RideRequestScreen>
 
                         MenuItemButton(
                           leadingIcon: Icon(
+                            Icons.map_outlined,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: _choosePickupOnMap,
+                          child: Text(AppTranslations.chooseOnMap),
+                        ),
+
+                        MenuItemButton(
+                          leadingIcon: Icon(
                             Icons.edit_location_alt_outlined,
                             color: AppColors.primary,
                           ),
                           onPressed: () {
+                            _pickupSelectionRevision++;
                             setState(() {
                               _isManualPickupEntry = true;
+                              _pickupCoordinatesFromMap = false;
 
                               pickupController.clear();
 
@@ -1313,6 +1506,8 @@ class _RideRequestScreenState extends State<RideRequestScreen>
                               onTap: () {
                                 setState(() {
                                   pickupController.text = suggestion.text;
+                                  _pickupSelectionRevision++;
+                                  _pickupCoordinatesFromMap = false;
                                   selectedPickupPlaceId = suggestion.placeId;
                                   selectedPickupLatitude = null;
                                   selectedPickupLongitude = null;
@@ -1352,10 +1547,20 @@ class _RideRequestScreenState extends State<RideRequestScreen>
                       decoration: InputDecoration(
                         labelText: AppTranslations.destinationLocation,
                         prefixIcon: const Icon(Icons.flag),
-                        suffixIcon: IconButton(
-                          tooltip: 'Ð›ÑŽÐ±Ð¸Ð¼Ð¸ Ð°Ð´Ñ€ÐµÑÐ¸',
-                          icon: const Icon(Icons.star_outline),
-                          onPressed: _showDestinationFavorites,
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: AppTranslations.favorites,
+                              icon: const Icon(Icons.star_outline),
+                              onPressed: _showDestinationFavorites,
+                            ),
+                            IconButton(
+                              tooltip: AppTranslations.chooseOnMap,
+                              icon: const Icon(Icons.map_outlined),
+                              onPressed: _chooseDestinationOnMap,
+                            ),
+                          ],
                         ),
                         border: const OutlineInputBorder(),
                       ),
@@ -1387,6 +1592,10 @@ class _RideRequestScreenState extends State<RideRequestScreen>
                               onTap: () {
                                 setState(() {
                                   destinationController.text = suggestion.text;
+                                  _destinationSelectionRevision++;
+                                  _destinationCoordinatesFromMap = false;
+                                  selectedDestinationLatitude = null;
+                                  selectedDestinationLongitude = null;
                                   selectedDestinationPlaceId =
                                       suggestion.placeId;
                                   destinationSuggestions = [];

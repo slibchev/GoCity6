@@ -10,6 +10,8 @@ class MockRouteService implements RouteService {
     String? destinationPlaceId,
     double? pickupLatitude,
     double? pickupLongitude,
+    double? destinationLatitude,
+    double? destinationLongitude,
   }) async {
     return const RouteResult(distanceKm: 10, durationMinutes: 20);
   }
