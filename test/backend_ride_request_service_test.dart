@@ -8,6 +8,7 @@ import 'package:taxi_app/models/ride_request_data.dart';
 import 'package:taxi_app/models/ride_request_status.dart';
 import 'package:taxi_app/models/route_result.dart';
 import 'package:taxi_app/services/backend_ride_request_service.dart';
+import 'package:taxi_app/services/passenger_auth_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taxi_app/models/driver_info.dart';
 
@@ -1118,6 +1119,47 @@ void main() {
       expect(statuses.last, RideRequestStatus.completed);
     }
   });
+
+  test(
+    'status polling retries temporary refresh failures without ending the stream',
+    () async {
+      var authorizationCalls = 0;
+      var statusCalls = 0;
+      final service = BackendRideRequestService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          statusCalls++;
+          expect(request.headers['authorization'], 'Bearer refreshed-token');
+          return jsonResponse(backendRide(status: 'completed'), 200);
+        }),
+        pollInterval: Duration.zero,
+        retryBaseInterval: Duration.zero,
+        maxRetryInterval: Duration.zero,
+        pollDelay: (_) async {},
+        authorizationHeaderProvider: () async {
+          authorizationCalls++;
+          if (authorizationCalls == 1) {
+            throw const PassengerAuthException(
+              PassengerAuthFailure.networkUnavailable,
+            );
+          }
+          return 'Bearer refreshed-token';
+        },
+      );
+
+      final statuses = await service
+          .watchRequestStatus(createRequest(requestId: 'ride-001'))
+          .map((request) => request.status)
+          .toList();
+
+      expect(statuses, [
+        RideRequestStatus.pending,
+        RideRequestStatus.completed,
+      ]);
+      expect(authorizationCalls, 2);
+      expect(statusCalls, 1);
+    },
+  );
 
   test(
     'watchRequestStatus surfaces permanent HTTP and malformed JSON errors',

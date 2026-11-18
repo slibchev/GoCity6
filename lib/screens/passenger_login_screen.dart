@@ -102,12 +102,20 @@ class _PassengerLoginScreenState extends State<PassengerLoginScreen>
     return switch (failure) {
       PassengerAuthFailure.invalidCredentials =>
         AppTranslations.passengerLoginInvalidCredentials,
+      PassengerAuthFailure.invalidPhone =>
+        AppTranslations.passengerPhoneInvalid,
+      PassengerAuthFailure.invalidCode => AppTranslations.passengerCodeInvalid,
+      PassengerAuthFailure.challengeExpired =>
+        AppTranslations.passengerChallengeExpired,
+      PassengerAuthFailure.rateLimited => AppTranslations.passengerRateLimited,
       PassengerAuthFailure.networkUnavailable =>
         AppTranslations.passengerLoginNetworkError,
       PassengerAuthFailure.backendUnavailable =>
         AppTranslations.passengerLoginBackendError,
       PassengerAuthFailure.secureStorage =>
         AppTranslations.passengerLoginStorageError,
+      PassengerAuthFailure.sessionExpired =>
+        AppTranslations.passengerSessionExpired,
       PassengerAuthFailure.invalidResponse =>
         AppTranslations.passengerLoginUnexpectedError,
     };

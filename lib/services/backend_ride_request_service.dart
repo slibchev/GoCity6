@@ -10,6 +10,7 @@ import 'ride_request_service.dart';
 import 'ride_bonus_decision_service.dart';
 import '../models/driver_info.dart';
 import '../models/ride_pickup_district.dart';
+import 'passenger_auth_service.dart';
 
 class _RideStatusHttpException extends StateError {
   _RideStatusHttpException(this.statusCode)
@@ -259,6 +260,11 @@ class BackendRideRequestService
   bool _isRetryableStatusError(Object error) {
     if (error is TimeoutException || error is http.ClientException) {
       return true;
+    }
+
+    if (error is PassengerAuthException) {
+      return error.failure == PassengerAuthFailure.networkUnavailable ||
+          error.failure == PassengerAuthFailure.backendUnavailable;
     }
 
     if (error is _RideStatusHttpException) {

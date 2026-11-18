@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,7 +10,7 @@ import 'localization/translations.dart';
 import 'models/passenger_session.dart';
 import 'screens/city6_intro_screen.dart';
 import 'screens/language_screen.dart';
-import 'screens/passenger_login_screen.dart';
+import 'screens/passenger_phone_auth_screen.dart';
 import 'services/active_ride_store.dart';
 import 'services/backend_ride_request_service.dart';
 import 'services/passenger_auth_service.dart';
@@ -50,7 +52,7 @@ class TaxiApp extends StatefulWidget {
   State<TaxiApp> createState() => _TaxiAppState();
 }
 
-class _TaxiAppState extends State<TaxiApp> {
+class _TaxiAppState extends State<TaxiApp> with WidgetsBindingObserver {
   late final PassengerAuthService _authService;
   late final RideRequestService _rideRequestService;
   late final Future<SharedPreferences> _preferencesFuture;
@@ -61,6 +63,10 @@ class _TaxiAppState extends State<TaxiApp> {
   bool _isCheckingSession = true;
   bool _needsLanguageSelection = false;
   final LanguageSaveQueue _languageSaveQueue = LanguageSaveQueue();
+  bool _isLifecycleForeground = true;
+  bool _foregroundEventSent = false;
+  bool _logoutNeedsNotice = false;
+  DateTime? _lastInteractionActivityAt;
 
   bool _hasKnownLanguage(String? value) =>
       value == 'english' || value == 'bulgarian';
@@ -74,6 +80,10 @@ class _TaxiAppState extends State<TaxiApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _isLifecycleForeground =
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.paused &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.detached;
     _authService = widget.authService ?? PassengerAuthService();
     _preferences = widget.preferences;
     _preferencesFuture = widget.preferences == null
@@ -85,6 +95,55 @@ class _TaxiAppState extends State<TaxiApp> {
           authorizationHeaderProvider: _authService.authorizationHeader,
         );
     _restoreSession();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _isLifecycleForeground = false;
+      _foregroundEventSent = false;
+      return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      final wasForeground = _isLifecycleForeground;
+      _isLifecycleForeground = true;
+      if (!wasForeground) _recordForegroundActivity();
+    }
+  }
+
+  void _recordForegroundActivity() {
+    if (_session == null || !_isLifecycleForeground || _foregroundEventSent) {
+      return;
+    }
+    _foregroundEventSent = true;
+    unawaited(_recordActivitySafely('foreground'));
+  }
+
+  void _recordInteractionActivity() {
+    if (_session == null) return;
+    final now = DateTime.now();
+    final last = _lastInteractionActivityAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 30)) {
+      return;
+    }
+    _lastInteractionActivityAt = now;
+    unawaited(_recordActivitySafely('interaction'));
+  }
+
+  Future<void> _recordActivitySafely(String activityType) async {
+    try {
+      await _authService.recordActivity(activityType);
+    } catch (_) {
+      // Activity reports are best-effort and never block ride interactions.
+    }
   }
 
   Future<void> _restoreSession() async {
@@ -119,6 +178,7 @@ class _TaxiAppState extends State<TaxiApp> {
             restoredSession == null && !_hasKnownLanguage(savedLanguage);
         _isCheckingSession = false;
       });
+      if (restoredSession != null) _recordForegroundActivity();
     } on PassengerAuthException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -168,21 +228,32 @@ class _TaxiAppState extends State<TaxiApp> {
 
   Future<void> _onAuthenticated(PassengerSession session) async {
     if (!mounted) return;
+    _foregroundEventSent = false;
+    _lastInteractionActivityAt = null;
     setState(() {
       _session = session;
       _sessionRestoreError = null;
       _needsLanguageSelection = false;
+      _logoutNeedsNotice = false;
     });
+    _recordForegroundActivity();
   }
 
   Future<void> _logout() async {
-    await _authService.logout();
+    final serverRevoked = await _authService.logout();
     if (!mounted) return;
     setState(() {
       _session = null;
       _sessionRestoreError = null;
+      _logoutNeedsNotice = !serverRevoked;
     });
+    _foregroundEventSent = false;
+    _lastInteractionActivityAt = null;
   }
+
+  String? get _logoutNotice => _logoutNeedsNotice
+      ? AppTranslations.passengerLogoutServerUnavailable
+      : null;
 
   String? get _sessionErrorMessage {
     final error = _sessionRestoreError;
@@ -208,16 +279,22 @@ class _TaxiAppState extends State<TaxiApp> {
           foregroundColor: Colors.white,
         ),
       ),
+      builder: (context, child) => Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _recordInteractionActivity(),
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: _isCheckingSession
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : session == null
           ? _needsLanguageSelection
                 ? LanguageScreen(onLanguageSelected: _saveLanguage)
-                : PassengerLoginScreen(
+                : PassengerPhoneAuthScreen(
                     authService: _authService,
                     onAuthenticated: _onAuthenticated,
                     onLanguageSelected: _saveLanguage,
                     sessionCheckMessage: _sessionErrorMessage,
+                    noticeMessage: _logoutNotice,
                     onRetrySessionCheck: _restoreSession,
                   )
           : FutureBuilder<SharedPreferences>(

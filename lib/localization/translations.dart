@@ -118,6 +118,102 @@ class AppTranslations {
       ? 'Sign in to City6'
       : 'Вход в City6';
 
+  static String get passengerPhoneTitle =>
+      currentLanguage == AppLanguage.english
+      ? 'Continue with your phone'
+      : 'Продължете с телефона си';
+
+  static String get passengerPhoneDescription =>
+      currentLanguage == AppLanguage.english
+      ? 'Enter your international phone number to receive a verification code.'
+      : 'Въведете международния си телефонен номер, за да получите код за потвърждение.';
+
+  static String get passengerPhoneLabel =>
+      currentLanguage == AppLanguage.english
+      ? 'Phone number'
+      : 'Телефонен номер';
+
+  static String get passengerPhoneHint => currentLanguage == AppLanguage.english
+      ? '+359 88 123 4567'
+      : '+359 88 123 4567';
+
+  static String get passengerSendCode =>
+      currentLanguage == AppLanguage.english ? 'SEND CODE' : 'ИЗПРАТИ КОД';
+
+  static String get passengerPhoneInvalid =>
+      currentLanguage == AppLanguage.english
+      ? 'Enter a valid international number beginning with + or 00.'
+      : 'Въведете валиден международен номер, започващ с + или 00.';
+
+  static String get passengerRateLimited =>
+      currentLanguage == AppLanguage.english
+      ? 'Too many attempts. Please wait and try again later.'
+      : 'Твърде много опити. Изчакайте и опитайте отново по-късно.';
+
+  static String get passengerCodeTitle => currentLanguage == AppLanguage.english
+      ? 'Verify your phone'
+      : 'Потвърдете телефона си';
+
+  static String get passengerCodeSentTo =>
+      currentLanguage == AppLanguage.english
+      ? 'We sent a verification code to'
+      : 'Изпратихме код за потвърждение до';
+
+  static String get passengerCodeLabel =>
+      currentLanguage == AppLanguage.english ? '6-digit code' : '6-цифрен код';
+
+  static String get passengerVerifyCode =>
+      currentLanguage == AppLanguage.english ? 'VERIFY' : 'ПОТВЪРДИ';
+
+  static String get passengerResendCode =>
+      currentLanguage == AppLanguage.english
+      ? 'Resend code'
+      : 'Изпрати кода отново';
+
+  static String passengerResendCountdown(int seconds) =>
+      currentLanguage == AppLanguage.english
+      ? 'You can request another message in $seconds seconds'
+      : 'Можете да поискате ново съобщение след $seconds секунди';
+
+  static String passengerCodeExpires(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    final time = '$minutes:${remainder.toString().padLeft(2, '0')}';
+    return currentLanguage == AppLanguage.english
+        ? 'Code expires in $time'
+        : 'Кодът изтича след $time';
+  }
+
+  static String get passengerCodeInvalid =>
+      currentLanguage == AppLanguage.english
+      ? 'The code is invalid or can no longer be used. Check it and try again.'
+      : 'Кодът е невалиден или вече не може да се използва. Проверете го и опитайте отново.';
+
+  static String get passengerChallengeExpired =>
+      currentLanguage == AppLanguage.english
+      ? 'This verification request has expired. Go back and request a new code.'
+      : 'Заявката за потвърждение е изтекла. Върнете се и поискайте нов код.';
+
+  static String get passengerResendMayRepeatCode =>
+      currentLanguage == AppLanguage.english
+      ? 'The message may contain the same code if it is still valid.'
+      : 'Ако кодът все още е валиден, съобщението може да съдържа същия код.';
+
+  static String get passengerChangePhone =>
+      currentLanguage == AppLanguage.english
+      ? 'Change number'
+      : 'Промени номера';
+
+  static String get passengerLogoutServerUnavailable =>
+      currentLanguage == AppLanguage.english
+      ? 'You signed out on this device, but City6 could not confirm that the remote session was revoked.'
+      : 'Излязохте от този телефон, но City6 не успя да потвърди отнемането на сесията от сървъра.';
+
+  static String get passengerSessionExpired =>
+      currentLanguage == AppLanguage.english
+      ? 'Your session is no longer valid. Verify your phone to continue.'
+      : 'Сесията Ви вече не е валидна. Потвърдете телефона си, за да продължите.';
+
   static String get passengerUsername =>
       currentLanguage == AppLanguage.english ? 'Username' : 'Потребителско име';
 

@@ -8,19 +8,19 @@ import 'package:taxi_app/screens/passenger_login_screen.dart';
 import 'package:taxi_app/services/passenger_auth_service.dart';
 
 class LoginScreenTokenStorage implements PassengerTokenStorage {
-  String? token;
+  PassengerStoredCredentials? credentials;
 
   @override
-  Future<String?> readToken() async => token;
+  Future<PassengerStoredCredentials?> readCredentials() async => credentials;
 
   @override
-  Future<void> writeToken(String token) async {
-    this.token = token;
+  Future<void> writeCredentials(PassengerStoredCredentials value) async {
+    credentials = value;
   }
 
   @override
-  Future<void> deleteToken() async {
-    token = null;
+  Future<void> deleteCredentials() async {
+    credentials = null;
   }
 }
 
