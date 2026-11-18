@@ -106,6 +106,30 @@ void main() {
   );
 
   test(
+    'Secure Storage keys isolate E2E credentials without moving old keys',
+    () {
+      expect(
+        FlutterSecurePassengerTokenStorage.sessionKeyForNamespace('default'),
+        'city6.passenger.session.v2',
+      );
+      expect(
+        FlutterSecurePassengerTokenStorage.legacyTokenKeyForNamespace(
+          'default',
+        ),
+        'city6.passenger.accessToken',
+      );
+      expect(
+        FlutterSecurePassengerTokenStorage.sessionKeyForNamespace('e2e'),
+        'city6.passenger.session.v2.e2e',
+      );
+      expect(
+        FlutterSecurePassengerTokenStorage.legacyTokenKeyForNamespace('e2e'),
+        'city6.passenger.accessToken.e2e',
+      );
+    },
+  );
+
+  test(
     'partially inconsistent refresh state is rejected from secure record',
     () {
       final missingCurrentToken = PassengerStoredCredentials.fromJson({

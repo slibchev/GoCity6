@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/driver_info.dart';
@@ -15,10 +16,34 @@ class ActiveRideStore {
   final SharedPreferences preferences;
   final String _storageKey;
 
-  ActiveRideStore(this.preferences, {String? passengerId})
-    : _storageKey = passengerId == null || passengerId.trim().isEmpty
+  ActiveRideStore(
+    this.preferences, {
+    String? passengerId,
+    String storageNamespace = 'default',
+  }) : _storageKey = storageKeyFor(
+         passengerId: passengerId,
+         storageNamespace: storageNamespace,
+       );
+
+  @visibleForTesting
+  static String storageKeyFor({
+    String? passengerId,
+    String storageNamespace = 'default',
+  }) {
+    if (storageNamespace != 'default' && storageNamespace != 'e2e') {
+      throw ArgumentError.value(storageNamespace, 'storageNamespace');
+    }
+    final hasPassengerId = passengerId != null && passengerId.trim().isNotEmpty;
+    if (storageNamespace == 'default') {
+      return !hasPassengerId
           ? _defaultStorageKey
           : 'activeRide:${Uri.encodeComponent(passengerId.trim())}';
+    }
+
+    return hasPassengerId
+        ? 'activeRide:$storageNamespace:${Uri.encodeComponent(passengerId.trim())}'
+        : 'activeRide:$storageNamespace';
+  }
 
   Future<void> save(RideRequestData request) async {
     final saved = await preferences.setString(

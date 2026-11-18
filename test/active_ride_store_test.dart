@@ -15,6 +15,41 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  test('E2E active ride key is isolated from the normal backend key', () async {
+    final preferences = await SharedPreferences.getInstance();
+    final normalStore = ActiveRideStore(preferences, passengerId: '101');
+    final e2eStore = ActiveRideStore(
+      preferences,
+      passengerId: '101',
+      storageNamespace: 'e2e',
+    );
+    final normalRide = RideRequestData(
+      requestId: 'normal-backend-ride',
+      pickup: 'Pickup',
+      destination: 'Destination',
+      passengers: 1,
+      paymentMethod: RidePaymentMethod.cash,
+      rideType: RideType.city,
+      requestedAt: DateTime(2026, 11, 19),
+    );
+
+    await normalStore.save(normalRide);
+    expect(e2eStore.load(), isNull);
+
+    await e2eStore.save(normalRide.copyWith(requestId: 'e2e-backend-ride'));
+
+    expect(normalStore.load()?.requestId, 'normal-backend-ride');
+    expect(e2eStore.load()?.requestId, 'e2e-backend-ride');
+    expect(ActiveRideStore.storageKeyFor(passengerId: '101'), 'activeRide:101');
+    expect(
+      ActiveRideStore.storageKeyFor(
+        passengerId: '101',
+        storageNamespace: 'e2e',
+      ),
+      'activeRide:e2e:101',
+    );
+  });
+
   test('saves and loads complete active ride snapshot', () async {
     final preferences = await SharedPreferences.getInstance();
     final store = ActiveRideStore(preferences);

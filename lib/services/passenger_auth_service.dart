@@ -171,14 +171,43 @@ class FlutterSecurePassengerTokenStorage implements PassengerTokenStorage {
   static const String _legacyTokenKey = 'city6.passenger.accessToken';
 
   final FlutterSecureStorage storage;
+  final String? namespace;
 
   const FlutterSecurePassengerTokenStorage({
     this.storage = const FlutterSecureStorage(),
+    this.namespace,
   });
+
+  String get _resolvedNamespace => namespace ?? BackendConfig.storageNamespace;
+
+  static String _validateNamespace(String value) {
+    if (value != BackendConfig.defaultStorageNamespace &&
+        value != BackendConfig.e2eStorageNamespace) {
+      throw ArgumentError.value(value, 'namespace');
+    }
+    return value;
+  }
+
+  static String sessionKeyForNamespace(String value) {
+    final validated = _validateNamespace(value);
+    return validated == BackendConfig.defaultStorageNamespace
+        ? _sessionKey
+        : '$_sessionKey.${Uri.encodeComponent(validated)}';
+  }
+
+  static String legacyTokenKeyForNamespace(String value) {
+    final validated = _validateNamespace(value);
+    return validated == BackendConfig.defaultStorageNamespace
+        ? _legacyTokenKey
+        : '$_legacyTokenKey.${Uri.encodeComponent(validated)}';
+  }
 
   @override
   Future<PassengerStoredCredentials?> readCredentials() async {
-    final sessionJson = await storage.read(key: _sessionKey);
+    final resolvedNamespace = _resolvedNamespace;
+    final sessionKey = sessionKeyForNamespace(resolvedNamespace);
+    final legacyTokenKey = legacyTokenKeyForNamespace(resolvedNamespace);
+    final sessionJson = await storage.read(key: sessionKey);
     if (sessionJson != null) {
       try {
         final credentials = PassengerStoredCredentials.fromJson(
@@ -195,7 +224,7 @@ class FlutterSecurePassengerTokenStorage implements PassengerTokenStorage {
 
     // Upgrade the previous access-token-only installation only after the
     // Backend verifies it. The legacy value is not removed at this stage.
-    final legacyToken = await storage.read(key: _legacyTokenKey);
+    final legacyToken = await storage.read(key: legacyTokenKey);
     if (legacyToken == null || legacyToken.trim().isEmpty) return null;
     return PassengerStoredCredentials(
       accessToken: legacyToken,
@@ -208,16 +237,17 @@ class FlutterSecurePassengerTokenStorage implements PassengerTokenStorage {
     // One secure-storage value keeps rotated tokens and a pending idempotent
     // refresh operation together across process death.
     await storage.write(
-      key: _sessionKey,
+      key: sessionKeyForNamespace(_resolvedNamespace),
       value: jsonEncode(credentials.toJson()),
     );
-    await storage.delete(key: _legacyTokenKey);
+    await storage.delete(key: legacyTokenKeyForNamespace(_resolvedNamespace));
   }
 
   @override
   Future<void> deleteCredentials() async {
-    await storage.delete(key: _sessionKey);
-    await storage.delete(key: _legacyTokenKey);
+    final resolvedNamespace = _resolvedNamespace;
+    await storage.delete(key: sessionKeyForNamespace(resolvedNamespace));
+    await storage.delete(key: legacyTokenKeyForNamespace(resolvedNamespace));
   }
 
   static int? _readJwtExpiration(String token) {

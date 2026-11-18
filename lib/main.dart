@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/app_config.dart';
+import 'config/backend_config.dart';
 import 'config/colors.dart';
 import 'localization/app_language.dart';
 import 'localization/translations.dart';
@@ -317,6 +318,7 @@ class _TaxiAppState extends State<TaxiApp> with WidgetsBindingObserver {
                   activeRideStore: ActiveRideStore(
                     snapshot.data!,
                     passengerId: session.passengerId,
+                    storageNamespace: BackendConfig.storageNamespace,
                   ),
                   rideRequestService: _rideRequestService,
                   passengerId: session.passengerId,
